@@ -5,8 +5,8 @@ class AppAssets {
   static const _icons = 'assets/icons';
   static const _images = 'assets/images';
 
-  static const logoMark = '$_images/logo_mark.svg';
-  static const logoFull = '$_images/logo_full.svg';
+  static const logoFull = '$_images/logo_full.png';
+  static const logoFullWhite = '$_images/logo_full_white.png';
 
   static const icHeart = '$_icons/ic_heart.svg';
   static const icChat = '$_icons/ic_chat.svg';

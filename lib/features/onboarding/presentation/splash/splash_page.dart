@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/app_assets.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 
@@ -17,10 +18,7 @@ class SplashPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Agapeo',
-              style: context.typography.displayLarge.copyWith(color: Colors.white),
-            ),
+            Image.asset(AppAssets.logoFullWhite, width: 140),
             const SizedBox(height: AppSpacing.lg),
             const CircularProgressIndicator(color: Colors.white),
           ],
