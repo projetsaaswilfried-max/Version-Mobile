@@ -41,6 +41,25 @@ l'addendum.
 `github.com/BespokApps/agapeo-mobile`, séparé du web. Le lien entre les deux se
 fait par la base Supabase partagée et le PRD, pas par un monorepo.
 
+### D4 — Bottom nav : 4 onglets (Fil, Découvrir, Messages, Profil)
+*2026-09-14 · réf. screens-prd.md §1 (PR #2)*
+
+Le PRD ne spécifie **aucune** structure de navigation principale (le web est
+une PWA sans bottom nav ; son seul "onglets" documenté est celui de "Mon
+Compte", §14, sans rapport). La proposition initiale de `screens-prd.md`
+(5 onglets, Notifications inclus) était une inférence non tranchée — corrigée
+ici.
+
+**Cible : 4 onglets** — Fil, Découvrir, Messages, Profil. **Notifications**
+vit dans le header de l'accueil (icône + badge), pas en 5ᵉ onglet — évite de
+diluer la barre pour un écran de consultation, pas une destination
+fréquente. Premium reste hors bottom nav (page dédiée + popups, PRD §11), pas
+un tag Trending.
+
+- `home_shell` (voir arborescence, `CLAUDE.md`) se construit sur ces 4 tabs.
+- Si Notifications a besoin d'un accès plus visible plus tard, revoir cette
+  entrée plutôt que d'ajouter un 5ᵉ onglet sans repasser par ce journal.
+
 ---
 
 ## EN ATTENTE (réponse du porteur produit)
