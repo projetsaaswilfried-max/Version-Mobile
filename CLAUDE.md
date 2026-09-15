@@ -1,8 +1,9 @@
 # Agapeo Mobile
 
 App mobile de dating pour [agapeo.love](https://www.agapeo.love), Flutter.
-Comportement produit : voir `docs/decisions.md` et `docs/mobile-addendum.md`
-(PRD = source de vérité comportementale, addendum = delta mobile).
+Comportement produit : voir `docs/Agapeo-Mobile-PRD.md`, `docs/decisions.md`
+et `docs/mobile-addendum.md` (PRD = source de vérité comportementale,
+addendum = delta mobile). Inventaire des écrans iOS : `docs/screens-prd.md`.
 
 ## Stack
 
