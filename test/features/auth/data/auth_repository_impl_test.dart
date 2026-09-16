@@ -135,7 +135,7 @@ void main() {
     },
   );
 
-  test('signInWithPassword maps other exceptions to UnknownFailure', () async {
+  test('signInWithPassword maps ServerException to ServerFailure', () async {
     datasource.toThrow = const ServerException('boom');
 
     final result = await repository.signInWithPassword(
@@ -144,6 +144,25 @@ void main() {
     );
 
     expect(result, isA<Err<AuthSession>>());
-    expect((result as Err<AuthSession>).failure, isA<UnknownFailure>());
+    final failure = (result as Err<AuthSession>).failure;
+    expect(failure, isA<ServerFailure>());
+    expect(failure.message, 'boom');
   });
+
+  test(
+    'signInWithPassword maps unknown exceptions to UnknownFailure',
+    () async {
+      datasource.toThrow = _UnexpectedException();
+
+      final result = await repository.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      expect(result, isA<Err<AuthSession>>());
+      expect((result as Err<AuthSession>).failure, isA<UnknownFailure>());
+    },
+  );
 }
+
+class _UnexpectedException implements Exception {}

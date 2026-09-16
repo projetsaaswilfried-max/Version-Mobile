@@ -61,7 +61,9 @@ class ForgotPasswordController extends Notifier<ForgotPasswordState> {
   }
 }
 
+/// autoDispose: l'email saisi ne doit pas survivre à la fermeture de
+/// l'écran (ni à une déconnexion).
 final forgotPasswordControllerProvider =
-    NotifierProvider<ForgotPasswordController, ForgotPasswordState>(
+    NotifierProvider.autoDispose<ForgotPasswordController, ForgotPasswordState>(
       ForgotPasswordController.new,
     );

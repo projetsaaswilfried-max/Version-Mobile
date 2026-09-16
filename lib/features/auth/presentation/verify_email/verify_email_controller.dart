@@ -63,7 +63,9 @@ class VerifyEmailController extends Notifier<VerifyEmailState> {
   }
 }
 
+/// autoDispose: l'état ne doit pas survivre à la fermeture de l'écran
+/// (ni à une déconnexion).
 final verifyEmailControllerProvider =
-    NotifierProvider<VerifyEmailController, VerifyEmailState>(
+    NotifierProvider.autoDispose<VerifyEmailController, VerifyEmailState>(
       () => VerifyEmailController(),
     );

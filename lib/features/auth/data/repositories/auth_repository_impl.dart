@@ -19,6 +19,7 @@ class AuthRepositoryImpl implements AuthRepository {
       NetworkException(:final message) => NetworkFailure(message),
       ValidationException(:final message, :final fieldErrors) =>
         ValidationFailure(message, fieldErrors: fieldErrors),
+      ServerException(:final message) => ServerFailure(message),
       _ => const UnknownFailure(),
     };
   }

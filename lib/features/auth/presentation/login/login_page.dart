@@ -18,10 +18,11 @@ class LoginPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(loginControllerProvider, (previous, next) {
       if (!next.succeeded || previous?.succeeded == true) return;
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => SessionStubPage(email: next.email.trim()),
         ),
+        (route) => false,
       );
     });
 

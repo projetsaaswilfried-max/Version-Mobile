@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_assets.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -24,14 +23,12 @@ class OtpPage extends ConsumerStatefulWidget {
 }
 
 class _OtpPageState extends ConsumerState<OtpPage> {
-  final _otpFocus = FocusNode();
   final _otpTextController = TextEditingController();
   Timer? _ticker;
 
   @override
   void dispose() {
     _ticker?.cancel();
-    _otpFocus.dispose();
     _otpTextController.dispose();
     super.dispose();
   }
@@ -55,8 +52,9 @@ class _OtpPageState extends ConsumerState<OtpPage> {
   Widget build(BuildContext context) {
     ref.listen(otpControllerProvider, (previous, next) {
       if (!next.succeeded || previous?.succeeded == true) return;
-      Navigator.of(context).pushReplacement(
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => SessionStubPage(email: widget.email)),
+        (route) => false,
       );
     });
 
@@ -103,39 +101,18 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxl),
-              Semantics(
+              AppTextField(
                 label: 'Code de confirmation à 6 chiffres',
-                textField: true,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _otpFocus.requestFocus(),
-                      child: ExcludeSemantics(
-                        child: _OtpBoxes(
-                          value: state.otp,
-                          hasError: state.fieldErrors['otp'] != null,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppTextField(
-                      controller: _otpTextController,
-                      focusNode: _otpFocus,
-                      autofocus: true,
-                      hint: '000000',
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.done,
-                      autofillHints: const [AutofillHints.oneTimeCode],
-                      maxLength: 6,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      errorText: state.fieldErrors['otp'],
-                      onChanged: controller.setOtp,
-                    ),
-                  ],
-                ),
+                controller: _otpTextController,
+                autofocus: true,
+                hint: '000000',
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.oneTimeCode],
+                maxLength: 6,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                errorText: state.fieldErrors['otp'],
+                onChanged: controller.setOtp,
               ),
               const SizedBox(height: AppSpacing.xl),
               AppButton(
@@ -183,52 +160,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _OtpBoxes extends StatelessWidget {
-  const _OtpBoxes({required this.value, required this.hasError});
-
-  final String value;
-  final bool hasError;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final typography = context.typography;
-
-    return Row(
-      children: List.generate(6, (index) {
-        final filled = index < value.length;
-        final isCurrent =
-            index == value.length || (value.length == 6 && index == 5);
-        final borderColor = hasError
-            ? colors.error
-            : (isCurrent ? colors.primary : colors.border);
-
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index == 5 ? 0 : AppSpacing.sm),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  borderRadius: AppRadius.mdRadius,
-                  border: Border.all(color: borderColor, width: 1.5),
-                ),
-                child: Center(
-                  child: Text(
-                    filled ? value[index] : '',
-                    style: typography.headline.copyWith(color: colors.primary),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }),
     );
   }
 }

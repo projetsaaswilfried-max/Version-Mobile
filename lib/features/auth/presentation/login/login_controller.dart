@@ -60,6 +60,9 @@ class LoginController extends Notifier<LoginState> {
   }
 }
 
-final loginControllerProvider = NotifierProvider<LoginController, LoginState>(
-  LoginController.new,
-);
+/// autoDispose: les identifiants saisis ne doivent pas survivre à la
+/// fermeture de l'écran (ni à une déconnexion).
+final loginControllerProvider =
+    NotifierProvider.autoDispose<LoginController, LoginState>(
+      LoginController.new,
+    );

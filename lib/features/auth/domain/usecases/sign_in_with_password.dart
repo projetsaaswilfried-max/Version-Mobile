@@ -14,7 +14,11 @@ class SignInWithPassword {
     required String password,
   }) async {
     final emailError = AuthValidators.email(email);
-    final passwordError = AuthValidators.password(password);
+    // Pas de règles de robustesse à la connexion : un mot de passe créé
+    // avant durcissement de la politique doit rester utilisable.
+    final passwordError = password.isEmpty
+        ? 'Le mot de passe est requis.'
+        : null;
     if (emailError != null || passwordError != null) {
       return Err(
         ValidationFailure(

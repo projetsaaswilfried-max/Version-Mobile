@@ -108,28 +108,59 @@ class SupabaseAuthDataSource implements AuthRemoteDataSource {
 
   @override
   Future<void> signOut() async {
-    await _client.auth.signOut();
+    try {
+      await _client.auth.signOut();
+    } on AuthException catch (e) {
+      throw _mapAuthException(e);
+    }
   }
 
+  static const _invalidCredentials = UnauthorizedException(
+    'Email ou mot de passe incorrect.',
+  );
+  static const _emailNotConfirmed = UnauthorizedException(
+    'Email non confirmé. Vérifie ta boîte mail ou saisis le code.',
+  );
+  static const _userAlreadyExists = ValidationException(
+    'Un compte existe déjà avec cet email.',
+    fieldErrors: {'email': 'Un compte existe déjà avec cet email.'},
+  );
+  static const _rateLimited = ServerException(
+    'Trop de demandes. Réessaie dans quelques minutes.',
+  );
+
+  /// `AuthException.code` est la source la plus fiable ; le message n'est
+  /// utilisé qu'en repli (codes absents sur les anciennes réponses GoTrue).
   Exception _mapAuthException(AuthException e) {
+    switch (e.code) {
+      case 'invalid_credentials':
+        return _invalidCredentials;
+      case 'email_not_confirmed':
+        return _emailNotConfirmed;
+      case 'user_already_exists':
+        return _userAlreadyExists;
+      case 'over_email_send_rate_limit':
+        return _rateLimited;
+    }
+
     final msg = e.message.toLowerCase();
     if (msg.contains('invalid login') || msg.contains('invalid credentials')) {
-      return const UnauthorizedException('Email ou mot de passe incorrect.');
+      return _invalidCredentials;
     }
     if (msg.contains('email not confirmed')) {
-      return const UnauthorizedException(
-        'Email non confirmé. Vérifie ta boîte mail ou saisis le code.',
-      );
+      return _emailNotConfirmed;
     }
     if (msg.contains('user already registered')) {
-      return const ValidationException(
-        'Un compte existe déjà avec cet email.',
-        fieldErrors: {'email': 'Un compte existe déjà avec cet email.'},
-      );
+      return _userAlreadyExists;
+    }
+    if (msg.contains('rate limit')) {
+      return _rateLimited;
     }
     if (msg.contains('network') || msg.contains('socket')) {
       return NetworkException(e.message);
     }
-    return ServerException(e.message);
+    return e.message.trim().isEmpty
+        ? const ServerException('Une erreur serveur est survenue.')
+        : ServerException(e.message);
   }
 }

@@ -83,6 +83,9 @@ class OtpController extends Notifier<OtpState> {
   }
 }
 
-final otpControllerProvider = NotifierProvider<OtpController, OtpState>(
-  () => OtpController(),
-);
+/// autoDispose: le code saisi ne doit pas survivre à la fermeture de
+/// l'écran (ni à une déconnexion).
+final otpControllerProvider =
+    NotifierProvider.autoDispose<OtpController, OtpState>(
+      () => OtpController(),
+    );

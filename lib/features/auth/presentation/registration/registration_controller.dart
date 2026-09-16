@@ -113,7 +113,9 @@ class RegistrationController extends Notifier<RegistrationState> {
   }
 }
 
+/// autoDispose: les identifiants saisis ne doivent pas survivre à la
+/// fermeture de l'écran (ni à une déconnexion).
 final registrationControllerProvider =
-    NotifierProvider<RegistrationController, RegistrationState>(
+    NotifierProvider.autoDispose<RegistrationController, RegistrationState>(
       RegistrationController.new,
     );
