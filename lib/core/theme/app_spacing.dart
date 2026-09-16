@@ -9,4 +9,7 @@ class AppSpacing {
   static const double xl = 24;
   static const double xxl = 32;
   static const double xxxl = 48;
+
+  /// Standard tappable height for primary/secondary CTAs.
+  static const double buttonHeight = 52;
 }
