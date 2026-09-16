@@ -1,3 +1,4 @@
+import 'package:agapeo/core/config/app_environment.dart';
 import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/features/auth/di/auth_providers.dart';
@@ -119,4 +120,27 @@ void main() {
 
     expect(c.state.fieldErrors['email'], isNull);
   });
+
+  test(
+    'submit without a configured Supabase repo resets isLoading and sets formError '
+    '(regression: _UnconfiguredAuthRepository used to throw uncaught, leaving the CTA spinning forever)',
+    () async {
+      try {
+        AppEnvironment.init();
+      } catch (_) {
+        // Already initialized by another test in this VM.
+      }
+      final unconfiguredContainer = ProviderContainer();
+      addTearDown(unconfiguredContainer.dispose);
+      final c = unconfiguredContainer.read(loginControllerProvider.notifier);
+      c.setEmail('a@b.co');
+      c.setPassword('Abcdefg1');
+
+      await c.submit();
+
+      expect(c.state.isLoading, false);
+      expect(c.state.succeeded, false);
+      expect(c.state.formError, isNotNull);
+    },
+  );
 }
