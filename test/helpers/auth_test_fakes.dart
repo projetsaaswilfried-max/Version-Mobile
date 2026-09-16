@@ -41,7 +41,7 @@ class FakeAuthRepository implements AuthRepository {
       throw UnimplementedError();
 
   @override
-  Future<Result<void>> signOut() => throw UnimplementedError();
+  Future<Result<void>> signOut() async => const Ok(null);
 }
 
 class FakeAgeGateStore implements AgeGateStore {

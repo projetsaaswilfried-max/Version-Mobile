@@ -55,7 +55,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
           children: [
             Image.asset(AppAssets.logoFullWhite, width: 140),
             const SizedBox(height: AppSpacing.lg),
-            const CircularProgressIndicator(color: Colors.white),
+            CircularProgressIndicator(color: context.colors.surface),
           ],
         ),
       ),

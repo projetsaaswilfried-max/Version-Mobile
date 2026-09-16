@@ -18,6 +18,7 @@ void main() {
   testWidgets('shows connect CTA and tagline', (tester) async {
     await pumpWelcome(tester);
 
+    expect(find.text('Bienvenue'), findsOneWidget);
     expect(find.text('Se connecter'), findsOneWidget);
     expect(find.text('Créer un compte'), findsOneWidget);
     expect(

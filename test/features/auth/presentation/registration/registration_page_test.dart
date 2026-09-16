@@ -1,5 +1,6 @@
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
+import 'package:agapeo/core/widgets/app_text_field.dart';
 import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:agapeo/features/auth/domain/repositories/auth_repository.dart';
@@ -62,6 +63,7 @@ void main() {
       ),
     );
 
+    expect(find.byType(AppTextField), findsNWidgets(5));
     expect(find.text('Prénom'), findsOneWidget);
     expect(find.text('Nom (optionnel)'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
