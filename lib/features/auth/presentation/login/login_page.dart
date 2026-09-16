@@ -6,6 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../forgot_password/forgot_password_page.dart';
+import '../otp/otp_page.dart';
 import '../registration/registration_page.dart';
 import '../session_stub/session_stub_page.dart';
 import '../widgets/google_auth_button.dart';
@@ -136,6 +137,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         style: typography.bodyMedium.copyWith(
                           color: colors.error,
                         ),
+                      ),
+                    ],
+                    if (state.emailNotConfirmed) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      AppButton(
+                        label: 'Confirmer mon compte',
+                        variant: AppButtonVariant.secondary,
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  OtpPage(email: state.email.trim()),
+                            ),
+                          );
+                        },
                       ),
                     ],
                     const SizedBox(height: AppSpacing.xxl),

@@ -19,6 +19,15 @@ class UnauthorizedException implements Exception {
   final String message;
 }
 
+/// Login attempted before the signup OTP/link was confirmed. Distinct from
+/// [UnauthorizedException] so the UI can offer a way back to the OTP screen
+/// instead of just showing an error the member can't act on.
+class EmailNotConfirmedException implements Exception {
+  const EmailNotConfirmedException([this.message = 'Email non confirmé.']);
+
+  final String message;
+}
+
 class ValidationException implements Exception {
   const ValidationException(this.message, {this.fieldErrors});
 

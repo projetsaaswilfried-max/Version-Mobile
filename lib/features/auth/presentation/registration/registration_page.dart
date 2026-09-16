@@ -30,7 +30,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
     ref.listen(registrationControllerProvider, (previous, next) {
       if (!next.succeeded || previous?.succeeded == true) return;
       final nextPage = AppEnvironment.current.hasSupabase
-          ? OtpPage(email: next.email.trim(), password: next.password)
+          ? OtpPage(email: next.email.trim())
           : const OnboardingFlowPage();
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => nextPage),

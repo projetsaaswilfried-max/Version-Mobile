@@ -24,6 +24,12 @@ class UnauthorizedFailure extends Failure {
   const UnauthorizedFailure([super.message = 'Session expirée.']);
 }
 
+/// Login attempted before the signup OTP/link was confirmed. Distinct from
+/// [UnauthorizedFailure] so the UI can offer a way back to the OTP screen.
+class EmailNotConfirmedFailure extends Failure {
+  const EmailNotConfirmedFailure([super.message = 'Email non confirmé.']);
+}
+
 class ValidationFailure extends Failure {
   const ValidationFailure(super.message, {this.fieldErrors});
 

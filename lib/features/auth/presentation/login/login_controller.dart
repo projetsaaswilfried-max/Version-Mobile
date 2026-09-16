@@ -38,6 +38,7 @@ class LoginController extends Notifier<LoginState> {
       fieldErrors: const {},
       formError: null,
       succeeded: false,
+      emailNotConfirmed: false,
     );
 
     final result = await ref.read(signInWithPasswordProvider)(
@@ -55,6 +56,7 @@ class LoginController extends Notifier<LoginState> {
               ? Map<String, String>.from(failure.fieldErrors ?? const {})
               : const {},
           formError: failure.message,
+          emailNotConfirmed: failure is EmailNotConfirmedFailure,
         );
     }
   }

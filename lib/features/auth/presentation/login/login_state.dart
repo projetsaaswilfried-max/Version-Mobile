@@ -8,6 +8,7 @@ class LoginState extends Equatable {
     this.fieldErrors = const {},
     this.formError,
     this.succeeded = false,
+    this.emailNotConfirmed = false,
   });
 
   final String email;
@@ -17,6 +18,11 @@ class LoginState extends Equatable {
   final String? formError;
   final bool succeeded;
 
+  /// True when the last attempt failed because the signup OTP/link was
+  /// never confirmed — drives a CTA back to the OTP screen instead of a
+  /// dead-end error (the member can't otherwise get back there).
+  final bool emailNotConfirmed;
+
   LoginState copyWith({
     String? email,
     String? password,
@@ -24,6 +30,7 @@ class LoginState extends Equatable {
     Map<String, String>? fieldErrors,
     Object? formError = _unset,
     bool? succeeded,
+    bool? emailNotConfirmed,
   }) {
     return LoginState(
       email: email ?? this.email,
@@ -34,6 +41,7 @@ class LoginState extends Equatable {
           ? this.formError
           : formError as String?,
       succeeded: succeeded ?? this.succeeded,
+      emailNotConfirmed: emailNotConfirmed ?? this.emailNotConfirmed,
     );
   }
 
@@ -45,6 +53,7 @@ class LoginState extends Equatable {
     fieldErrors,
     formError,
     succeeded,
+    emailNotConfirmed,
   ];
 }
 

@@ -11,14 +11,12 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../session_stub/session_stub_page.dart';
-import '../verify_email/verify_email_page.dart';
 import 'otp_controller.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
-  const OtpPage({super.key, required this.email, required this.password});
+  const OtpPage({super.key, required this.email});
 
   final String email;
-  final String password;
 
   @override
   ConsumerState<OtpPage> createState() => _OtpPageState();
@@ -198,21 +196,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                           ? null
                           : () => controller.resend(email: widget.email),
                       isLoading: state.isResending,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    AppButton(
-                      label: "Tu n'as pas reçu de code ?",
-                      variant: AppButtonVariant.text,
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => VerifyEmailPage(
-                              email: widget.email,
-                              password: widget.password,
-                            ),
-                          ),
-                        );
-                      },
                     ),
                   ],
                 ),

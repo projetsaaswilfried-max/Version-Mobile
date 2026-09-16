@@ -157,4 +157,36 @@ void main() {
       expect(c.state.formError, isNotNull);
     },
   );
+
+  test(
+    'submit maps EmailNotConfirmedFailure to emailNotConfirmed flag',
+    () async {
+      repo.signInResult = const Err(
+        EmailNotConfirmedFailure('Email non confirmé.'),
+      );
+      final c = controller();
+      c.setEmail('a@b.co');
+      c.setPassword('Abcdefg1');
+
+      await c.submit();
+
+      expect(c.state.emailNotConfirmed, isTrue);
+      expect(c.state.formError, 'Email non confirmé.');
+      expect(c.state.succeeded, false);
+    },
+  );
+
+  test('a later non-confirmation failure clears emailNotConfirmed', () async {
+    repo.signInResult = const Err(EmailNotConfirmedFailure());
+    final c = controller();
+    c.setEmail('a@b.co');
+    c.setPassword('Abcdefg1');
+    await c.submit();
+    expect(c.state.emailNotConfirmed, isTrue);
+
+    repo.signInResult = const Err(UnauthorizedFailure('Mot de passe incorrect.'));
+    await c.submit();
+
+    expect(c.state.emailNotConfirmed, isFalse);
+  });
 }

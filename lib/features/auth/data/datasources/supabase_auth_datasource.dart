@@ -181,8 +181,8 @@ class SupabaseAuthDataSource implements AuthRemoteDataSource {
   static const _invalidCredentials = UnauthorizedException(
     'Email ou mot de passe incorrect.',
   );
-  static const _emailNotConfirmed = UnauthorizedException(
-    'Email non confirmé. Vérifie ta boîte mail ou saisis le code.',
+  static const _emailNotConfirmed = EmailNotConfirmedException(
+    'Email non confirmé. Confirme ton compte pour continuer.',
   );
   static const _userAlreadyExists = ValidationException(
     'Un compte existe déjà avec cet email.',

@@ -10,7 +10,6 @@ import 'package:agapeo/features/auth/presentation/login/login_page.dart';
 import 'package:agapeo/features/auth/presentation/otp/otp_controller.dart';
 import 'package:agapeo/features/auth/presentation/registration/registration_controller.dart';
 import 'package:agapeo/features/auth/presentation/session_stub/session_stub_page.dart';
-import 'package:agapeo/features/auth/presentation/verify_email/verify_email_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,7 +76,6 @@ void main() {
     expect(loginControllerProvider.isAutoDispose, isTrue);
     expect(registrationControllerProvider.isAutoDispose, isTrue);
     expect(otpControllerProvider.isAutoDispose, isTrue);
-    expect(verifyEmailControllerProvider.isAutoDispose, isTrue);
     expect(forgotPasswordControllerProvider.isAutoDispose, isTrue);
   });
 
