@@ -54,8 +54,8 @@ class _UnconfiguredAuthRepository implements AuthRepository {
     required String password,
     required String firstName,
     String? lastName,
-  }) =>
-      throw StateError('Supabase is not configured');
+  }) async =>
+      const Ok(null);
 
   @override
   Future<Result<AuthSession>> verifyEmailOtp({

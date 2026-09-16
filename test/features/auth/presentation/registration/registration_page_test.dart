@@ -1,3 +1,4 @@
+import 'package:agapeo/core/config/app_environment.dart';
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/core/widgets/app_text_field.dart';
@@ -7,6 +8,7 @@ import 'package:agapeo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:agapeo/features/auth/presentation/otp/otp_page.dart';
 import 'package:agapeo/features/auth/presentation/registration/registration_controller.dart';
 import 'package:agapeo/features/auth/presentation/registration/registration_page.dart';
+import 'package:agapeo/features/onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -51,6 +53,12 @@ class _FakeAuthRepository implements AuthRepository {
 }
 
 void main() {
+  setUpAll(() {
+    try {
+      AppEnvironment.init();
+    } catch (_) {}
+  });
+
   testWidgets('shows registration fields, legal links and Google', (
     tester,
   ) async {
@@ -79,37 +87,40 @@ void main() {
     expect(find.text('toi@email.com'), findsNothing);
   });
 
-  testWidgets('success replaces with OtpPage without showing password', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
-        ],
-        child: MaterialApp(
-          theme: AppTheme.light,
-          home: const RegistrationPage(),
+  testWidgets(
+    'success without Supabase opens profile onboarding (not OTP)',
+    (tester) async {
+      expect(AppEnvironment.current.hasSupabase, isFalse);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const RegistrationPage(),
+          ),
         ),
-      ),
-    );
+      );
 
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(RegistrationPage)),
-    );
-    final controller = container.read(registrationControllerProvider.notifier);
-    controller.setFirstName('Jean');
-    controller.setEmail('a@b.co');
-    controller.setPassword('Abcdefg1');
-    controller.setPasswordConfirm('Abcdefg1');
-    controller.setAcceptedTerms(true);
-    controller.setAcceptedCharter(true);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(RegistrationPage)),
+      );
+      final controller = container.read(registrationControllerProvider.notifier);
+      controller.setFirstName('Jean');
+      controller.setEmail('a@b.co');
+      controller.setPassword('Abcdefg1');
+      controller.setPasswordConfirm('Abcdefg1');
+      controller.setAcceptedTerms(true);
+      controller.setAcceptedCharter(true);
 
-    await controller.submit();
-    await tester.pumpAndSettle();
+      await controller.submit();
+      await tester.pumpAndSettle();
 
-    expect(find.byType(OtpPage), findsOneWidget);
-    expect(find.text('a@b.co'), findsOneWidget);
-    expect(find.text('Abcdefg1'), findsNothing);
-  });
+      expect(find.byType(OnboardingFlowPage), findsOneWidget);
+      expect(find.byType(OtpPage), findsNothing);
+      expect(find.text('Informations essentielles'), findsOneWidget);
+    },
+  );
 }
