@@ -4,6 +4,7 @@ import '../../../../core/config/app_assets.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../login/login_page.dart';
 import '../registration/registration_page.dart';
 
 class WelcomePage extends StatelessWidget {
@@ -30,7 +31,7 @@ class WelcomePage extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Connexion et inscription seront finalisées ensuite.',
+                'Des rencontres sincères pour bâtir un foyer chrétien.',
                 textAlign: TextAlign.center,
                 style: context.typography.bodyMedium.copyWith(
                   color: context.colors.textSecondary,
@@ -38,7 +39,17 @@ class WelcomePage extends StatelessWidget {
               ),
               const Spacer(),
               AppButton(
-                label: 'Inscription',
+                label: 'Se connecter',
+                onPressed: () {
+                  Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
+                label: 'Créer un compte',
+                variant: AppButtonVariant.text,
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const RegistrationPage()),
