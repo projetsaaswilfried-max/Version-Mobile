@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/config/legal_urls.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
 import '../login/login_page.dart';
 import '../otp/otp_page.dart';
 import '../widgets/google_sign_in_button.dart';
@@ -27,11 +29,11 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
   Widget build(BuildContext context) {
     ref.listen(registrationControllerProvider, (previous, next) {
       if (!next.succeeded || previous?.succeeded == true) return;
+      final nextPage = AppEnvironment.current.hasSupabase
+          ? OtpPage(email: next.email.trim(), password: next.password)
+          : const OnboardingFlowPage();
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) =>
-              OtpPage(email: next.email.trim(), password: next.password),
-        ),
+        MaterialPageRoute(builder: (_) => nextPage),
       );
     });
 

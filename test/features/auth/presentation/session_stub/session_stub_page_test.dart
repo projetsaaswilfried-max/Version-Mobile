@@ -24,6 +24,7 @@ void main() {
 
     expect(find.text('Session'), findsOneWidget);
     expect(find.text('a@b.co'), findsOneWidget);
+    expect(find.text('Continuer l\'onboarding'), findsOneWidget);
     expect(find.text('Déconnexion'), findsOneWidget);
 
     await tester.tap(find.text('Déconnexion'));

@@ -6,6 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../di/auth_providers.dart';
+import '../../../onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
 import '../welcome/welcome_page.dart';
 
 class SessionStubPage extends ConsumerWidget {
@@ -49,7 +50,19 @@ class SessionStubPage extends ConsumerWidget {
               ),
               const Spacer(),
               AppButton(
+                label: 'Continuer l\'onboarding',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const OnboardingFlowPage(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppButton(
                 label: 'Déconnexion',
+                variant: AppButtonVariant.secondary,
                 onPressed: () => _signOut(context, ref),
               ),
             ],

@@ -33,4 +33,8 @@ class AppEnvironment {
   }
 
   bool get isProd => flavor == AppFlavor.prod;
+
+  /// False when dart-defines are missing (local UI without backend).
+  bool get hasSupabase =>
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 }
