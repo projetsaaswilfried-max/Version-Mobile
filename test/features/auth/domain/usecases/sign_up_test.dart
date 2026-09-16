@@ -76,7 +76,7 @@ void main() {
         acceptedCharter: acceptedCharter,
       );
 
-  test('rejects unchecked CGU with acceptedTerms field error', () async {
+  test('rejects unchecked legal consent with acceptedTerms field error', () async {
     final result = await validCall(acceptedTerms: false);
 
     expect(result, isA<Err<void>>());
@@ -89,13 +89,13 @@ void main() {
     expect(repo.signUpCalled, isFalse);
   });
 
-  test('rejects unchecked charter with acceptedCharter field error', () async {
+  test('rejects unchecked charter with acceptedTerms field error', () async {
     final result = await validCall(acceptedCharter: false);
 
     expect(result, isA<Err<void>>());
     final failure = (result as Err<void>).failure;
     expect(
-      (failure as ValidationFailure).fieldErrors?['acceptedCharter'],
+      (failure as ValidationFailure).fieldErrors?['acceptedTerms'],
       isNotNull,
     );
     expect(repo.signUpCalled, isFalse);

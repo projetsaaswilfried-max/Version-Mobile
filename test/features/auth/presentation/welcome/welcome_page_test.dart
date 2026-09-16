@@ -15,12 +15,14 @@ void main() {
     );
   }
 
-  testWidgets('shows connect CTA and tagline', (tester) async {
+  testWidgets('shows Nestle-style CTAs, Google and tagline', (tester) async {
     await pumpWelcome(tester);
 
     expect(find.text('Bienvenue'), findsOneWidget);
-    expect(find.text('Se connecter'), findsOneWidget);
     expect(find.text('Créer un compte'), findsOneWidget);
+    expect(find.text('Se connecter'), findsOneWidget);
+    expect(find.text('ou continuer avec'), findsOneWidget);
+    expect(find.bySemanticsLabel('Continuer avec Google'), findsOneWidget);
     expect(
       find.text('Des rencontres sincères pour bâtir un foyer chrétien.'),
       findsOneWidget,
@@ -43,5 +45,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RegistrationPage), findsOneWidget);
+  });
+
+  testWidgets('Google shows coming soon snackbar', (tester) async {
+    await pumpWelcome(tester);
+
+    await tester.tap(find.bySemanticsLabel('Continuer avec Google'));
+    await tester.pump();
+
+    expect(find.text('Connexion Google bientôt disponible.'), findsOneWidget);
   });
 }

@@ -25,18 +25,16 @@ class SignUp {
     final passwordConfirmError = password != passwordConfirm
         ? 'Les mots de passe ne correspondent pas.'
         : null;
-    final termsError =
-        !acceptedTerms ? 'Tu dois accepter les CGU.' : null;
-    final charterError =
-        !acceptedCharter ? 'Tu dois accepter la charte d\'éthique.' : null;
+    final legalError = (!acceptedTerms || !acceptedCharter)
+        ? 'Tu dois accepter les conditions générales d\'utilisation et la charte d\'éthique.'
+        : null;
 
     final fieldErrors = {
       if (emailError != null) 'email': emailError,
       if (passwordError != null) 'password': passwordError,
       if (firstNameError != null) 'firstName': firstNameError,
       if (passwordConfirmError != null) 'passwordConfirm': passwordConfirmError,
-      if (termsError != null) 'acceptedTerms': termsError,
-      if (charterError != null) 'acceptedCharter': charterError,
+      if (legalError != null) 'acceptedTerms': legalError,
     };
 
     if (fieldErrors.isNotEmpty) {

@@ -36,7 +36,6 @@ class ForgotPasswordPage extends ConsumerWidget {
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
                 label: 'Email',
-                hint: 'toi@email.com',
                 keyboardType: TextInputType.emailAddress,
                 errorText: state.fieldErrors['email'],
                 onChanged: controller.setEmail,

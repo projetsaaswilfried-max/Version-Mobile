@@ -22,6 +22,7 @@ class AppTextField extends StatelessWidget {
     this.autofillHints,
     this.errorText,
     this.onChanged,
+    this.suffixIcon,
   });
 
   final String? label;
@@ -37,6 +38,7 @@ class AppTextField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final String? errorText;
   final ValueChanged<String>? onChanged;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -61,9 +63,13 @@ class AppTextField extends StatelessWidget {
           style: context.typography.bodyLarge,
           buildCounter: maxLength != null
               ? (_, {required currentLength, required isFocused, maxLength}) =>
-                  null
+                    null
               : null,
-          decoration: InputDecoration(hintText: hint, errorText: errorText),
+          decoration: InputDecoration(
+            hintText: hint,
+            errorText: errorText,
+            suffixIcon: suffixIcon,
+          ),
         ),
       ],
     );

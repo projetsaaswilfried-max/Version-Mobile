@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_assets.dart';
-import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/di/auth_providers.dart';
 import '../../../auth/presentation/session_stub/session_stub_page.dart';
@@ -53,14 +52,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
     return Scaffold(
       backgroundColor: context.colors.primary,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(AppAssets.logoFullWhite, width: 140),
-            const SizedBox(height: AppSpacing.lg),
-            CircularProgressIndicator(color: context.colors.surface),
-          ],
-        ),
+        child: Image.asset(AppAssets.logoFullWhite, width: 140),
       ),
     );
   }

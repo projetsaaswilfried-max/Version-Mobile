@@ -58,9 +58,11 @@ class RegistrationController extends Notifier<RegistrationState> {
 
   void setAcceptedTerms(bool value) {
     final errors = Map<String, String>.from(state.fieldErrors)
-      ..remove('acceptedTerms');
+      ..remove('acceptedTerms')
+      ..remove('acceptedCharter');
     state = state.copyWith(
       acceptedTerms: value,
+      acceptedCharter: value,
       fieldErrors: errors,
       formError: null,
       succeeded: false,
@@ -68,14 +70,7 @@ class RegistrationController extends Notifier<RegistrationState> {
   }
 
   void setAcceptedCharter(bool value) {
-    final errors = Map<String, String>.from(state.fieldErrors)
-      ..remove('acceptedCharter');
-    state = state.copyWith(
-      acceptedCharter: value,
-      fieldErrors: errors,
-      formError: null,
-      succeeded: false,
-    );
+    setAcceptedTerms(value);
   }
 
   Future<void> submit() async {

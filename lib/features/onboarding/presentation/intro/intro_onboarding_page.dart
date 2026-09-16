@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_assets.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -9,24 +10,32 @@ import '../../../auth/presentation/welcome/welcome_page.dart';
 import '../../di/onboarding_providers.dart';
 
 class _IntroSlideData {
-  const _IntroSlideData({required this.title, required this.subtitle});
+  const _IntroSlideData({
+    required this.title,
+    required this.subtitle,
+    required this.imageAsset,
+  });
 
   final String title;
   final String subtitle;
+  final String imageAsset;
 }
 
 const _slides = <_IntroSlideData>[
   _IntroSlideData(
     title: 'Rencontres sincères',
     subtitle: 'Des profils qui cherchent le mariage, dans la foi.',
+    imageAsset: AppAssets.introSlide1,
   ),
   _IntroSlideData(
     title: 'La foi au centre',
     subtitle: 'Confession, valeurs et projet de vie alignés.',
+    imageAsset: AppAssets.introSlide2,
   ),
   _IntroSlideData(
     title: 'Prêt à commencer',
     subtitle: 'Crée ton compte ou connecte-toi en toute simplicité.',
+    imageAsset: AppAssets.introSlide3,
   ),
 ];
 
@@ -106,24 +115,14 @@ class _IntroOnboardingPageState extends ConsumerState<IntroOnboardingPage> {
                       children: [
                         Expanded(
                           flex: 55,
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  colors.primaryLight,
-                                  colors.primary,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(AppRadius.xl),
-                            ),
-                            child: Center(
-                              child: Icon(
-                                Icons.favorite_rounded,
-                                size: 88,
-                                color: colors.surface.withValues(alpha: 0.92),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
+                            child: ColoredBox(
+                              color: colors.background,
+                              child: Image.asset(
+                                slide.imageAsset,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
                               ),
                             ),
                           ),

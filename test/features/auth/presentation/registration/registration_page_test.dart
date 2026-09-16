@@ -51,7 +51,7 @@ class _FakeAuthRepository implements AuthRepository {
 }
 
 void main() {
-  testWidgets('shows registration fields, legal links and no Google', (
+  testWidgets('shows registration fields, legal links and Google', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -63,17 +63,20 @@ void main() {
       ),
     );
 
+    expect(find.text('Créer un compte'), findsWidgets);
+    expect(find.text('Rejoins Agapeo pour des rencontres sincères.'), findsOneWidget);
     expect(find.byType(AppTextField), findsNWidgets(5));
     expect(find.text('Prénom'), findsOneWidget);
     expect(find.text('Nom (optionnel)'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
     expect(find.text('Mot de passe'), findsOneWidget);
     expect(find.text('Confirmer le mot de passe'), findsOneWidget);
-    expect(find.text('Créer un compte'), findsOneWidget);
-    expect(find.text('CGU'), findsWidgets);
-    expect(find.text("Charte d'éthique"), findsWidgets);
-    expect(find.byType(Checkbox), findsNWidgets(2));
-    expect(find.text('Google'), findsNothing);
+    expect(find.textContaining('conditions générales d\'utilisation'), findsOneWidget);
+    expect(find.textContaining('charte d\'éthique'), findsOneWidget);
+    expect(find.text('CGU'), findsNothing);
+    expect(find.byType(Checkbox), findsOneWidget);
+    expect(find.bySemanticsLabel('Continuer avec Google'), findsOneWidget);
+    expect(find.text('toi@email.com'), findsNothing);
   });
 
   testWidgets('success replaces with OtpPage without showing password', (
