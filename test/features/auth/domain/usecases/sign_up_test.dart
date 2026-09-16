@@ -1,5 +1,6 @@
 import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/core/error/result.dart';
+import 'package:agapeo/features/auth/domain/entities/auth_deep_link_result.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:agapeo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:agapeo/features/auth/domain/usecases/sign_up.dart';
@@ -45,6 +46,19 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<Result<void>> requestPasswordReset({required String email}) =>
+      throw UnimplementedError();
+
+
+  @override
+  Future<Result<void>> signInWithGoogle() =>
+      throw UnimplementedError();
+
+  @override
+  Future<Result<AuthSession>> updatePassword({required String password}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<Result<AuthDeepLinkResult>> handleAuthDeepLink(Uri uri) =>
       throw UnimplementedError();
 
   @override

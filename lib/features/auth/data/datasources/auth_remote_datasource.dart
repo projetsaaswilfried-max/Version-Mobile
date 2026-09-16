@@ -1,3 +1,5 @@
+import '../../domain/entities/auth_deep_link_result.dart';
+
 abstract class AuthRemoteDataSource {
   ({String id, String email})? get currentUser;
 
@@ -23,6 +25,12 @@ abstract class AuthRemoteDataSource {
   Future<void> resendSignupEmail({required String email});
 
   Future<void> requestPasswordReset({required String email});
+
+  Future<void> signInWithGoogle();
+
+  Future<({String id, String email})> updatePassword({required String password});
+
+  Future<AuthDeepLinkResult> handleAuthDeepLink(Uri uri);
 
   Future<void> signOut();
 }

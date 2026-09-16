@@ -9,7 +9,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../../../onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
 import '../login/login_page.dart';
 import '../otp/otp_page.dart';
-import '../widgets/google_sign_in_button.dart';
+import '../widgets/google_auth_button.dart';
 import '../widgets/legal_link_text.dart';
 import 'registration_controller.dart';
 
@@ -190,9 +190,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Center(
-                      child: GoogleSignInButton(
-                        onPressed: () => showGoogleComingSoon(context),
-                      ),
+                      child: const GoogleAuthButton(),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     Row(

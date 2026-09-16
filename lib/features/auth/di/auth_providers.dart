@@ -6,14 +6,17 @@ import '../../../core/error/failure.dart';
 import '../../../core/error/result.dart';
 import '../data/datasources/supabase_auth_datasource.dart';
 import '../data/repositories/auth_repository_impl.dart';
+import '../domain/entities/auth_deep_link_result.dart';
 import '../domain/entities/auth_session.dart';
 import '../domain/repositories/age_gate_store.dart';
 import '../domain/repositories/auth_repository.dart';
 import '../domain/usecases/request_password_reset.dart';
 import '../domain/usecases/resend_signup_email.dart';
+import '../domain/usecases/sign_in_with_google.dart';
 import '../domain/usecases/sign_in_with_password.dart';
 import '../domain/usecases/sign_out.dart';
 import '../domain/usecases/sign_up.dart';
+import '../domain/usecases/update_password.dart';
 import '../domain/usecases/verify_email_otp.dart';
 
 final ageGateStoreProvider = Provider<AgeGateStore>((ref) {
@@ -86,6 +89,18 @@ class _UnconfiguredAuthRepository implements AuthRepository {
       const Err(_failure);
 
   @override
+  Future<Result<void>> signInWithGoogle() async => const Err(_failure);
+
+  @override
+  Future<Result<AuthSession>> updatePassword({
+    required String password,
+  }) async => const Err(_failure);
+
+  @override
+  Future<Result<AuthDeepLinkResult>> handleAuthDeepLink(Uri uri) async =>
+      const Err(_failure);
+
+  @override
   Future<Result<void>> signOut() async => const Err(_failure);
 }
 
@@ -107,6 +122,14 @@ final resendSignupEmailProvider = Provider(
 
 final requestPasswordResetProvider = Provider(
   (ref) => RequestPasswordReset(ref.watch(authRepositoryProvider)),
+);
+
+final signInWithGoogleProvider = Provider(
+  (ref) => SignInWithGoogle(ref.watch(authRepositoryProvider)),
+);
+
+final updatePasswordProvider = Provider(
+  (ref) => UpdatePassword(ref.watch(authRepositoryProvider)),
 );
 
 final signOutProvider = Provider(

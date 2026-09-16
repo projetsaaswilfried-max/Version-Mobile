@@ -1,6 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/deep_link_urls.dart';
 import '../../../../core/error/exceptions.dart';
+import '../../domain/deep_link/auth_deep_link_router.dart';
+import '../../domain/entities/auth_deep_link_result.dart';
+import '../../domain/entities/auth_session.dart';
 import 'auth_remote_datasource.dart';
 
 class SupabaseAuthDataSource implements AuthRemoteDataSource {
@@ -100,7 +104,66 @@ class SupabaseAuthDataSource implements AuthRemoteDataSource {
   @override
   Future<void> requestPasswordReset({required String email}) async {
     try {
-      await _client.auth.resetPasswordForEmail(email);
+      await _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: DeepLinkUrls.reset,
+      );
+    } on AuthException catch (e) {
+      throw _mapAuthException(e);
+    }
+  }
+
+  @override
+  Future<void> signInWithGoogle() async {
+    try {
+      final launched = await _client.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: DeepLinkUrls.callback,
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        throw const UnauthorizedException('Connexion Google annulée.');
+      }
+    } on AuthException catch (e) {
+      throw _mapAuthException(e);
+    }
+  }
+
+  @override
+  Future<({String id, String email})> updatePassword({
+    required String password,
+  }) async {
+    try {
+      final res = await _client.auth.updateUser(
+        UserAttributes(password: password),
+      );
+      final user = res.user;
+      if (user == null) {
+        throw const ValidationException(
+          'Impossible de mettre à jour le mot de passe.',
+        );
+      }
+      return _mapUser(user);
+    } on AuthException catch (e) {
+      throw _mapAuthException(e);
+    }
+  }
+
+  @override
+  Future<AuthDeepLinkResult> handleAuthDeepLink(Uri uri) async {
+    final kind = AuthDeepLinkRouter.kind(uri);
+    if (kind == AuthDeepLinkKind.ignored) {
+      return const AuthDeepLinkIgnored();
+    }
+    try {
+      final response = await _client.auth.getSessionFromUrl(uri);
+      final user = response.session.user;
+      if (kind == AuthDeepLinkKind.passwordReset) {
+        return const AuthDeepLinkPasswordRecovery();
+      }
+      return AuthDeepLinkOauthSession(
+        AuthSession(id: user.id, email: user.email ?? ''),
+      );
     } on AuthException catch (e) {
       throw _mapAuthException(e);
     }

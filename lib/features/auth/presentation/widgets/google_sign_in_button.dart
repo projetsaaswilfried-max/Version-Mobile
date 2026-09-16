@@ -6,11 +6,11 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 
-/// Full-width labeled Google button (OAuth wired in MR2).
+/// Full-width labeled Google button.
 class GoogleSignInButton extends StatelessWidget {
   const GoogleSignInButton({super.key, required this.onPressed});
 
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -46,10 +46,4 @@ class GoogleSignInButton extends StatelessWidget {
       ),
     );
   }
-}
-
-void showGoogleComingSoon(BuildContext context) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Connexion Google bientôt disponible.')),
-  );
 }

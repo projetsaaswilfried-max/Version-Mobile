@@ -4,10 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_environment.dart';
+import 'core/navigation/root_navigator.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/datasources/age_gate_local_datasource.dart';
 import 'features/auth/data/repositories/age_gate_store_impl.dart';
 import 'features/auth/di/auth_providers.dart';
+import 'features/auth/presentation/deep_link/auth_deep_link_listener.dart';
 import 'features/onboarding/data/datasources/intro_local_datasource.dart';
 import 'features/onboarding/data/repositories/intro_store_impl.dart';
 import 'features/onboarding/di/onboarding_providers.dart';
@@ -50,6 +52,10 @@ class AgapeoApp extends StatelessWidget {
       title: 'Agapeo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      navigatorKey: rootNavigatorKey,
+      builder: (context, child) {
+        return AuthDeepLinkListener(child: child ?? const SizedBox.shrink());
+      },
       home: const SplashPage(),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:agapeo/core/theme/app_theme.dart';
+import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/presentation/login/login_page.dart';
 import 'package:agapeo/features/auth/presentation/registration/registration_page.dart';
 import 'package:agapeo/features/auth/presentation/welcome/welcome_page.dart';
@@ -6,10 +7,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../helpers/auth_test_fakes.dart';
+
 void main() {
-  Future<void> pumpWelcome(WidgetTester tester) async {
+  Future<void> pumpWelcome(
+    WidgetTester tester, {
+    FakeAuthRepository? auth,
+  }) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(
+            auth ?? FakeAuthRepository(),
+          ),
+        ],
         child: MaterialApp(theme: AppTheme.light, home: const WelcomePage()),
       ),
     );
@@ -49,13 +60,17 @@ void main() {
     expect(find.byType(RegistrationPage), findsOneWidget);
   });
 
-  testWidgets('Google shows coming soon snackbar', (tester) async {
-    await pumpWelcome(tester);
+  testWidgets('Google triggers OAuth launch without coming-soon snackbar', (
+    tester,
+  ) async {
+    final auth = FakeAuthRepository();
+    await pumpWelcome(tester, auth: auth);
 
     await tester.ensureVisible(find.text('Continuer avec Google'));
     await tester.tap(find.text('Continuer avec Google'));
     await tester.pump();
 
-    expect(find.text('Connexion Google bientôt disponible.'), findsOneWidget);
+    expect(auth.signInWithGoogleCalled, isTrue);
+    expect(find.text('Connexion Google bientôt disponible.'), findsNothing);
   });
 }

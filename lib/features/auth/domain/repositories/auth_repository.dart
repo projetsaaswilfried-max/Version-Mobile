@@ -1,4 +1,5 @@
 import '../../../../core/error/result.dart';
+import '../entities/auth_deep_link_result.dart';
 import '../entities/auth_session.dart';
 
 abstract class AuthRepository {
@@ -27,6 +28,13 @@ abstract class AuthRepository {
   Future<Result<void>> resendSignupEmail({required String email});
 
   Future<Result<void>> requestPasswordReset({required String email});
+
+  /// Launches the Google OAuth browser flow. Session arrives via deep link.
+  Future<Result<void>> signInWithGoogle();
+
+  Future<Result<AuthSession>> updatePassword({required String password});
+
+  Future<Result<AuthDeepLinkResult>> handleAuthDeepLink(Uri uri);
 
   Future<Result<void>> signOut();
 }

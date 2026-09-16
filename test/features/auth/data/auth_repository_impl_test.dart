@@ -3,6 +3,7 @@ import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:agapeo/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:agapeo/features/auth/domain/entities/auth_deep_link_result.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -52,6 +53,23 @@ class FakeSupabaseAuthDataSource implements AuthRemoteDataSource {
 
   @override
   Future<void> requestPasswordReset({required String email}) => _orThrow(null);
+
+  @override
+  Future<void> signInWithGoogle() => _orThrow(null);
+
+  @override
+  Future<({String id, String email})> updatePassword({
+    required String password,
+  }) async {
+    if (toThrow != null) throw toThrow!;
+    return (id: 'u1', email: 'a@b.co');
+  }
+
+  @override
+  Future<AuthDeepLinkResult> handleAuthDeepLink(Uri uri) async {
+    if (toThrow != null) throw toThrow!;
+    return const AuthDeepLinkIgnored();
+  }
 
   @override
   Future<void> signOut() => _orThrow(null);

@@ -1,6 +1,7 @@
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
+import '../../domain/entities/auth_deep_link_result.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -85,6 +86,20 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<void>> requestPasswordReset({required String email}) =>
       _guard(() => _remote.requestPasswordReset(email: email));
+
+  @override
+  Future<Result<void>> signInWithGoogle() => _guard(_remote.signInWithGoogle);
+
+  @override
+  Future<Result<AuthSession>> updatePassword({required String password}) =>
+      _guard(
+        () async =>
+            _toSession(await _remote.updatePassword(password: password)),
+      );
+
+  @override
+  Future<Result<AuthDeepLinkResult>> handleAuthDeepLink(Uri uri) =>
+      _guard(() => _remote.handleAuthDeepLink(uri));
 
   @override
   Future<Result<void>> signOut() => _guard(_remote.signOut);

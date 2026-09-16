@@ -9,7 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../login/login_page.dart';
 import '../registration/registration_page.dart';
-import '../widgets/google_sign_in_button.dart';
+import '../widgets/google_auth_button.dart';
 import '../widgets/legal_link_text.dart';
 
 /// Welcome (Sign up layout): full-bleed hero, bottom sheet with CTAs,
@@ -137,9 +137,7 @@ class WelcomePage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      GoogleSignInButton(
-                        onPressed: () => showGoogleComingSoon(context),
-                      ),
+                      const GoogleAuthButton(),
                       const SizedBox(height: AppSpacing.xxl),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,

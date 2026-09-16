@@ -8,7 +8,7 @@ import '../../../../core/widgets/widgets.dart';
 import '../forgot_password/forgot_password_page.dart';
 import '../registration/registration_page.dart';
 import '../session_stub/session_stub_page.dart';
-import '../widgets/google_sign_in_button.dart';
+import '../widgets/google_auth_button.dart';
 import '../widgets/legal_link_text.dart';
 import 'login_controller.dart';
 
@@ -158,9 +158,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     Center(
-                      child: GoogleSignInButton(
-                        onPressed: () => showGoogleComingSoon(context),
-                      ),
+                      child: const GoogleAuthButton(),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     Row(
