@@ -106,35 +106,37 @@ class _OtpPageState extends ConsumerState<OtpPage> {
               Semantics(
                 label: 'Code de confirmation à 6 chiffres',
                 textField: true,
-                child: GestureDetector(
-                  onTap: () => _otpFocus.requestFocus(),
-                  child: _OtpBoxes(
-                    value: state.otp,
-                    hasError: state.fieldErrors['otp'] != null,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _otpFocus.requestFocus(),
+                      child: ExcludeSemantics(
+                        child: _OtpBoxes(
+                          value: state.otp,
+                          hasError: state.fieldErrors['otp'] != null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppTextField(
+                      controller: _otpTextController,
+                      focusNode: _otpFocus,
+                      autofocus: true,
+                      hint: '000000',
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      autofillHints: const [AutofillHints.oneTimeCode],
+                      maxLength: 6,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      errorText: state.fieldErrors['otp'],
+                      onChanged: controller.setOtp,
+                    ),
+                  ],
                 ),
               ),
-              Offstage(
-                child: TextField(
-                  controller: _otpTextController,
-                  focusNode: _otpFocus,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  textInputAction: TextInputAction.done,
-                  autofillHints: const [AutofillHints.oneTimeCode],
-                  maxLength: 6,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: controller.setOtp,
-                ),
-              ),
-              if (state.fieldErrors['otp'] != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  state.fieldErrors['otp']!,
-                  textAlign: TextAlign.center,
-                  style: typography.bodySmall.copyWith(color: colors.error),
-                ),
-              ],
               const SizedBox(height: AppSpacing.xl),
               AppButton(
                 label: 'Valider',

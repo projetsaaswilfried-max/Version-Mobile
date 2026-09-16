@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
@@ -11,8 +12,14 @@ class AppTextField extends StatelessWidget {
     this.label,
     this.hint,
     this.controller,
+    this.focusNode,
     this.obscureText = false,
+    this.autofocus = false,
     this.keyboardType,
+    this.textInputAction,
+    this.maxLength,
+    this.inputFormatters,
+    this.autofillHints,
     this.errorText,
     this.onChanged,
   });
@@ -20,8 +27,14 @@ class AppTextField extends StatelessWidget {
   final String? label;
   final String? hint;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final bool obscureText;
+  final bool autofocus;
   final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
+  final Iterable<String>? autofillHints;
   final String? errorText;
   final ValueChanged<String>? onChanged;
 
@@ -36,10 +49,20 @@ class AppTextField extends StatelessWidget {
         ],
         TextField(
           controller: controller,
+          focusNode: focusNode,
           obscureText: obscureText,
+          autofocus: autofocus,
           keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
+          autofillHints: autofillHints,
           onChanged: onChanged,
           style: context.typography.bodyLarge,
+          buildCounter: maxLength != null
+              ? (_, {required currentLength, required isFocused, maxLength}) =>
+                  null
+              : null,
           decoration: InputDecoration(hintText: hint, errorText: errorText),
         ),
       ],
