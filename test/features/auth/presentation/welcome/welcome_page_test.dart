@@ -22,7 +22,7 @@ void main() {
     expect(find.text('Créer un compte'), findsOneWidget);
     expect(find.text('Se connecter'), findsOneWidget);
     expect(find.text('ou continuer avec'), findsOneWidget);
-    expect(find.bySemanticsLabel('Continuer avec Google'), findsOneWidget);
+    expect(find.text('Continuer avec Google'), findsOneWidget);
     expect(
       find.text('Des rencontres sincères pour bâtir un foyer chrétien.'),
       findsOneWidget,
@@ -32,6 +32,7 @@ void main() {
   testWidgets('Se connecter opens login', (tester) async {
     await pumpWelcome(tester);
 
+    await tester.ensureVisible(find.text('Se connecter'));
     await tester.tap(find.text('Se connecter'));
     await tester.pumpAndSettle();
 
@@ -41,6 +42,7 @@ void main() {
   testWidgets('Créer un compte opens registration', (tester) async {
     await pumpWelcome(tester);
 
+    await tester.ensureVisible(find.text('Créer un compte'));
     await tester.tap(find.text('Créer un compte'));
     await tester.pumpAndSettle();
 
@@ -50,7 +52,8 @@ void main() {
   testWidgets('Google shows coming soon snackbar', (tester) async {
     await pumpWelcome(tester);
 
-    await tester.tap(find.bySemanticsLabel('Continuer avec Google'));
+    await tester.ensureVisible(find.text('Continuer avec Google'));
+    await tester.tap(find.text('Continuer avec Google'));
     await tester.pump();
 
     expect(find.text('Connexion Google bientôt disponible.'), findsOneWidget);
