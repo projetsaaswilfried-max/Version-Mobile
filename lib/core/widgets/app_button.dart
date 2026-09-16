@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_radius.dart';
-import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
 
 enum AppButtonVariant { primary, secondary, text }
@@ -45,17 +43,7 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.secondary:
         return SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
-            onPressed: onTap,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: context.colors.primary,
-              side: BorderSide(color: context.colors.primary),
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-              shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
-              textStyle: context.typography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
-            ),
-            child: child,
-          ),
+          child: OutlinedButton(onPressed: onTap, child: child),
         );
       case AppButtonVariant.text:
         return TextButton(

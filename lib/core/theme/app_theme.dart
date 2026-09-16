@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 import 'app_radius.dart';
+import 'app_spacing.dart';
 import 'app_typography.dart';
 
 /// Access to design tokens from any [BuildContext]:
@@ -51,6 +52,16 @@ class AppTheme {
           foregroundColor: Colors.white,
           textStyle: typography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
           shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
+          minimumSize: const Size.fromHeight(AppSpacing.buttonHeight),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colors.primary,
+          side: BorderSide(color: colors.primary),
+          textStyle: typography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.mdRadius),
+          minimumSize: const Size.fromHeight(AppSpacing.buttonHeight),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
