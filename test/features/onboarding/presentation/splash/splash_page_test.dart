@@ -1,3 +1,4 @@
+import 'package:agapeo/core/config/app_environment.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
@@ -12,6 +13,14 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../../helpers/auth_test_fakes.dart';
 
 void main() {
+  setUpAll(() {
+    try {
+      AppEnvironment.init();
+    } catch (_) {
+      // Already initialized by another test in this VM.
+    }
+  });
+
   Future<void> pumpSplash(
     WidgetTester tester, {
     required FakeAuthRepository auth,
@@ -28,6 +37,23 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'does not throw without auth override when Supabase env is empty',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            ageGateStoreProvider.overrideWithValue(FakeAgeGateStore()),
+          ],
+          child: MaterialApp(theme: AppTheme.light, home: const SplashPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AgeGatePage), findsOneWidget);
+    },
+  );
 
   testWidgets('routes to age gate when no session and gate not accepted', (
     tester,
