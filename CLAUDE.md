@@ -1,9 +1,20 @@
 # Agapeo Mobile
 
 App mobile de dating pour [agapeo.love](https://www.agapeo.love), Flutter.
-Comportement produit : voir `docs/Agapeo-Mobile-PRD.md`, `docs/decisions.md`
-et `docs/mobile-addendum.md` (PRD = source de vérité comportementale,
-addendum = delta mobile). Inventaire des écrans iOS : `docs/screens-prd.md`.
+
+## Docs à lire selon la tâche
+
+| Fichier | Contenu | Quand le lire |
+|---|---|---|
+| `docs/Agapeo-Mobile-PRD.md` | Comportement produit — source de vérité, partagée web/mobile | Toute tâche qui touche une règle métier (permissions, statuts, flows) |
+| `docs/mobile-addendum.md` | Delta mobile uniquement (OTP, deep links, push, stores) — ne répète jamais le PRD | Auth, deep links, push, paiement, exigences stores |
+| `docs/decisions.md` | Journal des décisions (DÉCIDÉES / EN ATTENTE / À VÉRIFIER), append-only | Avant de trancher un point non couvert par le PRD — et pour vérifier qu'il n'a pas déjà été tranché |
+| `docs/design-inspiration.md` | Sources d'inspiration UI + mapping écran PRD → source, garde-fous (ex. pas de swipe) | **Tout travail visuel/UI/écran** — avant de dessiner ou coder un écran |
+| `docs/screens-prd.md` | Inventaire des écrans iOS à construire, croisé PRD + tour prod | Pour savoir quel écran construire et son statut (Vu/PRD/Mobile) |
+
+Toute décision produit qui n'est pas dans le PRD (ex. structure de la bottom
+nav) doit être consignée dans `docs/decisions.md` avant d'être traitée comme
+acquise ailleurs (inventaire d'écrans, code) — voir D2/D4.
 
 ## Stack
 
