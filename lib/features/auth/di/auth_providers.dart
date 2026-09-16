@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/di/providers.dart';
+import '../../../core/error/failure.dart';
 import '../../../core/error/result.dart';
 import '../data/datasources/supabase_auth_datasource.dart';
 import '../data/repositories/auth_repository_impl.dart';
@@ -32,8 +33,22 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 /// Used when [main] skips [Supabase.initialize] (missing dart-defines).
+///
+/// Most methods return [Err] rather than throwing: a thrown exception here
+/// would escape uncaught past the awaited usecase call in every auth
+/// controller (none wrap the call in try/catch; data/repositories surface
+/// failures through [Result]). That left `isLoading` stuck and the CTA
+/// spinning forever.
+///
+/// Exception: [signUp] returns [Ok] so the local registration → profile
+/// onboarding path still works without backend keys (#19).
 class _UnconfiguredAuthRepository implements AuthRepository {
   const _UnconfiguredAuthRepository();
+
+  static const _failure = ServerFailure(
+    'Supabase non configuré : lance avec --dart-define=SUPABASE_URL=... '
+    '--dart-define=SUPABASE_ANON_KEY=...',
+  );
 
   @override
   AuthSession? get currentSession => null;
@@ -45,8 +60,7 @@ class _UnconfiguredAuthRepository implements AuthRepository {
   Future<Result<AuthSession>> signInWithPassword({
     required String email,
     required String password,
-  }) =>
-      throw StateError('Supabase is not configured');
+  }) async => const Err(_failure);
 
   @override
   Future<Result<void>> signUp({
@@ -61,19 +75,18 @@ class _UnconfiguredAuthRepository implements AuthRepository {
   Future<Result<AuthSession>> verifyEmailOtp({
     required String email,
     required String token,
-  }) =>
-      throw StateError('Supabase is not configured');
+  }) async => const Err(_failure);
 
   @override
-  Future<Result<void>> resendSignupEmail({required String email}) =>
-      throw StateError('Supabase is not configured');
+  Future<Result<void>> resendSignupEmail({required String email}) async =>
+      const Err(_failure);
 
   @override
-  Future<Result<void>> requestPasswordReset({required String email}) =>
-      throw StateError('Supabase is not configured');
+  Future<Result<void>> requestPasswordReset({required String email}) async =>
+      const Err(_failure);
 
   @override
-  Future<Result<void>> signOut() => throw StateError('Supabase is not configured');
+  Future<Result<void>> signOut() async => const Err(_failure);
 }
 
 final signInWithPasswordProvider = Provider(
