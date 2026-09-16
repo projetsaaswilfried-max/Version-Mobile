@@ -83,7 +83,7 @@ void main() {
     expect(find.textContaining('charte d\'éthique'), findsOneWidget);
     expect(find.text('CGU'), findsNothing);
     expect(find.byType(Checkbox), findsOneWidget);
-    expect(find.bySemanticsLabel('Continuer avec Google'), findsOneWidget);
+    expect(find.text('Continuer avec Google'), findsOneWidget);
     expect(find.text('toi@email.com'), findsNothing);
   });
 

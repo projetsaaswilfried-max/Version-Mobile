@@ -43,6 +43,10 @@ class AppTheme {
         backgroundColor: colors.surface,
         foregroundColor: colors.textPrimary,
         elevation: 0,
+        // Material 3 tints the AppBar with a surface overlay under any
+        // Scrollable body by default (even before it scrolls) — kills
+        // the flat, on-brand look and creates a seam against the body.
+        scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: typography.title,
       ),

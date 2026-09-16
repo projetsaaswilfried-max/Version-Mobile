@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pinput/pinput.dart';
 
 import '../../../../core/config/app_assets.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -67,94 +69,153 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         ? 0
         : until.difference(DateTime.now()).inSeconds;
     final resendLocked = remaining > 0;
+    final hasError = state.fieldErrors['otp'] != null;
     _syncTicker(until);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Confirmation')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.lg,
-          ),
+    final defaultPinTheme = PinTheme(
+      width: 48,
+      height: 56,
+      textStyle: typography.headline.copyWith(fontWeight: FontWeight.w700),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: AppRadius.mdRadius,
+        border: Border.all(color: colors.border),
+      ),
+    );
+    final focusedPinTheme = defaultPinTheme.copyDecorationWith(
+      border: Border.all(color: colors.primary, width: 1.5),
+    );
+    final errorPinTheme = defaultPinTheme.copyDecorationWith(
+      border: Border.all(color: colors.error, width: 1.5),
+    );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: colors.surface,
+        appBar: AppBar(title: const Text('Confirme ton compte')),
+        body: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(child: Image.asset(AppAssets.logoFull, width: 180)),
-              const SizedBox(height: AppSpacing.xl),
-              Text(
-                'Saisis le code à 6 chiffres',
-                style: typography.headline,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Un code a été envoyé à',
-                style: typography.bodyMedium.copyWith(
-                  color: colors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                widget.email,
-                style: typography.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              AppTextField(
-                label: 'Code de confirmation à 6 chiffres',
-                controller: _otpTextController,
-                autofocus: true,
-                hint: '000000',
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                autofillHints: const [AutofillHints.oneTimeCode],
-                maxLength: 6,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                errorText: state.fieldErrors['otp'],
-                onChanged: controller.setOtp,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              AppButton(
-                label: 'Valider',
-                onPressed: state.isLoading
-                    ? null
-                    : () => controller.submit(email: widget.email),
-                isLoading: state.isLoading,
-              ),
-              if (state.formError != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  state.formError!,
-                  textAlign: TextAlign.center,
-                  style: typography.bodyMedium.copyWith(color: colors.error),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.md),
-              AppButton(
-                label: resendLocked
-                    ? 'Renvoyer le code (${remaining}s)'
-                    : 'Renvoyer le code',
-                variant: AppButtonVariant.secondary,
-                onPressed: resendLocked || state.isResending
-                    ? null
-                    : () => controller.resend(email: widget.email),
-                isLoading: state.isResending,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              AppButton(
-                label: "Tu n'as pas reçu de code ?",
-                variant: AppButtonVariant.text,
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => VerifyEmailPage(
-                        email: widget.email,
-                        password: widget.password,
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                    vertical: AppSpacing.lg,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(child: Image.asset(AppAssets.logoFull, width: 180)),
+                      const SizedBox(height: AppSpacing.xl),
+                      Text(
+                        'Saisis le code à 6 chiffres',
+                        style: typography.headline,
+                        textAlign: TextAlign.center,
                       ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Un code a été envoyé à',
+                        style: typography.bodyMedium.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        widget.email,
+                        style: typography.bodyLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      Center(
+                        child: Pinput(
+                          length: 6,
+                          controller: _otpTextController,
+                          autofocus: true,
+                          defaultPinTheme: defaultPinTheme,
+                          focusedPinTheme: focusedPinTheme,
+                          submittedPinTheme: defaultPinTheme,
+                          errorPinTheme: errorPinTheme,
+                          forceErrorState: hasError,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          autofillHints: const [AutofillHints.oneTimeCode],
+                          onChanged: controller.setOtp,
+                          onCompleted: (_) => FocusScope.of(context).unfocus(),
+                        ),
+                      ),
+                      if (hasError) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          state.fieldErrors['otp']!,
+                          textAlign: TextAlign.center,
+                          style: typography.bodySmall.copyWith(
+                            color: colors.error,
+                          ),
+                        ),
+                      ],
+                      if (state.formError != null) ...[
+                        const SizedBox(height: AppSpacing.lg),
+                        Text(
+                          state.formError!,
+                          textAlign: TextAlign.center,
+                          style: typography.bodyMedium.copyWith(
+                            color: colors.error,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.md,
+                  AppSpacing.xl,
+                  AppSpacing.lg,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AppButton(
+                      label: 'Valider',
+                      onPressed: state.isLoading
+                          ? null
+                          : () => controller.submit(email: widget.email),
+                      isLoading: state.isLoading,
                     ),
-                  );
-                },
+                    const SizedBox(height: AppSpacing.md),
+                    AppButton(
+                      label: resendLocked
+                          ? 'Renvoyer le code (${remaining}s)'
+                          : 'Renvoyer le code',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: resendLocked || state.isResending
+                          ? null
+                          : () => controller.resend(email: widget.email),
+                      isLoading: state.isResending,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppButton(
+                      label: "Tu n'as pas reçu de code ?",
+                      variant: AppButtonVariant.text,
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => VerifyEmailPage(
+                              email: widget.email,
+                              password: widget.password,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
