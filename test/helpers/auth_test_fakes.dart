@@ -2,6 +2,7 @@ import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:agapeo/features/auth/domain/repositories/age_gate_store.dart';
 import 'package:agapeo/features/auth/domain/repositories/auth_repository.dart';
+import 'package:agapeo/features/onboarding/domain/repositories/intro_store.dart';
 
 class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({this.currentSession});
@@ -55,5 +56,19 @@ class FakeAgeGateStore implements AgeGateStore {
   @override
   Future<void> accept() async {
     _accepted = true;
+  }
+}
+
+class FakeIntroStore implements IntroStore {
+  FakeIntroStore({bool seen = false}) : _seen = seen;
+
+  bool _seen;
+
+  @override
+  Future<bool> isSeen() async => _seen;
+
+  @override
+  Future<void> markSeen() async {
+    _seen = true;
   }
 }

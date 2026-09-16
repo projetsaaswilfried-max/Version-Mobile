@@ -8,6 +8,9 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/data/datasources/age_gate_local_datasource.dart';
 import 'features/auth/data/repositories/age_gate_store_impl.dart';
 import 'features/auth/di/auth_providers.dart';
+import 'features/onboarding/data/datasources/intro_local_datasource.dart';
+import 'features/onboarding/data/repositories/intro_store_impl.dart';
+import 'features/onboarding/di/onboarding_providers.dart';
 import 'features/onboarding/presentation/splash/splash_page.dart';
 
 Future<void> main() async {
@@ -28,6 +31,9 @@ Future<void> main() async {
       overrides: [
         ageGateStoreProvider.overrideWithValue(
           AgeGateStoreImpl(AgeGateLocalDataSource(prefs)),
+        ),
+        introStoreProvider.overrideWithValue(
+          IntroStoreImpl(IntroLocalDataSource(prefs)),
         ),
       ],
       child: const AgapeoApp(),
