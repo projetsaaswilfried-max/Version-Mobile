@@ -12,6 +12,9 @@ import '../reset_password/reset_password_page.dart';
 import '../session_stub/session_stub_page.dart';
 
 /// Listens for OAuth / password-reset deep links and navigates accordingly.
+/// Single source of truth for post-auth-deep-link navigation — no other
+/// listener (e.g. [GoogleSignInController]) should also navigate on the
+/// same event.
 class AuthDeepLinkListener extends ConsumerStatefulWidget {
   const AuthDeepLinkListener({super.key, required this.child});
 
@@ -25,6 +28,12 @@ class AuthDeepLinkListener extends ConsumerStatefulWidget {
 class _AuthDeepLinkListenerState extends ConsumerState<AuthDeepLinkListener> {
   StreamSubscription<Uri>? _sub;
   final _appLinks = AppLinks();
+
+  // app_links can deliver the app-launch link both via getInitialLink()
+  // and as the first uriLinkStream event, depending on platform/timing.
+  // Auth codes are single-use, so handling it twice would fail the second
+  // attempt for no reason — dedupe on the exact URI.
+  Uri? _lastHandledUri;
 
   @override
   void initState() {
@@ -42,6 +51,9 @@ class _AuthDeepLinkListenerState extends ConsumerState<AuthDeepLinkListener> {
   }
 
   Future<void> _onUri(Uri uri) async {
+    if (_lastHandledUri == uri) return;
+    _lastHandledUri = uri;
+
     final result = await ref
         .read(authRepositoryProvider)
         .handleAuthDeepLink(uri);
@@ -69,8 +81,12 @@ class _AuthDeepLinkListenerState extends ConsumerState<AuthDeepLinkListener> {
           case AuthDeepLinkIgnored():
             break;
         }
-      case Err():
-        break;
+      case Err(:final failure):
+        final context = nav.overlay?.context;
+        if (context == null || !context.mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(failure.message)));
     }
   }
 

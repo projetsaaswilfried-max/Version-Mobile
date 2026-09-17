@@ -22,4 +22,17 @@ void main() {
       AuthDeepLinkKind.ignored,
     );
   });
+
+  test(
+    'ignores other /auth/* paths (Android manifest now matches exact paths '
+    'only, so this case should no longer even reach the app)',
+    () {
+      expect(
+        AuthDeepLinkRouter.kind(
+          Uri.parse('https://www.agapeo.love/auth/v1/verify'),
+        ),
+        AuthDeepLinkKind.ignored,
+      );
+    },
+  );
 }

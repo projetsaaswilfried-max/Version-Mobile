@@ -24,6 +24,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Exact paths only: AuthDeepLinkRouter (Dart) only knows
+                 /auth/callback and /auth/reset. A pathPrefix="/auth" would
+                 intercept any other future /auth/* link (e.g. a Supabase
+                 email-verify link) and swallow it with no browser
+                 fallback, since the router classifies unknown paths as
+                 "ignored". Add a <data> line here (and a matching case in
+                 AuthDeepLinkRouter) if a new path is ever needed. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
@@ -31,7 +38,11 @@
                 <data
                     android:scheme="https"
                     android:host="www.agapeo.love"
-                    android:pathPrefix="/auth"/>
+                    android:path="/auth/callback"/>
+                <data
+                    android:scheme="https"
+                    android:host="www.agapeo.love"
+                    android:path="/auth/reset"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

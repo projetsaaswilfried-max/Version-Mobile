@@ -16,6 +16,7 @@ class FakeAuthRepository implements AuthRepository {
   AuthSession? currentSession;
 
   bool signInWithGoogleCalled = false;
+  int signInWithGoogleCallCount = 0;
   bool updatePasswordCalled = false;
 
   final Result<void> signInWithGoogleResult;
@@ -55,6 +56,7 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<Result<void>> signInWithGoogle() async {
     signInWithGoogleCalled = true;
+    signInWithGoogleCallCount++;
     return signInWithGoogleResult;
   }
 
