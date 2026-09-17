@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/result.dart';
 import '../../../../core/navigation/root_navigator.dart';
+import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../../di/auth_providers.dart';
 import '../../domain/entities/auth_deep_link_result.dart';
 import '../reset_password/reset_password_page.dart';
-import '../session_stub/session_stub_page.dart';
 
 /// Listens for OAuth / password-reset deep links and navigates accordingly.
 /// Single source of truth for post-auth-deep-link navigation — no other
@@ -63,12 +63,7 @@ class _AuthDeepLinkListenerState extends ConsumerState<AuthDeepLinkListener> {
       case Ok(:final value):
         switch (value) {
           case AuthDeepLinkOauthSession(:final session):
-            nav.pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => SessionStubPage(email: session.email),
-              ),
-              (route) => false,
-            );
+            await navigateAfterAuthWithNav(ref, nav, email: session.email);
           case AuthDeepLinkPasswordRecovery():
             final email =
                 ref.read(authRepositoryProvider).currentSession?.email ?? '';

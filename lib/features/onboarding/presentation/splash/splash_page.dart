@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/app_assets.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/di/auth_providers.dart';
-import '../../../auth/presentation/session_stub/session_stub_page.dart';
 import '../../../auth/presentation/welcome/welcome_page.dart';
+import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../../di/onboarding_providers.dart';
 import '../intro/intro_onboarding_page.dart';
 
-/// First screen shown on launch. Routes to intro, welcome, or session stub.
+/// First screen shown on launch. Routes to intro, welcome, or post-auth gate.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
@@ -29,22 +29,21 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   Future<void> _route() async {
     final hold = Future<void>.delayed(SplashPage.minDisplayDuration);
-    final next = await _resolveNextPage();
+    final session = ref.read(authRepositoryProvider).currentSession;
+    if (session != null) {
+      await hold;
+      if (!mounted) return;
+      await navigateAfterAuth(ref, context, email: session.email);
+      return;
+    }
+
+    final introSeen = await ref.read(introStoreProvider).isSeen();
+    final next = introSeen ? const WelcomePage() : const IntroOnboardingPage();
     await hold;
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => next),
     );
-  }
-
-  Future<Widget> _resolveNextPage() async {
-    final auth = ref.read(authRepositoryProvider);
-    final session = auth.currentSession;
-    if (session != null) {
-      return SessionStubPage(email: session.email);
-    }
-    final introSeen = await ref.read(introStoreProvider).isSeen();
-    return introSeen ? const WelcomePage() : const IntroOnboardingPage();
   }
 
   @override

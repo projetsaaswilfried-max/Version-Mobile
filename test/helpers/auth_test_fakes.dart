@@ -4,6 +4,9 @@ import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:agapeo/features/auth/domain/repositories/age_gate_store.dart';
 import 'package:agapeo/features/auth/domain/repositories/auth_repository.dart';
 import 'package:agapeo/features/onboarding/domain/repositories/intro_store.dart';
+import 'package:agapeo/features/profile/domain/entities/member_gate_snapshot.dart';
+import 'package:agapeo/features/profile/domain/entities/subscription_status.dart';
+import 'package:agapeo/features/profile/domain/repositories/profile_gate_repository.dart';
 
 class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({
@@ -101,4 +104,20 @@ class FakeIntroStore implements IntroStore {
   Future<void> markSeen() async {
     _seen = true;
   }
+}
+
+/// Default: onboarding done → home (HomeShell).
+class FakeProfileGateRepository implements ProfileGateRepository {
+  FakeProfileGateRepository([MemberGateSnapshot? snapshot])
+      : snapshot = snapshot ??
+            const MemberGateSnapshot(
+              isSuspended: false,
+              subscriptionStatus: SubscriptionStatus.active,
+              onboardingCompleted: true,
+            );
+
+  final MemberGateSnapshot snapshot;
+
+  @override
+  Future<Result<MemberGateSnapshot>> fetchGate() async => Ok(snapshot);
 }

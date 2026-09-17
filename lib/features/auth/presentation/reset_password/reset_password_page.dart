@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../../di/auth_providers.dart';
 import '../login/login_page.dart';
-import '../session_stub/session_stub_page.dart';
 import 'reset_password_controller.dart';
 
 /// A08 — set a new password after recovery deep link.
@@ -25,15 +25,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(resetPasswordControllerProvider, (previous, next) {
+    ref.listen(resetPasswordControllerProvider, (previous, next) async {
       if (!next.succeeded || previous?.succeeded == true) return;
       final email = widget.email.isNotEmpty
           ? widget.email
           : (ref.read(authRepositoryProvider).currentSession?.email ?? '');
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => SessionStubPage(email: email)),
-        (route) => false,
-      );
+      await navigateAfterAuth(ref, context, email: email);
     });
 
     final state = ref.watch(resetPasswordControllerProvider);

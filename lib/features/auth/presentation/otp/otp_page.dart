@@ -10,8 +10,8 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../../domain/validation/auth_validators.dart';
-import '../session_stub/session_stub_page.dart';
 import 'otp_controller.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
@@ -51,12 +51,9 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(otpControllerProvider, (previous, next) {
+    ref.listen(otpControllerProvider, (previous, next) async {
       if (!next.succeeded || previous?.succeeded == true) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => SessionStubPage(email: widget.email)),
-        (route) => false,
-      );
+      await navigateAfterAuth(ref, context, email: widget.email);
     });
 
     final state = ref.watch(otpControllerProvider);

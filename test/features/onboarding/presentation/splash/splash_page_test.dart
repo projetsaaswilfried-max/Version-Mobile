@@ -3,11 +3,12 @@ import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:agapeo/features/auth/presentation/age_gate/age_gate_page.dart';
-import 'package:agapeo/features/auth/presentation/session_stub/session_stub_page.dart';
 import 'package:agapeo/features/auth/presentation/welcome/welcome_page.dart';
+import 'package:agapeo/features/home/presentation/home_shell_page.dart';
 import 'package:agapeo/features/onboarding/di/onboarding_providers.dart';
 import 'package:agapeo/features/onboarding/presentation/intro/intro_onboarding_page.dart';
 import 'package:agapeo/features/onboarding/presentation/splash/splash_page.dart';
+import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -27,12 +28,15 @@ void main() {
     WidgetTester tester, {
     required FakeAuthRepository auth,
     required FakeIntroStore intro,
+    FakeProfileGateRepository? profileGate,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(auth),
           introStoreProvider.overrideWithValue(intro),
+          if (profileGate != null)
+            profileGateRepositoryProvider.overrideWithValue(profileGate),
         ],
         child: MaterialApp(theme: AppTheme.light, home: const SplashPage()),
       ),
@@ -111,16 +115,16 @@ void main() {
     expect(find.byType(WelcomePage), findsOneWidget);
   });
 
-  testWidgets('routes to session stub when session exists', (tester) async {
+  testWidgets('routes to HomeShell when session exists', (tester) async {
     await pumpSplash(
       tester,
       auth: FakeAuthRepository(
         currentSession: const AuthSession(id: '1', email: 'a@b.co'),
       ),
       intro: FakeIntroStore(),
+      profileGate: FakeProfileGateRepository(),
     );
 
-    expect(find.byType(SessionStubPage), findsOneWidget);
-    expect(find.textContaining('a@b.co'), findsOneWidget);
+    expect(find.byType(HomeShellPage), findsOneWidget);
   });
 }

@@ -9,10 +9,13 @@ import 'package:agapeo/features/auth/presentation/login/login_controller.dart';
 import 'package:agapeo/features/auth/presentation/login/login_page.dart';
 import 'package:agapeo/features/auth/presentation/otp/otp_controller.dart';
 import 'package:agapeo/features/auth/presentation/registration/registration_controller.dart';
-import 'package:agapeo/features/auth/presentation/session_stub/session_stub_page.dart';
+import 'package:agapeo/features/home/presentation/home_shell_page.dart';
+import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../helpers/auth_test_fakes.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   int signInCalls = 0;
@@ -121,7 +124,12 @@ void main() {
     (tester) async {
       final repo = _FakeAuthRepository();
       final container = ProviderContainer(
-        overrides: [authRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repo),
+          profileGateRepositoryProvider.overrideWithValue(
+            FakeProfileGateRepository(),
+          ),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -138,10 +146,12 @@ void main() {
       await tester.tap(find.text('Se connecter'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(SessionStubPage), findsOneWidget);
+      expect(find.byType(HomeShellPage), findsOneWidget);
       expect(find.byType(LoginPage), findsNothing);
       expect(repo.signInCalls, 1);
 
+      await tester.tap(find.text('Profil'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Déconnexion'));
       await tester.pumpAndSettle();
 

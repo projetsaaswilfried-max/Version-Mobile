@@ -5,10 +5,10 @@ import '../../../../core/config/legal_urls.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../forgot_password/forgot_password_page.dart';
 import '../otp/otp_page.dart';
 import '../registration/registration_page.dart';
-import '../session_stub/session_stub_page.dart';
 import '../widgets/google_auth_button.dart';
 import '../widgets/legal_link_text.dart';
 import 'login_controller.dart';
@@ -26,14 +26,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(loginControllerProvider, (previous, next) {
+    ref.listen(loginControllerProvider, (previous, next) async {
       if (next.succeeded && previous?.succeeded != true) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(
-            builder: (_) => SessionStubPage(email: next.email.trim()),
-          ),
-          (route) => false,
-        );
+        await navigateAfterAuth(ref, context, email: next.email.trim());
         return;
       }
       if (next.emailNotConfirmed && previous?.emailNotConfirmed != true) {

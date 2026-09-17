@@ -5,14 +5,12 @@ import '../../../../core/config/app_assets.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../di/auth_providers.dart';
-import '../../../onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
-import '../welcome/welcome_page.dart';
+import '../../../auth/di/auth_providers.dart';
+import '../../../auth/presentation/welcome/welcome_page.dart';
 
-class SessionStubPage extends ConsumerWidget {
-  const SessionStubPage({super.key, required this.email});
-
-  final String email;
+/// Mur EXPIRED minimal. Pas de CTA paiement dans cette itération.
+class ExpiredSubscriptionPage extends ConsumerWidget {
+  const ExpiredSubscriptionPage({super.key});
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     await ref.read(signOutProvider)();
@@ -38,28 +36,20 @@ class SessionStubPage extends ConsumerWidget {
               Image.asset(AppAssets.logoFull, width: 180),
               const SizedBox(height: AppSpacing.xxl),
               Text(
-                'Session',
+                'Abonnement expiré',
                 textAlign: TextAlign.center,
                 style: context.typography.headline,
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                email,
+                'Ton abonnement a expiré. Renouvelle-le pour retrouver '
+                'l\'accès complet à Agapéo.',
                 textAlign: TextAlign.center,
-                style: context.typography.bodyLarge,
+                style: context.typography.bodyMedium.copyWith(
+                  color: context.colors.textSecondary,
+                ),
               ),
               const Spacer(),
-              AppButton(
-                label: 'Continuer l\'onboarding',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const OnboardingFlowPage(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.md),
               AppButton(
                 label: 'Déconnexion',
                 variant: AppButtonVariant.secondary,

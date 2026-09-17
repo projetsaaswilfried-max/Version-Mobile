@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../home/presentation/home_shell_page.dart';
 import 'onboarding_flow_controller.dart';
 import 'onboarding_flow_state.dart';
 import 'steps/essentials_step.dart';
@@ -123,15 +124,37 @@ class _OnboardingFlowPageState extends ConsumerState<OnboardingFlowPage> {
                 AppSpacing.xl,
                 AppSpacing.lg,
               ),
-              child: AppButton(
-                label: state.isLastStep ? 'Soumettre' : 'Suivant',
-                onPressed: () {
-                  if (state.isLastStep) {
-                    controller.submit();
-                  } else {
-                    controller.next();
-                  }
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppButton(
+                    label: state.isLastStep ? 'Soumettre' : 'Suivant',
+                    onPressed: () {
+                      if (state.isLastStep) {
+                        controller.submit();
+                      } else {
+                        controller.next();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (_) => const HomeShellPage(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    child: Text(
+                      'Revenir plus tard',
+                      style: context.typography.bodyMedium.copyWith(
+                        color: colors.primary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
