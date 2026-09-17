@@ -10,6 +10,7 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../domain/validation/auth_validators.dart';
 import '../session_stub/session_stub_page.dart';
 import 'otp_controller.dart';
 
@@ -108,7 +109,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                       Center(child: Image.asset(AppAssets.logoFull, width: 180)),
                       const SizedBox(height: AppSpacing.xl),
                       Text(
-                        'Saisis le code à 6 chiffres',
+                        'Saisis le code à ${AuthValidators.otpLength} chiffres',
                         style: typography.headline,
                         textAlign: TextAlign.center,
                       ),
@@ -128,7 +129,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                       const SizedBox(height: AppSpacing.xxl),
                       Center(
                         child: Pinput(
-                          length: 6,
+                          length: AuthValidators.otpLength,
                           controller: _otpTextController,
                           autofocus: true,
                           defaultPinTheme: defaultPinTheme,

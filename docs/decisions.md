@@ -22,9 +22,19 @@ connu (Mobile Money).
 
 - Template email projet-wide → doit contenir **lien + code** pour préserver le
   web (`{{ .ConfirmationURL }}` et `{{ .Token }}`).
-- Fallback si le porteur impose le lien : écran « vérifie tes mails » + bouton
-  qui rejoue `signInWithPassword` (pas `getUser` — aucune session avant
-  confirmation) + « renvoyer » débouncé 60 s, sans polling auto.
+- **Longueur du code — verrou cross-système.** Supabase génère `{{ .Token }}`
+  selon le réglage Dashboard *Authentication → Emails → Email OTP Length*
+  (défaut : 8 chiffres — vérifié sur un email réel). **Fixé à 6** côté
+  produit (plus court à saisir, cohérent avec l'attente OTP standard) :
+  le réglage Dashboard doit être mis à **6**, et `AuthValidators.otpLength`
+  (mobile) doit toujours matcher exactement cette valeur Dashboard. Si l'un
+  change, changer l'autre dans le même commit/ticket.
+- *Révisé 2026-09-16 :* le fallback « vérifie tes mails » (écran séparé avec
+  bouton « J'ai confirmé ») a été retiré — redondant avec le renvoi déjà
+  disponible sur l'écran OTP. Nouveau comportement : si une connexion échoue
+  avec `email_not_confirmed` (code d'origine forcément périmé à ce stade),
+  l'app renvoie l'email elle-même et redirige directement vers l'écran OTP,
+  sans action de l'utilisateur.
 
 ### D2 — Le PRD reste la source de vérité du comportement ; addendum pour le delta
 *2026-09-13*

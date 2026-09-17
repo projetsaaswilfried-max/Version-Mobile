@@ -25,23 +25,29 @@ La confirmation d'email requise (`mailer_autoconfirm: false` sur le projet) cré
 un piège sur mobile : le lien s'ouvre dans un navigateur, souvent sur un autre
 appareil, et la session n'atterrit jamais dans l'app.
 
-**Cible : code OTP.** Le membre saisit un code à 6 chiffres dans l'app,
+**Cible : code OTP à 6 chiffres.** Le membre saisit `{{ .Token }}` dans l'app,
 `verifyOtp` établit la session directement in-app — pas de navigateur, pas de
 deep link, robuste au cross-device. Cohérent avec l'usage OTP déjà connu des
 utilisateurs (Mobile Money).
+
+**Longueur du code — réglage à vérifier après tout changement Dashboard.**
+Supabase génère `{{ .Token }}` selon *Authentication → Emails → Email OTP
+Length* (défaut Supabase : 8 chiffres). Le produit est fixé à **6** — voir
+decisions.md D1 : le réglage Dashboard doit être à 6, et
+`AuthValidators.otpLength` côté mobile doit toujours matcher.
 
 **Contrainte projet-wide :** le template d'email de confirmation est unique pour
 tout le projet Supabase (web + mobile). Pour ne pas casser le web (qui utilise le
 lien), le template doit contenir **les deux** : `{{ .ConfirmationURL }}` (lien,
 web) et `{{ .Token }}` (code, mobile).
 
-**Fallback si le porteur impose le lien :** écran « vérifie tes mails » avec un
-bouton qui rejoue `signInWithPassword` (email + mot de passe gardés en mémoire).
-Important : ce n'est **pas** un `getUser()` — avant confirmation, `signUp()` ne
-renvoie aucune session, donc rien à rafraîchir. Le bouton tente une connexion :
-échoue `email_not_confirmed` tant que non validé, réussit une fois confirmé.
-Ajouter « Renvoyer l'email » (`resend`), débouncé à 60 s (rate-limit Supabase).
-Pas de polling automatique (rate-limit auth).
+**Si la connexion échoue en `email_not_confirmed`** (le membre a quitté l'app
+avant de confirmer, ou le code d'origine a expiré) : pas d'écran séparé ni de
+bouton à cliquer — l'app renvoie l'email (`resend`) elle-même et redirige
+directement vers l'écran OTP. Le code d'origine est de toute façon périmé à
+ce stade, donc aucune raison de faire rejouer `signInWithPassword` en
+premier ; l'écran OTP a son propre « Renvoyer le code » (débouncé 60 s,
+rate-limit Supabase) si ce renvoi automatique échoue.
 
 ### 1.2 Deep links — nécessaires malgré l'OTP
 

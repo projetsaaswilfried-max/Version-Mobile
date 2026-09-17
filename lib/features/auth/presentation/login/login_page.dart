@@ -27,13 +27,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen(loginControllerProvider, (previous, next) {
-      if (!next.succeeded || previous?.succeeded == true) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => SessionStubPage(email: next.email.trim()),
-        ),
-        (route) => false,
-      );
+      if (next.succeeded && previous?.succeeded != true) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => SessionStubPage(email: next.email.trim()),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+      if (next.emailNotConfirmed && previous?.emailNotConfirmed != true) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => OtpPage(email: next.email.trim())),
+        );
+      }
     });
 
     final state = ref.watch(loginControllerProvider);
@@ -137,21 +144,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         style: typography.bodyMedium.copyWith(
                           color: colors.error,
                         ),
-                      ),
-                    ],
-                    if (state.emailNotConfirmed) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      AppButton(
-                        label: 'Confirmer mon compte',
-                        variant: AppButtonVariant.secondary,
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  OtpPage(email: state.email.trim()),
-                            ),
-                          );
-                        },
                       ),
                     ],
                     const SizedBox(height: AppSpacing.xxl),

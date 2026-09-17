@@ -4,6 +4,7 @@ import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
 import '../../di/auth_providers.dart';
 import '../../domain/entities/auth_session.dart';
+import '../../domain/validation/auth_validators.dart';
 import 'otp_state.dart';
 
 class OtpController extends Notifier<OtpState> {
@@ -24,7 +25,9 @@ class OtpController extends Notifier<OtpState> {
 
   void setOtp(String value) {
     final digits = value.replaceAll(RegExp(r'\D'), '');
-    final otp = digits.length > 6 ? digits.substring(0, 6) : digits;
+    final otp = digits.length > AuthValidators.otpLength
+        ? digits.substring(0, AuthValidators.otpLength)
+        : digits;
     final errors = Map<String, String>.from(state.fieldErrors)..remove('otp');
     state = state.copyWith(
       otp: otp,

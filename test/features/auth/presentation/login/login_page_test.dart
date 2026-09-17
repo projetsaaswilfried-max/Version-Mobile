@@ -15,6 +15,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _UnconfirmedAuthRepository implements AuthRepository {
+  String? resendCalledFor;
+
   @override
   AuthSession? get currentSession => null;
 
@@ -42,8 +44,10 @@ class _UnconfirmedAuthRepository implements AuthRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<Result<void>> resendSignupEmail({required String email}) =>
-      throw UnimplementedError();
+  Future<Result<void>> resendSignupEmail({required String email}) async {
+    resendCalledFor = email;
+    return const Ok(null);
+  }
 
   @override
   Future<Result<void>> requestPasswordReset({required String email}) =>
@@ -109,15 +113,13 @@ void main() {
   });
 
   testWidgets(
-    'unconfirmed email shows a way back to the OTP screen instead of a dead end',
+    'unconfirmed email auto-resends the code and redirects to OTP, '
+    'no button to press',
     (tester) async {
+      final repo = _UnconfirmedAuthRepository();
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authRepositoryProvider.overrideWithValue(
-              _UnconfirmedAuthRepository(),
-            ),
-          ],
+          overrides: [authRepositoryProvider.overrideWithValue(repo)],
           child: MaterialApp(theme: AppTheme.light, home: const LoginPage()),
         ),
       );
@@ -126,15 +128,13 @@ void main() {
       await tester.enterText(find.byType(TextField).at(1), 'Abcdefg1');
       await tester.ensureVisible(find.text('Se connecter'));
       await tester.tap(find.text('Se connecter'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Confirmer mon compte'), findsOneWidget);
-
-      await tester.tap(find.text('Confirmer mon compte'));
+      // pumpAndSettle would time out on OtpPage's Pinput cursor animation.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(OtpPage), findsOneWidget);
+      expect(find.text('Confirmer mon compte'), findsNothing);
+      expect(repo.resendCalledFor, 'a@b.co');
     },
   );
 }

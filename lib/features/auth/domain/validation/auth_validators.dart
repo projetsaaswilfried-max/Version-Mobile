@@ -4,6 +4,11 @@ class AuthValidators {
   static final _email = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
   static final _hasLetter = RegExp(r'[A-Za-z]');
   static final _hasDigit = RegExp(r'\d');
+  /// Must match the Supabase Dashboard setting Authentication → Emails →
+  /// "Email OTP Length" exactly (it defaults to 8, but is a project
+  /// setting anyone can change) — see decisions.md D1. If that dashboard
+  /// value ever changes, update this constant in the same change.
+  static const otpLength = 6;
   static final _otp = RegExp(r'^\d{6}$');
 
   /// Returns a French error message, or null if valid.

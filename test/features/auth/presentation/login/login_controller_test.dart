@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   bool signInCalled = false;
+  String? resendCalledFor;
   Result<AuthSession> signInResult = const Ok(
     AuthSession(id: '1', email: 'a@b.co'),
   );
@@ -45,8 +46,10 @@ class _FakeAuthRepository implements AuthRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<Result<void>> resendSignupEmail({required String email}) =>
-      throw UnimplementedError();
+  Future<Result<void>> resendSignupEmail({required String email}) async {
+    resendCalledFor = email;
+    return const Ok(null);
+  }
 
   @override
   Future<Result<void>> requestPasswordReset({required String email}) =>
@@ -159,7 +162,8 @@ void main() {
   );
 
   test(
-    'submit maps EmailNotConfirmedFailure to emailNotConfirmed flag',
+    'submit on EmailNotConfirmedFailure resends the signup email and sets '
+    'emailNotConfirmed without a formError (auto-redirect, no dead end)',
     () async {
       repo.signInResult = const Err(
         EmailNotConfirmedFailure('Email non confirmé.'),
@@ -171,8 +175,9 @@ void main() {
       await c.submit();
 
       expect(c.state.emailNotConfirmed, isTrue);
-      expect(c.state.formError, 'Email non confirmé.');
+      expect(c.state.formError, isNull);
       expect(c.state.succeeded, false);
+      expect(repo.resendCalledFor, 'a@b.co');
     },
   );
 

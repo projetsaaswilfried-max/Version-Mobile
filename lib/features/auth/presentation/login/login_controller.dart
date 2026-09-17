@@ -49,6 +49,13 @@ class LoginController extends Notifier<LoginState> {
     switch (result) {
       case Ok<AuthSession>():
         state = state.copyWith(isLoading: false, succeeded: true);
+      case Err<AuthSession>(failure: final EmailNotConfirmedFailure _):
+        // The original signup code/link is necessarily stale by now (the
+        // member is only here because a normal login failed) — resend it
+        // ourselves and go straight to the OTP screen instead of leaving
+        // them stuck on an error with a button to press.
+        await ref.read(resendSignupEmailProvider)(email: state.email.trim());
+        state = state.copyWith(isLoading: false, emailNotConfirmed: true);
       case Err<AuthSession>(:final failure):
         state = state.copyWith(
           isLoading: false,
@@ -56,7 +63,6 @@ class LoginController extends Notifier<LoginState> {
               ? Map<String, String>.from(failure.fieldErrors ?? const {})
               : const {},
           formError: failure.message,
-          emailNotConfirmed: failure is EmailNotConfirmedFailure,
         );
     }
   }

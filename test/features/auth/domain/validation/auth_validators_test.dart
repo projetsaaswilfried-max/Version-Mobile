@@ -30,7 +30,7 @@ void main() {
   });
 
   group('AuthValidators.otp', () {
-    test('requires exactly 6 digits', () {
+    test('requires exactly 6 digits (Supabase Email OTP Length setting)', () {
       expect(AuthValidators.otp('12345'), isNotNull);
       expect(AuthValidators.otp('1234567'), isNotNull);
       expect(AuthValidators.otp('12ab56'), isNotNull);
