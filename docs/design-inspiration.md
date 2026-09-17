@@ -18,6 +18,30 @@ sentent natifs — pas un site web redimensionné.
 
 ---
 
+## État actuel — l'onboarding profil n'est pas au niveau (2026-09-17)
+
+**Constat direct du porteur produit, à traiter avant de considérer l'onboarding
+"fini".** Les 5 écrans O01–O05 (`lib/features/onboarding/presentation/profile_onboarding/`)
+sont posés sur les tokens (couleur, spacing) mais restent des **composants
+Material par défaut**, pas un niveau Tinder/Badoo :
+
+- **Date de naissance** — `showDatePicker` natif (roue/calendrier Material ou
+  Cupertino stock, thème rose approximatif). Aucune app dating sérieuse
+  n'utilise ce composant tel quel.
+- **Genre** — trois cases avec coche (`ChoiceChip`-like), rendu proche d'une
+  checkbox HTML. Pas de segmented control, pas de card-select.
+- **Pays** — `DropdownButton` Material basique (liste déroulante native).
+- **Photos** — un rectangle vide avec une icône appareil photo au centre.
+  Aucun visuel, aucune affordance, ressemble à un placeholder de tutoriel.
+
+C'est le **flow entier (O01 à O05)** qui doit être redessiné avec des
+composants custom (voir sources ci-dessous : Nestle kit pour les formulaires
+par étapes, Datify/Community kit pour les sélecteurs et l'upload photo) —
+pas juste retoucher les couleurs. Aligner sur un token réel ne suffit pas si
+la structure du composant reste du Material brut.
+
+---
+
 ## Sources
 
 | Source | Lien | Type | À regarder pour |
@@ -41,7 +65,7 @@ authentifié/rendu JS) — à parcourir manuellement dans l'éditeur.
 | Découvrir (liste, pas swipe) | §7 | Structure liste + sections "Recommandée" / "Autres" | Carte de profil (Datify), badges vérifié/staff |
 | Fiche profil complète | §6, §7 | Champs, masquage progressif | Mise en page profil détaillé, galerie photo (toutes sources) |
 | Messagerie (invitation → accepté) | §8 | Statuts PENDING/ACCEPTED, bulles, accusés de lecture | Écrans de chat (Orange Dating App), indicateur "en train d'écrire" |
-| Onboarding multi-étapes | §5 | 3–5 étapes, jamais bloquant | Formulaires par étapes, barre de progression (Nestle kit) |
+| Onboarding multi-étapes | §5 | 3–5 étapes, jamais bloquant | **À refaire entièrement** — voir « État actuel » ci-dessus. Formulaires par étapes, barre de progression (Nestle kit) ; sélecteurs custom + upload photo (Datify, Community kit) |
 | Vérification selfie | §6 | Capture caméra live obligatoire | Écrans de capture/consentement (à défaut dans ces kits génériques — probablement à concevoir spécifiquement) |
 | Premium / paywall | §11 | Formules, popups de relance | Écrans de paywall/pricing (toutes sources) |
 | Mon Compte (8 onglets) | §14 | Structure par onglets | Écrans de paramètres/profil (Community kit) |
