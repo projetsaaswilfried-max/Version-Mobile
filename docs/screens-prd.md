@@ -63,8 +63,8 @@ fréquente). **Premium** reste hors barre (page dédiée + popups, PRD §11).
 
 | # | Écran | Route web | Statut | Comportement |
 |---|---|---|---|---|
-| S01 | Shell (bottom nav, 4 tabs) | — | Vu | Fil · Découvrir · Messages · Profil + bandeau profil incomplet |
-| S02 | Bandeau « Profil incomplet » | — | Vu | CTA « Compléter » → onboarding ; 4 étapes manquantes listées |
+| S01 | Shell (bottom nav, 4 tabs) | — | Vu | Fil · Découvrir · Messages · Profil |
+| S02 | Bandeau « Profil incomplet » | — | Retiré | Plus de bandeau sticky global (D9). Rappel contextuel dans Découvrir. |
 | S03 | Menu latéral / avatar | — | Vu | Accueil, Découvrir, Messages, Premium, Mon Profil (web) |
 | S04 | Header accueil (cloche + badge) | — | Mobile | Accès à N01 ; pas un 5ᵉ onglet |
 
@@ -193,13 +193,13 @@ Route : `/profile`. Sur le web = 8 onglets ; **sur iOS = 8 pages** (ou
 
 | # | Écran | Statut | Notes |
 |---|---|---|---|
-| C00 | Hub Mon compte | Vu | « Voir mon profil public » · « Modifier » → `/onboarding` |
+| C00 | Hub Mon compte | Vu | « Voir mon profil public » · crayon / « Modifier » → C01 enrichi (D26) ; bannière complétion → onboarding si essentiels manquants, sinon C01 |
 
 ### 8.2 Les 8 sections
 
 | # | Écran | Statut | Contenu vu / PRD |
 |---|---|---|---|
-| C01 | Mon Profil | Vu | Photos 0/2 (gratuit), Ajouter · identité · bio ≤600 · switch déménagement · Enregistrer |
+| C01 | Mon Profil | Vu | Photos 0/2 (gratuit), Ajouter · Genre/Âge/Pays lecture seule · identité · bio ≤600 · switch déménagement · confession / situation / pourquoi mariage · lien Ma Foi · Enregistrer (D26) |
 | C02 | Ma Foi | Vu | Dénomination · années conversion · ministère · verset · témoignage · « Ce que Dieu fait » |
 | C03 | Plus d’infos | Vu | Qualités /10 · passions /12 · famille · enfants · délai mariage · valeurs /12 — *hors matching* |
 | C04 | Mes Publications | Vu | Empty + « Créer une publication » |
@@ -313,7 +313,7 @@ ouverts — s’appuyer sur le PRD pour ces flux.
 
 1. Shell 4 tabs + header cloche (S01, S04) + routage post-login (X07)
 2. Auth (A02–A08) + OTP (A05)
-3. Onboarding (O01–O05) + bandeau incomplet (S02)
+3. Onboarding (O01–O05)
 4. Fil (F01–F05)
 5. Découvrir + paywalls (D01–D06)
 6. Messages (M01–M07) au fur et à mesure des données

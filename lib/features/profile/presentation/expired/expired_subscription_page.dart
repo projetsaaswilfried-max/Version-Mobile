@@ -5,21 +5,12 @@ import '../../../../core/config/app_assets.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../../auth/di/auth_providers.dart';
-import '../../../auth/presentation/welcome/welcome_page.dart';
+import '../../../auth/presentation/sign_out/confirm_and_sign_out.dart';
+import '../../../premium/presentation/premium_plan_page.dart';
 
 /// Mur EXPIRED minimal. Pas de CTA paiement dans cette itération.
 class ExpiredSubscriptionPage extends ConsumerWidget {
   const ExpiredSubscriptionPage({super.key});
-
-  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    await ref.read(signOutProvider)();
-    if (!context.mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const WelcomePage()),
-      (route) => false,
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,9 +42,20 @@ class ExpiredSubscriptionPage extends ConsumerWidget {
               ),
               const Spacer(),
               AppButton(
+                label: 'Voir les formules',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PremiumPlanPage(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              AppButton(
                 label: 'Déconnexion',
                 variant: AppButtonVariant.secondary,
-                onPressed: () => _signOut(context, ref),
+                onPressed: () => confirmAndSignOut(context, ref),
               ),
             ],
           ),

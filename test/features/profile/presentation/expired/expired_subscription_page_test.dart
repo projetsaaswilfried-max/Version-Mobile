@@ -29,6 +29,10 @@ void main() {
 
     await tester.tap(find.text('Déconnexion'));
     await tester.pumpAndSettle();
+    expect(find.text('Se déconnecter ?'), findsOneWidget);
+
+    await tester.tap(find.text('Déconnexion').last);
+    await tester.pumpAndSettle();
 
     expect(find.byType(WelcomePage), findsOneWidget);
   });

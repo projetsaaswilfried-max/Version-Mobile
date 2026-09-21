@@ -1,4 +1,5 @@
 import 'package:agapeo/core/error/result.dart';
+import 'package:agapeo/core/theme/app_spacing.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_deep_link_result.dart';
@@ -9,13 +10,18 @@ import 'package:agapeo/features/auth/presentation/login/login_controller.dart';
 import 'package:agapeo/features/auth/presentation/login/login_page.dart';
 import 'package:agapeo/features/auth/presentation/otp/otp_controller.dart';
 import 'package:agapeo/features/auth/presentation/registration/registration_controller.dart';
+import 'package:agapeo/features/feed/di/feed_providers.dart';
 import 'package:agapeo/features/home/presentation/home_shell_page.dart';
+import 'package:agapeo/features/notifications/di/notifications_providers.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/auth_test_fakes.dart';
+import '../../../helpers/feed_test_fakes.dart';
+import '../../../helpers/notifications_test_fakes.dart';
+import '../../../helpers/profile_test_fakes.dart';
 
 class _FakeAuthRepository implements AuthRepository {
   int signInCalls = 0;
@@ -57,10 +63,8 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Result<void>> requestPasswordReset({required String email}) =>
       throw UnimplementedError();
 
-
   @override
-  Future<Result<void>> signInWithGoogle() =>
-      throw UnimplementedError();
+  Future<Result<void>> signInWithGoogle() => throw UnimplementedError();
 
   @override
   Future<Result<AuthSession>> updatePassword({required String password}) =>
@@ -129,6 +133,15 @@ void main() {
           profileGateRepositoryProvider.overrideWithValue(
             FakeProfileGateRepository(),
           ),
+          feedRepositoryProvider.overrideWithValue(FakeFeedRepository()),
+          notificationsRepositoryProvider.overrideWithValue(
+            FakeNotificationsRepository(),
+          ),
+          profileFieldsRepositoryProvider.overrideWithValue(
+            FakeProfileFieldsRepository(
+              result: Ok(fakeProfileFieldsSnapshot()),
+            ),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -150,9 +163,19 @@ void main() {
       expect(find.byType(LoginPage), findsNothing);
       expect(repo.signInCalls, 1);
 
-      await tester.tap(find.text('Profil'));
+      await tester.tap(find.byTooltip('Profil'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Déconnexion'));
+      final logout = find.text('Déconnexion');
+      await tester.scrollUntilVisible(
+        logout,
+        AppSpacing.xxxl,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(logout);
+      await tester.pumpAndSettle();
+      expect(find.text('Se déconnecter ?'), findsOneWidget);
+      await tester.tap(find.text('Déconnexion').last);
       await tester.pumpAndSettle();
 
       // Réouverture de l'écran de connexion : le listener simule le widget

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/result.dart';
+import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/navigation/root_navigator.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../../di/auth_providers.dart';
 import '../../domain/entities/auth_deep_link_result.dart';
@@ -79,9 +81,7 @@ class _AuthDeepLinkListenerState extends ConsumerState<AuthDeepLinkListener> {
       case Err(:final failure):
         final context = nav.overlay?.context;
         if (context == null || !context.mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(failure.message)));
+        AppToast.show(context, userFacingMessage(failure));
     }
   }
 

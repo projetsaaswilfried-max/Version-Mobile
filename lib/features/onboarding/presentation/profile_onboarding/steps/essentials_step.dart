@@ -1,20 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../core/config/countries.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_theme.dart';
-import '../onboarding_draft.dart';
+import '../../../../../core/widgets/widgets.dart';
 import '../onboarding_flow_controller.dart';
-
-const kOnboardingCountries = <String>[
-  'Côte d\'Ivoire',
-  'Sénégal',
-  'Cameroun',
-  'France',
-  'Belgique',
-  'Canada',
-  'Autre',
-];
+import '../onboarding_option_mapping.dart';
 
 class EssentialsStep extends ConsumerWidget {
   const EssentialsStep({super.key});
@@ -25,107 +17,78 @@ class EssentialsStep extends ConsumerWidget {
     final controller = ref.read(onboardingFlowProvider.notifier);
     final draft = state.draft;
     final errors = state.fieldErrors;
-    final colors = context.colors;
     final typography = context.typography;
+    final colors = context.colors;
+    final locked = state.essentialsLocked;
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      children: [
-        Text(
-          'Informations essentielles',
-          style: typography.headline.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Genre, âge et pays : verrouillés après validation.',
-          style: typography.bodyMedium.copyWith(color: colors.textSecondary),
-        ),
-        const SizedBox(height: AppSpacing.xxl),
-        Text('Genre', style: typography.bodyMedium),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          children: [
-            for (final g in OnboardingGender.values)
-              ChoiceChip(
-                label: Text(_genderLabel(g)),
-                selected: draft.gender == g,
-                onSelected: (_) =>
-                    controller.updateDraft((d) => d.copyWith(gender: g)),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (locked) ...[
+            Text(
+              'Ces infos sont déjà enregistrées et ne peuvent plus être modifiées.',
+              style: typography.bodySmall.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          Text('Genre', style: typography.label),
+          const SizedBox(height: AppSpacing.sm),
+          IgnorePointer(
+            ignoring: locked,
+            child: Opacity(
+              opacity: locked ? 0.7 : 1,
+              child: AppGenderCards(
+                items: onboardingGenderItems(),
+                selectedId: draft.gender == null
+                    ? null
+                    : onboardingGenderId(draft.gender!),
+                errorText: errors['gender'],
+                onSelected: (id) {
+                  final gender = onboardingGenderFromId(id);
+                  if (gender == null) return;
+                  controller.updateDraft((d) => d.copyWith(gender: gender));
+                },
               ),
-          ],
-        ),
-        if (errors['gender'] != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Text(
-              errors['gender']!,
-              style: typography.bodySmall.copyWith(color: colors.error),
             ),
           ),
-        const SizedBox(height: AppSpacing.xl),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text('Date de naissance', style: typography.bodyMedium),
-          subtitle: Text(
-            draft.birthDate == null
-                ? 'Choisir'
-                : MaterialLocalizations.of(context).formatMediumDate(
-                    draft.birthDate!,
-                  ),
-            style: typography.bodyLarge,
-          ),
-          trailing: Icon(Icons.calendar_today_outlined, color: colors.primary),
-          onTap: () async {
-            final now = DateTime.now();
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: draft.birthDate ?? DateTime(now.year - 25),
-              firstDate: DateTime(now.year - 100),
-              lastDate: now,
-            );
-            if (picked != null) {
-              controller.updateDraft((d) => d.copyWith(birthDate: picked));
-            }
-          },
-        ),
-        if (errors['birthDate'] != null)
-          Text(
-            errors['birthDate']!,
-            style: typography.bodySmall.copyWith(color: colors.error),
-          ),
-        const SizedBox(height: AppSpacing.xl),
-        Text('Pays', style: typography.bodyMedium),
-        const SizedBox(height: AppSpacing.sm),
-        DropdownButtonFormField<String>(
-          // ignore: deprecated_member_use - value still OK until Flutter 3.33
-          value: draft.country,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          items: [
-            for (final c in kOnboardingCountries)
-              DropdownMenuItem(value: c, child: Text(c)),
-          ],
-          onChanged: (v) {
-            if (v != null) {
-              controller.updateDraft((d) => d.copyWith(country: v));
-            }
-          },
-        ),
-        if (errors['country'] != null)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Text(
-              errors['country']!,
-              style: typography.bodySmall.copyWith(color: colors.error),
+          const SizedBox(height: AppSpacing.xl),
+          IgnorePointer(
+            ignoring: locked,
+            child: Opacity(
+              opacity: locked ? 0.7 : 1,
+              child: AppBirthDateField(
+                value: draft.birthDate,
+                errorText: errors['birthDate'],
+                onChanged: (d) => controller.updateDraft(
+                  (draft) => draft.copyWith(birthDate: d),
+                ),
+              ),
             ),
           ),
-      ],
+          const SizedBox(height: AppSpacing.xl),
+          IgnorePointer(
+            ignoring: locked,
+            child: Opacity(
+              opacity: locked ? 0.7 : 1,
+              child: AppCountryPicker(
+                countries: kOnboardingCountries,
+                value: draft.country,
+                errorText: errors['country'],
+                onChanged: (c) =>
+                    controller.updateDraft((d) => d.copyWith(country: c)),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
+      ),
     );
   }
-
-  String _genderLabel(OnboardingGender g) => switch (g) {
-    OnboardingGender.woman => 'Femme',
-    OnboardingGender.man => 'Homme',
-    OnboardingGender.other => 'Autre',
-  };
 }

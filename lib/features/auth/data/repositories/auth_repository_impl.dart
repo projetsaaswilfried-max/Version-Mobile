@@ -1,5 +1,4 @@
-import '../../../../core/error/exceptions.dart';
-import '../../../../core/error/failure.dart';
+import '../../../../core/error/map_data_exception.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/auth_deep_link_result.dart';
 import '../../domain/entities/auth_session.dart';
@@ -14,24 +13,11 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthSession _toSession(({String id, String email}) user) =>
       AuthSession(id: user.id, email: user.email);
 
-  Failure _mapException(Object error) {
-    return switch (error) {
-      EmailNotConfirmedException(:final message) =>
-        EmailNotConfirmedFailure(message),
-      UnauthorizedException(:final message) => UnauthorizedFailure(message),
-      NetworkException(:final message) => NetworkFailure(message),
-      ValidationException(:final message, :final fieldErrors) =>
-        ValidationFailure(message, fieldErrors: fieldErrors),
-      ServerException(:final message) => ServerFailure(message),
-      _ => const UnknownFailure(),
-    };
-  }
-
   Future<Result<T>> _guard<T>(Future<T> Function() action) async {
     try {
       return Ok(await action());
     } catch (error) {
-      return Err(_mapException(error));
+      return Err(mapDataException(error));
     }
   }
 

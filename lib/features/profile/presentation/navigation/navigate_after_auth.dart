@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
+import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/navigation/root_navigator.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../../../home/presentation/home_shell_page.dart';
 import '../../../onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
 import '../../di/profile_providers.dart';
@@ -26,7 +30,7 @@ Widget pageForDestination(
   };
 }
 
-/// Resolves [gate] to a page. Caller is responsible for Err snackbars.
+/// Resolves [gate] to a page. Caller is responsible for Err toasts.
 Widget pageForGate(
   Result<MemberGateSnapshot> gate,
   ResolvePostLoginRoute resolve, {
@@ -41,12 +45,13 @@ Widget pageForGate(
 /// After a session is established, fetch the gate and navigate to the
 /// destination (suspended / expired / onboarding / home).
 ///
-/// On [Err]: snackbar + defensive [HomeShellPage].
+/// On [Err]: toast + defensive [HomeShellPage].
 Future<void> navigateAfterAuth(
   WidgetRef ref,
   BuildContext context, {
   required String email,
 }) async {
+  _prefetchProfileFields(ref);
   final gate = await ref.read(profileGateRepositoryProvider).fetchGate();
   if (!context.mounted) return;
 
@@ -57,7 +62,7 @@ Future<void> navigateAfterAuth(
   );
 
   if (gate case Err(:final failure)) {
-    _showGateFailureSnackBar(context, failure);
+    _showGateFailureToast(context, failure);
   }
 
   Navigator.of(context).pushAndRemoveUntil(
@@ -67,13 +72,14 @@ Future<void> navigateAfterAuth(
 }
 
 /// Same as [navigateAfterAuth] but via [NavigatorState] (deep-link listener,
-/// where [BuildContext] snackbars are unreliable). Uses [rootNavigatorKey]
-/// overlay context for Err snackbars when [nav] has no overlay of its own.
+/// where [BuildContext] toasts are unreliable). Uses [rootNavigatorKey]
+/// overlay context for Err toasts when [nav] has no overlay of its own.
 Future<void> navigateAfterAuthWithNav(
   WidgetRef ref,
   NavigatorState nav, {
   required String email,
 }) async {
+  _prefetchProfileFields(ref);
   final gate = await ref.read(profileGateRepositoryProvider).fetchGate();
 
   final page = pageForGate(
@@ -86,7 +92,7 @@ Future<void> navigateAfterAuthWithNav(
     final overlayContext =
         nav.overlay?.context ?? rootNavigatorKey.currentState?.overlay?.context;
     if (overlayContext != null && overlayContext.mounted) {
-      _showGateFailureSnackBar(overlayContext, failure);
+      _showGateFailureToast(overlayContext, failure);
     }
   }
 
@@ -96,8 +102,21 @@ Future<void> navigateAfterAuthWithNav(
   );
 }
 
-void _showGateFailureSnackBar(BuildContext context, Failure failure) {
-  ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(failure.message)));
+void _prefetchProfileFields(WidgetRef ref) {
+  try {
+    // `profileFieldsProvider` est un cache session-wide (pas autoDispose) :
+    // sans cet invalidate, une reconnexion avec un autre compte réutilisait
+    // les champs (et donc la complétude) du précédent utilisateur jusqu'au
+    // redémarrage de l'app.
+    ref.invalidate(profileFieldsProvider);
+    unawaited(
+      ref.read(profileFieldsProvider.future).then((_) {}, onError: (_) {}),
+    );
+  } catch (_) {
+    // Env non configuré : le gate reste la source de vérité pour la nav.
+  }
+}
+
+void _showGateFailureToast(BuildContext context, Failure failure) {
+  AppToast.show(context, userFacingMessage(failure));
 }

@@ -1,37 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../notifications/notifications_stub_page.dart';
-import 'home_tab_placeholder.dart';
+import '../../../../core/config/app_assets.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_svg.dart';
+import '../../../feed/presentation/feed_body.dart';
+import '../../../notifications/presentation/notifications_controller.dart';
+import '../../../notifications/presentation/notifications_page.dart';
+import '../widgets/home_floating_nav_bar.dart';
 
-class FeedTabPage extends StatelessWidget {
+class FeedTabPage extends ConsumerWidget {
   const FeedTabPage({super.key});
 
-  static const int unreadCount = 0;
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(
+      notificationsControllerProvider.select((state) => state.unreadCount),
+    );
+    final colors = context.colors;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Fil'),
+        automaticallyImplyLeading: false,
+        centerTitle: false,
+        leadingWidth: AppSpacing.xxxl + AppSpacing.lg,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: AppSpacing.lg),
+          child: Semantics(
+            label: 'Agapeo',
+            image: true,
+            child: Image.asset(AppAssets.logoFull, fit: BoxFit.contain),
+          ),
+        ),
+        title: const Text('Agapeo'),
         actions: [
           IconButton(
-            icon: unreadCount > 0
+            tooltip: 'Notifications',
+            icon: unread > 0
                 ? Badge(
-                    label: Text('$unreadCount'),
-                    child: const Icon(Icons.notifications_outlined),
+                    label: Text('$unread'),
+                    child: AppSvg(
+                      AppAssets.icBell,
+                      size: AppSpacing.xl,
+                      color: colors.textPrimary,
+                    ),
                   )
-                : const Icon(Icons.notifications_outlined),
+                : AppSvg(
+                    AppAssets.icBell,
+                    size: AppSpacing.xl,
+                    color: colors.textPrimary,
+                  ),
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const NotificationsStubPage(),
-                ),
+                MaterialPageRoute(builder: (_) => const NotificationsPage()),
               );
             },
           ),
         ],
       ),
-      body: const HomeTabPlaceholder(title: 'Fil'),
+      body: FeedBody(
+        bottomPadding: HomeFloatingNavBar.scrollClearance(context),
+      ),
     );
   }
 }

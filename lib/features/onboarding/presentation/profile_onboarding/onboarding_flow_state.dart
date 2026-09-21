@@ -8,32 +8,47 @@ class OnboardingFlowState extends Equatable {
     this.currentStep = 0,
     this.fieldErrors = const {},
     this.completedLocally = false,
-    this.skippedVerification = false,
+    this.skippedPhoto = false,
+    this.isSubmitting = false,
+    this.submitError,
+    this.essentialsLocked = false,
   });
 
-  static const stepCount = 5;
+  static const stepCount = 4;
 
   final OnboardingDraft draft;
   final int currentStep;
   final Map<String, String> fieldErrors;
   final bool completedLocally;
-  final bool skippedVerification;
+  final bool skippedPhoto;
+  final bool isSubmitting;
+  final String? submitError;
+  final bool essentialsLocked;
 
   bool get isLastStep => currentStep >= stepCount - 1;
+  bool get isPhotoStep => currentStep == 2;
+  bool get isRecapStep => currentStep == 3;
 
   OnboardingFlowState copyWith({
     OnboardingDraft? draft,
     int? currentStep,
     Map<String, String>? fieldErrors,
     bool? completedLocally,
-    bool? skippedVerification,
+    bool? skippedPhoto,
+    bool? isSubmitting,
+    String? submitError,
+    bool clearSubmitError = false,
+    bool? essentialsLocked,
   }) {
     return OnboardingFlowState(
       draft: draft ?? this.draft,
       currentStep: currentStep ?? this.currentStep,
       fieldErrors: fieldErrors ?? this.fieldErrors,
       completedLocally: completedLocally ?? this.completedLocally,
-      skippedVerification: skippedVerification ?? this.skippedVerification,
+      skippedPhoto: skippedPhoto ?? this.skippedPhoto,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      submitError: clearSubmitError ? null : (submitError ?? this.submitError),
+      essentialsLocked: essentialsLocked ?? this.essentialsLocked,
     );
   }
 
@@ -43,6 +58,9 @@ class OnboardingFlowState extends Equatable {
     currentStep,
     fieldErrors,
     completedLocally,
-    skippedVerification,
+    skippedPhoto,
+    isSubmitting,
+    submitError,
+    essentialsLocked,
   ];
 }

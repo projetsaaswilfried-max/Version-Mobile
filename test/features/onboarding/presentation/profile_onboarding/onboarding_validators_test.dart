@@ -10,10 +10,7 @@ void main() {
   );
 
   test('O01 requires gender, adult birthDate and country', () {
-    expect(
-      OnboardingValidators.canGoNext(0, const OnboardingDraft()),
-      isFalse,
-    );
+    expect(OnboardingValidators.canGoNext(0, const OnboardingDraft()), isFalse);
     expect(
       OnboardingValidators.canGoNext(
         0,
@@ -38,31 +35,51 @@ void main() {
     );
   });
 
-  test('O02 requires at least one photo', () {
-    expect(
-      OnboardingValidators.canGoNext(1, const OnboardingDraft()),
-      isFalse,
-    );
+  test('step 1 requires confession, marital, whyMarriage', () {
+    expect(OnboardingValidators.canGoNext(1, const OnboardingDraft()), isFalse);
     expect(
       OnboardingValidators.canGoNext(
         1,
-        const OnboardingDraft(photoPaths: ['/tmp/a.jpg']),
+        const OnboardingDraft(
+          faithConfession: 'Protestante',
+          maritalStatus: OnboardingMaritalStatus.single,
+          whyMarriage: 'Pour bâtir une famille dans la foi.',
+        ),
       ),
       isTrue,
     );
   });
 
-  test('O05 requires whyMarriage', () {
+  test('step 2 photo is optional for canGoNext', () {
+    expect(OnboardingValidators.canGoNext(2, const OnboardingDraft()), isTrue);
+  });
+
+  test('other gender is invalid on essentials', () {
+    final errors = OnboardingValidators.errorsForStep(
+      0,
+      OnboardingDraft(
+        gender: OnboardingGender.other,
+        birthDate: adult,
+        country: 'France',
+      ),
+    );
+    expect(errors['gender'], isNotNull);
+  });
+
+  test('errorsForSubmit replays steps 0 then 1', () {
     expect(
-      OnboardingValidators.canGoNext(4, const OnboardingDraft()),
-      isFalse,
+      OnboardingValidators.errorsForSubmit(const OnboardingDraft()),
+      containsPair('gender', 'Choisis ton genre.'),
     );
     expect(
-      OnboardingValidators.canGoNext(
-        4,
-        const OnboardingDraft(whyMarriage: 'Pour bâtir un foyer.'),
+      OnboardingValidators.firstInvalidStep(
+        OnboardingDraft(
+          gender: OnboardingGender.woman,
+          birthDate: adult,
+          country: 'France',
+        ),
       ),
-      isTrue,
+      1,
     );
   });
 }

@@ -24,11 +24,18 @@ class Json {
   }
 
   int intValue(String key, {int fallback = 0}) {
+    return intOrNull(key) ?? fallback;
+  }
+
+  /// Returns null if the key is missing, null, or not a number.
+  int? intOrNull(String key) {
+    if (!_map.containsKey(key)) return null;
     final value = _raw(key);
+    if (value == null) return null;
     if (value is int) return value;
     if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? fallback;
-    return fallback;
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   double doubleValue(String key, {double fallback = 0}) {
@@ -55,8 +62,8 @@ class Json {
     final value = _raw(key);
     if (value is! List) return const [];
     return value
-        .whereType<Map<String, dynamic>>()
-        .map((item) => mapper(Json(item)))
+        .whereType<Map>()
+        .map((item) => mapper(Json(Map<String, dynamic>.from(item))))
         .toList();
   }
 
@@ -68,7 +75,7 @@ class Json {
 
   Json? nested(String key) {
     final value = _raw(key);
-    if (value is Map<String, dynamic>) return Json(value);
+    if (value is Map) return Json(Map<String, dynamic>.from(value));
     return null;
   }
 

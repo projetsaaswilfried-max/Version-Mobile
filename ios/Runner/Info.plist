@@ -51,7 +51,7 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Agapeo utilise la caméra pour le selfie de vérification.</string>
+	<string>Agapeo utilise la caméra pour ta photo de profil et le selfie de vérification.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Agapeo utilise ta photothèque pour les photos de profil.</string>
 </dict>

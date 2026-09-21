@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/user_facing_message.dart';
+import '../../../../core/widgets/app_toast.dart';
 import '../google/google_sign_in_controller.dart';
 import 'google_sign_in_button.dart';
 
@@ -16,9 +18,7 @@ class GoogleAuthButton extends ConsumerWidget {
       if (next.formError != null &&
           next.formError != previous?.formError &&
           !next.isLoading) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.formError!)));
+        AppToast.show(context, userFacingMessageFromRaw(next.formError));
       }
     });
 

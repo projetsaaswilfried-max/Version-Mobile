@@ -3,10 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Design tokens for typography, mode-aware via [ThemeExtension].
 ///
-/// Charte: Bricolage Grotesque as primary (display/headline) typeface,
-/// Segoe UI as secondary — kept as a fallback family since it is only
-/// natively available on Windows; other platforms fall back to their
-/// default system font.
+/// Charte: Bricolage Grotesque everywhere (titles, body, fields).
 class AppTypography extends ThemeExtension<AppTypography> {
   const AppTypography({
     required this.displayLarge,
@@ -28,27 +25,59 @@ class AppTypography extends ThemeExtension<AppTypography> {
   final TextStyle bodySmall;
   final TextStyle label;
 
-  static const _bodyFallback = ['Segoe UI'];
-
-  static TextStyle _display({required double size, required FontWeight weight}) {
-    return GoogleFonts.bricolageGrotesque(fontSize: size, fontWeight: weight);
+  static TextStyle _face({
+    required double size,
+    required FontWeight weight,
+    double height = 1.25,
+  }) {
+    return GoogleFonts.bricolageGrotesque(
+      fontSize: size,
+      fontWeight: weight,
+      height: height,
+    );
   }
 
-  static const _bodyBase = TextStyle(
-    fontFamilyFallback: _bodyFallback,
-    height: 1.4,
-  );
-
-  static AppTypography of({required Color textPrimary, required Color textSecondary}) {
+  static AppTypography of({
+    required Color textPrimary,
+    required Color textSecondary,
+  }) {
     return AppTypography(
-      displayLarge: _display(size: 32, weight: FontWeight.w700).copyWith(color: textPrimary),
-      displayMedium: _display(size: 26, weight: FontWeight.w700).copyWith(color: textPrimary),
-      headline: _display(size: 22, weight: FontWeight.w600).copyWith(color: textPrimary),
-      title: _display(size: 18, weight: FontWeight.w600).copyWith(color: textPrimary),
-      bodyLarge: _bodyBase.copyWith(fontSize: 16, color: textPrimary),
-      bodyMedium: _bodyBase.copyWith(fontSize: 14, color: textPrimary),
-      bodySmall: _bodyBase.copyWith(fontSize: 12, color: textSecondary),
-      label: _bodyBase.copyWith(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary),
+      displayLarge: _face(
+        size: 32,
+        weight: FontWeight.w700,
+      ).copyWith(color: textPrimary),
+      displayMedium: _face(
+        size: 26,
+        weight: FontWeight.w700,
+      ).copyWith(color: textPrimary),
+      headline: _face(
+        size: 22,
+        weight: FontWeight.w600,
+      ).copyWith(color: textPrimary),
+      title: _face(
+        size: 18,
+        weight: FontWeight.w600,
+      ).copyWith(color: textPrimary),
+      bodyLarge: _face(
+        size: 16,
+        weight: FontWeight.w400,
+        height: 1.4,
+      ).copyWith(color: textPrimary),
+      bodyMedium: _face(
+        size: 14,
+        weight: FontWeight.w400,
+        height: 1.4,
+      ).copyWith(color: textPrimary),
+      bodySmall: _face(
+        size: 12,
+        weight: FontWeight.w400,
+        height: 1.4,
+      ).copyWith(color: textSecondary),
+      label: _face(
+        size: 13,
+        weight: FontWeight.w600,
+        height: 1.3,
+      ).copyWith(color: textSecondary),
     );
   }
 

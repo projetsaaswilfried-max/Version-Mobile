@@ -29,7 +29,33 @@ void main() {
 
     await tester.tap(find.text('Déconnexion'));
     await tester.pumpAndSettle();
+    expect(find.text('Se déconnecter ?'), findsOneWidget);
+
+    await tester.tap(find.text('Déconnexion').last);
+    await tester.pumpAndSettle();
 
     expect(find.byType(WelcomePage), findsOneWidget);
+  });
+
+  testWidgets('cancel logout keeps suspended page', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SuspendedAccountPage(),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Déconnexion'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SuspendedAccountPage), findsOneWidget);
+    expect(find.byType(WelcomePage), findsNothing);
   });
 }

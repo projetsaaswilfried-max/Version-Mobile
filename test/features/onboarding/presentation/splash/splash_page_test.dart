@@ -4,16 +4,20 @@ import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:agapeo/features/auth/presentation/age_gate/age_gate_page.dart';
 import 'package:agapeo/features/auth/presentation/welcome/welcome_page.dart';
+import 'package:agapeo/features/feed/di/feed_providers.dart';
 import 'package:agapeo/features/home/presentation/home_shell_page.dart';
 import 'package:agapeo/features/onboarding/di/onboarding_providers.dart';
 import 'package:agapeo/features/onboarding/presentation/intro/intro_onboarding_page.dart';
 import 'package:agapeo/features/onboarding/presentation/splash/splash_page.dart';
+import 'package:agapeo/features/notifications/di/notifications_providers.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/auth_test_fakes.dart';
+import '../../../../helpers/feed_test_fakes.dart';
+import '../../../../helpers/notifications_test_fakes.dart';
 
 void main() {
   setUpAll(() {
@@ -35,6 +39,10 @@ void main() {
         overrides: [
           authRepositoryProvider.overrideWithValue(auth),
           introStoreProvider.overrideWithValue(intro),
+          feedRepositoryProvider.overrideWithValue(FakeFeedRepository()),
+          notificationsRepositoryProvider.overrideWithValue(
+            FakeNotificationsRepository(),
+          ),
           if (profileGate != null)
             profileGateRepositoryProvider.overrideWithValue(profileGate),
         ],
@@ -51,9 +59,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            introStoreProvider.overrideWithValue(FakeIntroStore()),
-          ],
+          overrides: [introStoreProvider.overrideWithValue(FakeIntroStore())],
           child: MaterialApp(theme: AppTheme.light, home: const SplashPage()),
         ),
       );
@@ -66,7 +72,9 @@ void main() {
     },
   );
 
-  testWidgets('keeps splash visible until min display duration', (tester) async {
+  testWidgets('keeps splash visible until min display duration', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

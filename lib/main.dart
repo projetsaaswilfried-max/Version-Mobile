@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -52,6 +53,13 @@ class AgapeoApp extends StatelessWidget {
       title: 'Agapeo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      locale: const Locale('fr'),
+      supportedLocales: const [Locale('fr')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       navigatorKey: rootNavigatorKey,
       builder: (context, child) {
         return AuthDeepLinkListener(child: child ?? const SizedBox.shrink());

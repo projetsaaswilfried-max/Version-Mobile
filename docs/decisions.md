@@ -70,9 +70,298 @@ un tag Trending.
 - Si Notifications a besoin d'un accès plus visible plus tard, revoir cette
   entrée plutôt que d'ajouter un 5ᵉ onglet sans repasser par ce journal.
 
+### D5 - Onboarding profil mobile : 3 steps, photo skippable
+*2026-09-17 · réf. PRD §5 · spec : `docs/superpowers/specs/2026-09-17-onboarding-3steps-heroes-design.md`*
+
+Delta mobile assumé vs le PRD web (5 étapes, photos obligatoires, selfie live
+dans l'assistant) :
+
+1. **3 steps** : Essentiels (genre / DOB / pays) → Foi (confession, situation,
+   pourquoi mariage) → Photo de profil.
+2. **Steps 1-2 non skippables** : pas de « Revenir plus tard » tant que l'utilisateur
+   n'a pas atteint la Photo (on peut toujours revenir en arrière dans le flow).
+3. **Photo skippable** avec avertissement explicite : sans photo, le profil ne
+   sera pas vérifié ni visible ; ajout possible plus tard.
+4. **Photo de profil** : capture caméra **ou** import galerie. Le **selfie live**
+   anti-usurpation reste requis pour la soumission de vérification, mais **hors**
+   cet onboarding (Mon compte / parcours vérif).
+5. **Heroes** : illustration soft en haut de chaque step (placeholders acceptés).
+
+Raison : raccourcir le time-to-home, réduire l'abandon, garder la confiance
+(vérif) sans bloquer l'entrée. Le PRD web n'est pas réécrit ici (D2) : ce delta
+vit dans le journal + la spec mobile.
+
+### D6 — Fil : programme F01-F05, revue Claude #33
+*2026-09-18 · réf. PRD §10, screens-prd §4 / C04, issue #9, spec `docs/superpowers/specs/2026-09-18-feed-program-f01-f05-design.md`*
+
+Le fil se livre en **PRs empilées** (A correctifs F01 → B chrome home → C F02 →
+D engagement → E F03 → F F05 → G F04). #9 se ferme sur G, pas avant.
+
+Réconciliation revue Claude vs spec F01 :
+
+- Bugs d'écart à la spec (auteur, jauge 6 champs, Voir plus 4 lignes, dates
+  futures, compteur `0`, chip Plus qui montre l'overflow) : lot A, même PR #33.
+- Overflow chips **conservé** (aligné web). On n'aligne pas 9 chips en scroll
+  horizontal.
+- Bannière S02 **sticky** dans le shell (tous les onglets). Le scroll « un
+  bloc » de Claude s'applique **dans** l'onglet Fil (titre + chips + cartes),
+  pas à S02 / AppBar.
+- Logo Agapeo en `leading` de l'AppBar Fil. Titre « Agapeo » (voir D10).
+- Point « Json.list casse tout » : **rejeté** (parse plus tolérant, pas l'inverse).
+- F04 n'attend pas le hub Mon compte : entrée C04 depuis l'onglet Profil.
+
+### D7 — Profil C02–C16 : un lot sur le hub, colonnes best-effort
+*2026-09-19 · réf. PRD §§3, 6, 14–15 · spec `docs/superpowers/specs/2026-09-19-profile-account-pages-design.md`*
+
+Le hub C00 ne snackbar plus les sections restantes. Un repo `ProfileAccountRepository` couvre Foi, Plus d'infos, Favoris, Qui s'intéresse, Confidentialité, Compte & Sécurité (C09–C16) et l'aperçu public de soi. Les colonnes absentes sont masquées (même pattern que le switch déménagement C01). C05/C06 ouvrent la fiche Découvrir existante ; C06 masque les identités tant que l'abonnement n'est pas `ACTIVE` (sauf staff). Hors lot : checkout Premium.
+
+### D8 — Surfaces store sans checkout ni push natif
+*2026-09-19 · réf. PRD §§11–15, 22 · spec `docs/superpowers/specs/2026-09-19-store-ready-surfaces-design.md`*
+
+Tant que Q2 / Q3 restent ouverts, on livre quand même N01 in-app, signalement, blocage depuis fiche/fil/post, support, pages légales (dont L10), P01 lecture seule, quota photos 2/10, favori Découvrir aligné sur `profile_id`, et realtime du fil messages. Pas d’initiation SasPay, pas d’APNs.
+
+### D9 - Pas de bandeau S02 sticky dans le shell
+*2026-09-19 · réf. PRD §6, screens-prd S02, remplace le point S02 de D6*
+
+Le bandeau « Profil incomplet » n’est plus collé en haut de tous les onglets. Un profil incomplet est déjà invisible dans Découvrir (PRD §6) et Découvrir a son propre rappel contextuel + CTA Compléter. Un bandeau global mangeait de l’espace (surtout sur Profil) sans débloquer l’accès.
+
+Le calcul `profileCompletenessProvider` reste : il alimente Découvrir. L’onboarding se relance depuis Profil (Modifier) ou depuis la bannière Découvrir.
+
+### D10 - Surfaces blanches, confession liste fermée, récap non-retour
+*2026-09-19 · réf. PRD §5, §7 · remplace le titre « Cercle Agape » de D6*
+
+Retour design (finitions dating pro) :
+
+1. **Surfaces** : fond de page = `surface` blanc partout (Fil, Profil, formulaires). Plus de wash gris/rosé. Cartes fil blanches avec bordure + ombre légère (hors clip).
+2. **Inputs DS** : `InputDecorationTheme` outlined (fond blanc, bordure, radius `md`, focus primary) - plus de fill gris sans contour ni pilule.
+3. **Confession** : liste fermée (`AppSelectField` + bottom sheet), valeurs canoniques partagées (`onboardingFaithConfessions`) pour alimenter les filtres Découvrir. Delta vs PRD §5 « texte libre ».
+4. **Fil AppBar** : titre « Agapeo » (logo leading). Plus de « Cercle Agape ». Cloche = icône custom `ic_bell`, pas Material.
+5. **Récap onboarding** : point de non-retour - uniquement « Terminer ». « Passer » (skip photo) vit sur l’étape Photo. Plus de « Revenir plus tard » sur le récap.
+6. **Locale** : app forcée `fr` (`flutter_localizations`) pour date picker et dates affichées.
+
+### D11 - Bucket photos profil : alignement sur `avatars`
+*2026-09-20 · réf. PRD §21 · résout V4*
+
+Le mobile uploadait les photos profil/onboarding vers un bucket
+`profile-photos`, inexistant côté Supabase (`StorageException 404 Bucket not
+found` reproduit en test onboarding). Le PRD §21 ne liste que `avatars` /
+`post-media` comme buckets publics. **Décision : tout le mobile s'aligne sur
+`avatars`** - plus de bucket `profile-photos` séparé. `AppStorageBuckets`
+n'expose plus que `avatars`/`postMedia` ; les datasources onboarding, profil,
+discover, messages et feed pointent toutes vers `avatars`.
+
+### D12 - Gris neutre `muted` pour chrome inactif et skeletons
+*2026-09-20 · réf. D4 (bottom nav)*
+
+Les icônes non actives de la bottom nav utilisaient `textSecondary` (#6B6570),
+trop foncé / teinté. Les skeletons réutilisaient `border` (rose-gris). Nouveau
+token `AppColors.muted` (#B0B0B0 light / #7A7A7A dark) : gris simple façon apps
+courantes. Usages : onglets inactifs, skeletons, placeholders image / média.
+`textSecondary` reste pour le texte secondaire lisible ; `border` pour les
+contours uniquement.
+
+### D13 - Skeletons : token `skeleton` dédié + pulsation, chips Fil sur une seule ligne
+*2026-09-20 · réf. D12, D6 (remplace le point overflow chips de D6)*
+
+Trois retours produit après test manuel :
+
+1. **Skeletons trop foncés.** `muted` (#B0B0B0) posé en aplat plein sur une
+   grande carte lit plus lourd qu'sur une petite icône. Nouveau token
+   `AppColors.skeleton` (#E7E7E7 light / #3D3A3C dark), dédié aux blocs de
+   chargement, + léger effet de pulsation d'opacité (widget
+   `AppSkeletonBox`, `core/widgets/`). `muted` reste pour icônes inactives et
+   placeholders d'image statiques.
+2. **Chips de catégorie du Fil : plus de chevron/bottom sheet.** Toutes les
+   catégories (`FeedChip.allVisible`) restent sur une seule ligne
+   horizontale scrollable (mobile-first, cohérent avec des refs comme
+   Tinder/Bumble). **Remplace** le point D6 « overflow chips conservé,
+   pas de scroll horizontal pour 9 chips ». Chip non sélectionnée : fond
+   gris neutre (`AppColors.chipBackground`, même teinte que `skeleton`
+   aujourd'hui mais token distinct).
+3. **Anneau `primary` autour de l'avatar auteur (Fil).** Effet « story »
+   (liseré coloré + léger espace blanc entre l'anneau et la photo), inspiré
+   d'une référence dating app. `feed_post_card.dart` uniquement pour
+   l'instant — pas encore étendu aux avatars des commentaires ni du hub
+   Profil.
+
+### D14 - Découvrir : pagination serveur reelle, bandeau aperçu retiré, header Profil
+*2026-09-20 · réf. PRD §7, revue #34*
+
+Trois retours produit après test manuel :
+
+1. **Pagination serveur.** `fetchCandidateRows` ramenait toute la table
+   `profiles` en un seul appel (pas de `.range()`), et `loadMore` ne faisait
+   que révéler des éléments déjà téléchargés. Désormais `.order('id')` +
+   `.range()` côté Supabase (`GetDiscoverPage.serverBatchSize = 60`) ;
+   `DiscoverController.loadMore()` ne requête le serveur que quand le stock
+   local déjà scoré/trié est épuisé. Le "recommandé du jour" reste calculé
+   une seule fois, sur la toute première page — les pages suivantes
+   n'alimentent que "autres profils" (limitation assumée : voir
+   `GetMorePage`/`GetDiscoverPage.more()`).
+2. **Bandeau "Ceci est un aperçu" retiré de Découvrir.** Remplace le point 2
+   de D13 (qui l'avait seulement condensé) — supprimé entièrement à la
+   demande produit, `discover_status_banners.dart` supprimé.
+3. **Header Profil.** Boutons "Voir mon profil public" / "Modifier"
+   remplacés par un badge crayon superposé sur l'avatar (`onEdit`) + un
+   lien texte simple pour le profil public, inspiré d'une référence dating
+   app envoyée par le produit.
+
+### D15 - Découvrir : cartes liste en layout split (photo + bandeau)
+*2026-09-20 · réf. PRD §7, design-inspiration (Datify cartes)*
+
+Retour produit : la liste Découvrir (photo full-bleed + overlay texte +
+actions en pastilles haut-droite) ne lisait pas « dating pro ».
+
+**Décision :** carte en deux plans - photo 4:5 (pill score si `score > 0`,
+léger gradient bas, menu `…` haut-droite → `ProfileSafetySheet` blanc
+(Signaler / Bloquer, même chrome que ReportSheet) puis ReportSheet ou
+confirmAndBlock) + bandeau blanc identité (nom, âge, vérifié, ville ·
+confession) avec like / favori espacés à droite. Bordure fine + ombre `md`.
+Skeleton aligné. Pas de swipe (PRD §1).
+
+### D16 - Cache disque des images réseau (`cached_network_image`)
+
+`AppNetworkImage` (widget partagé, quasi toutes les photos de l'app)
+utilisait `Image.network` — aucun cache disque, seulement le cache mémoire
+volatile de Flutter. Chaque redémarrage ou éviction mémoire retéléchargeait
+tout depuis Supabase Storage. Remplacé par `cached_network_image` (cache
+disque + mémoire, dédup des requêtes). Les 4 usages qui contournaient
+`AppNetworkImage` avec un `NetworkImage(...)` brut (avatars circulaires —
+messages, compte, Fil) migrés vers `CachedNetworkImageProvider`.
+
+Placeholder de chargement remplacé par `AppSkeletonBox` (pulsation, D13) au
+lieu d'un aplat gris statique.
+
 ---
 
 ## EN ATTENTE (réponse du porteur produit)
+
+
+### D17 - Fiche Découvrir style Datify (champs PRD §6)
+*2026-09-20 · réf. PRD §6 / §7, design-inspiration Datify `42_Light_profile details page`*
+
+La fiche bottom sheet (D03) était trop plate. **Décision :** layout Datify
+adapté Agapeo - header `X` / Profil / `…`, carrousel photo avec indicateurs,
+méta en lignes icône (genre, taille, profession, situation, ville, pays),
+sections Foi / À propos / Pourquoi le mariage / Verset / Témoignage /
+Valeurs / Loisirs / Qualités / Galerie (vides omises), chips outlined,
+actions bas en pastilles circulaires (Like / Favori étoile / Inviter).
+Select profil enrichi (`profession`, `bio`, `height_cm`, `favorite_verse`,
+`testimony`, `qualities`) avec fallback colonnes. Pas de swipe liste (PRD §1).
+
+### D18 - Hub Profil (bottom nav) : header + sections groupées
+*2026-09-20 · réf. PRD §14, screens-prd C00*
+
+Retour design : le hub Profil était une liste plate de 8 lignes + déconnexion
+collée hors scroll. **Décision :** avatar plus grand avec anneau primary,
+nom en `headline`, CTA pill « Voir mon profil public », bandeau complétude
+en wash rose (plus de bloc primary plein), menus groupés Mon compte /
+Activité / Réglages, Déconnexion dans le scroll. Même chrome AppBar que
+Découvrir / Messages.
+
+### D19 - Schéma réel confirmé (export SQL) : like/favoris/messages/blocks
+
+*2026-09-20 · réf. D05, D06 — remplace les hypothèses de colonnes probées*
+
+Export `information_schema.columns` obtenu du porteur produit — colonnes
+réelles figées en dur, plus de sondage réseau à chaque appel :
+
+- `profile_likes(user_id, liked_profile_id)` — pas `liker_id`/`liked_id`.
+- `favorites(user_id, favorite_profile_id)` — pas `profile_id`/`favorited_id`.
+- `blocks(blocker_id, blocked_id)` — hypothèse initiale confirmée.
+- `conversation_participants(user_id, ...)` — pas `profile_id`.
+- `conversations(initiated_by, last_message_at, ...)` — pas `created_by`/
+  `updated_at`.
+- `messages(sender_id, content, ...)` — hypothèses initiales confirmées.
+- `matches(requester_id, recipient_id, ...)` — pas `proposer_id`.
+
+`reports` reste non confirmé (table hors de l'export reçu, tronqué avant).
+Le mécanisme de sondage (`_looksLikeMissingColumn` + liste de candidats)
+reste en place uniquement là où le schéma n'est pas encore vérifié.
+
+### D20 - Placeholder avatar + Mon profil public = fiche Découvrir
+*2026-09-20 · réf. D17, design-inspiration Datify*
+
+Deux retours UI :
+
+1. **Photo manquante.** Le gris + `Icons.person_outline` faisait cheap.
+   **Décision :** `AppAvatarPlaceholder` - gradient brand soft + initiales
+   (ou cœur si nom vide), tailles adaptées via `LayoutBuilder`. Même
+   composant liste Découvrir, fiche détail, hub Profil, grille photos,
+   comptes liés, récap onboarding.
+
+2. **Mon profil public.** L'écran réutilisait l'ancien `AppProfileHero` /
+   sections plates, pas le layout Datify de D17. **Décision :** même
+   `DiscoverProfileContent` que la fiche Découvrir ; `PublicProfilePreview`
+   enrichi (âge, genre, taille, pays, foi, qualités…) ; score masqué
+   (preview soi-même, pas de compatibilité).
+
+### D21 - Empty states harmonisés (`AppEmptyState`)
+*2026-09-20 · réf. D13, illustrations `assets/images/empty/`*
+
+Beaucoup d'écrans montraient juste un texte (parfois + bouton) : notifications,
+Mes publications, Support, commentaires, etc. **Décision :** un seul pattern
+`AppEmptyState` - illustration clay (ou disque gradient brand + icône), titre
+en `title`, détail secondaire, CTA optionnel. Mode `compact` pour les
+contextes inline (commentaires). Copy enrichie sur Découvrir / Fil /
+Messages / Favoris / Bloqués / Support.
+
+### D22 - Centre de notifications N01 (liste datée)
+*2026-09-21 · réf. PRD §12, screens-prd N01*
+
+La V1 était une grille de cartes bordées, peu « dating ». **Décision :** liste
+plate style inbox (Messages) - sections Aujourd'hui / Hier / Plus tôt, icône
+catégorie en pastille gradient, horodatage à droite, wash primary + pastille
+« Non lue » pour les non lues, chips filtres inchangés (Toutes… Plateforme).
+Realtime / pull-to-refresh en soft (pas de spinner plein écran).
+
+### D23 - Mes publications C04 + composer perso
+*2026-09-21 · réf. PRD §10 / §14, screens-prd C04*
+
+Liste + création trop plates (bouton pleine largeur, composer formulaire
+basique). **Décision :** liste avec skeleton, FAB / `+` AppBar, cartes
+tapables (détail), stats et preview média. Composer type inbox : zone texte
+sans bordure, bandeau « visible sur profil public pas dans le Fil », preview
+média locale avec retrait, Publier dans l'AppBar, compteur 600, sheet média
+avec poignée. Édition = texte seulement (média existant en lecture seule).
+
+### D24 - Publications personnelles sur profil public
+*2026-09-21 · réf. PRD §10, screens-prd F04 / C04*
+
+Les posts `PERSONAL` ne sont pas dans le Fil communautaire ; le composer
+promettait déjà « visible sur ton profil public ». **Décision :** section
+« Publications » sur la fiche Découvrir / Mon profil public (grille
+horizontale, tap → détail). Fetch par `author_id` (pas seulement moi).
+Section absente si vide / erreur soft.
+
+### D25 - Comptes bloqués : RPC + placeholders RLS
+*2026-09-21 · réf. PRD §10 / §21, screens-prd C13*
+
+Bloquer réussissait (insert `blocks`) mais la liste restait vide : après
+blocage, la RLS masque souvent le `profiles` cible, donc
+`_peopleByIds` renvoyait `[]`. **Décision :** tenter d'abord
+`get_my_blocked_profiles` (PRD §21) ; sinon lire `blocks` et fusionner
+avec des placeholders « Profil bloqué » pour chaque id sans profil
+lisible, afin de garder le déblocage.
+
+### D26 - Édition profil unifiée (C01 enrichi)
+*2026-09-21 · réf. PRD §5-6 / §14, spec `2026-09-21-profile-edit-unified-design.md`*
+
+Le crayon hub et « Mon Profil » ouvrent C01 enrichi (identité + confession /
+situation / pourquoi le mariage). Genre / DOB / pays restent lecture seule.
+L'onboarding ne s'ouvre plus depuis Modifier ; uniquement premier parcours
+ou essentiels encore manquants (bannière complétion).
+
+Complément : section Photos explicite + crop JPEG (comme onboarding) ;
+bannière avec photo manquante ouvre `MyProfilePage(focusPhotos: true)`
+(cadre d'ajout mis en avant + sheet source).
+
+### D27 - Feedback transient AppToast + confirmation déconnexion
+*2026-09-21 · réf. spec `2026-09-21-feedback-toast-signout-design.md`*
+
+Succès et erreurs transientes passent par `AppToast` (plus de SnackBar Material
+pour ce feedback). Messages techniques adoucis via `userFacingMessage`.
+Toute déconnexion (hub, suspendu, abo expiré) passe par `AppConfirmDialog`.
 
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
@@ -81,6 +370,53 @@ Le PRD se contredit : §3 dit `VERIFIED`, §6 dit « la complétude, PAS la
 vérification », §7 dit les deux. Bloquant pour l'écran Découvrir. À trancher
 contre le code (le PRD dit lui-même « en cas de divergence, le code tranche »).
 Tant que non tranché, le PRD n'est pas corrigé (voir V1).
+
+*Hypothèse de travail 2026-09-18 (spec D01) :* la liste Découvrir suit
+**§7** (genre opposé, pas staff, `VERIFIED`, profil complet, `is_matched=false`).
+Le §3 « apparaître = VERIFIED seul » et le §6 « complétude, pas la vérif »
+restent en contradiction ; pas de RPC Découvrir dans la liste PRD §21, OpenAPI
+REST inaccessible à l'anon. À confirmer dès que le SQL web est lisible.
+
+*Réponse partielle du porteur produit (2026-09-20) :* la **visibilité des
+infos de profil** (nom/âge/photos non floutés/non masqués) est conditionnée à
+la **vérification d'identité uniquement**, jamais au Premium seul — contredit
+donc PRD §3 L.99 (« `VERIFIED` **ou** `ACTIVE` ») et surtout §3 L.100 (« ouvrir
+une fiche complète → `ACTIVE` uniquement, vérif non requise »). Le Premium ne
+gate que : contacter/envoyer un message, filtres avancés, et les
+fonctionnalités listées à part (« qui s'intéresse à moi » reste confirmé
+Premium — pas de la simple visibilité de profil).
+
+Confirmé par le porteur :
+- « Qui s'intéresse à moi » (voir qui m'a liké/favorisé) → **reste Premium**
+  (`ACTIVE`), inchangé.
+- Aperçu de soi côté Mon Compte (C06) → **laissé tel quel pour l'instant**,
+  hors périmètre de cette clarification.
+
+*Réponse finale du porteur produit (note vocale, 2026-09-20) :* confirmé sans
+ambiguïté — voir/ouvrir un profil (identité + fiche complète) est débloqué dès
+que le profil est **soumis et validé** (vérification d'identité), point.
+Le Premium ne bloque que l'**envoi de messages** et l'**envoi d'invitations**
+(« les sept points », c-à-d les avantages payants du PRD §3/§7) — rien
+d'autre côté visibilité. **Q1 est tranchée** :
+
+- `revealCardIdentity` (`discover_mask.dart`) → `visitorVerified` seul, plus
+  d'OR avec `visitorPremiumActive`.
+- `canOpenDiscoverProfile` (`discover_premium_gate.dart`) → `visitorVerified`
+  seul, découplé de `canUseDiscoverSearchFilters` (qui reste `ACTIVE` pour les
+  filtres avancés, eux bien confirmés Premium).
+- `canFavoriteDiscoverProfile` → repassé à `visitorVerified` seul. Vérifié
+  contre PRD §7/§19/§22 : le favori n'a aucun effet collatéral (pas de quota,
+  pas de droit de contact, pas de critère de score) — donc rien à bypasser
+  derrière Premium ; PRD §3 (« `VERIFIED` et `ACTIVE` ») et §19 (« Favoris
+  (Premium) ») sont désormais **obsolètes** sur ce point, à corriger (voir V1).
+- Invitation (`canInviteDiscoverProfile` + `canSendFreeInvitation`) : déjà
+  conforme — vérifié pour inviter, quota 3/mois en FREE/CANCELED vs illimité
+  en `ACTIVE`, ce qui *est* la restriction Premium attendue sur l'envoi.
+- Inchangé (confirmé précédemment) : « qui s'intéresse à moi » reste
+  `ACTIVE`-only ; aperçu de soi (C06/Mon Compte) laissé tel quel pour l'instant.
+
+PRD §3 (lignes ~99-100, 108 partiellement) et §19 restent à corriger pour
+refléter cette règle (voir V1) — le code fait foi entretemps.
 
 ### Q2 — Initiation du paiement mobile
 *réf. PRD §11 · addendum §3.2*

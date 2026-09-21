@@ -134,7 +134,7 @@ void main() {
 
       expect(find.byType(OnboardingFlowPage), findsOneWidget);
       expect(find.byType(OtpPage), findsNothing);
-      expect(find.text('Informations essentielles'), findsOneWidget);
+      expect(find.text('Parle-nous de toi'), findsOneWidget);
     },
   );
 }
