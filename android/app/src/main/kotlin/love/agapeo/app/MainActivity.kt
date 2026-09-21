@@ -1,4 +1,4 @@
-package com.agapeo.agapeo
+package love.agapeo.app
 
 import io.flutter.embedding.android.FlutterActivity
 
