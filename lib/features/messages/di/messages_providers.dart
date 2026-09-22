@@ -16,7 +16,9 @@ import '../domain/usecases/decline_conversation_invitation.dart';
 import '../domain/usecases/get_conversation.dart';
 import '../domain/usecases/get_conversations.dart';
 import '../domain/usecases/get_messages.dart';
+import '../domain/usecases/send_image_message.dart';
 import '../domain/usecases/send_text_message.dart';
+import '../domain/usecases/send_voice_message.dart';
 
 /// `true` = seed local (tests / UI hors backend). Prod/dev : `false` (slice A).
 const bool kUseFakeMessagesConversations = false;
@@ -48,6 +50,14 @@ final getMessagesProvider = Provider(
 
 final sendTextMessageProvider = Provider(
   (ref) => SendTextMessage(ref.watch(messagesRepositoryProvider)),
+);
+
+final sendImageMessageProvider = Provider(
+  (ref) => SendImageMessage(ref.watch(messagesRepositoryProvider)),
+);
+
+final sendVoiceMessageProvider = Provider(
+  (ref) => SendVoiceMessage(ref.watch(messagesRepositoryProvider)),
 );
 
 final acceptConversationInvitationProvider = Provider(
@@ -88,6 +98,23 @@ class UnconfiguredMessagesRepository implements MessagesRepository {
   }) async => const Err(failure);
 
   @override
+  Future<Result<Message>> sendImage({
+    required String conversationId,
+    required String localPath,
+  }) async => const Err(failure);
+
+  @override
+  Future<Result<Message>> sendVoice({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  }) async => const Err(failure);
+
+  @override
+  Future<Result<void>> deleteMessage(String messageId) async =>
+      const Err(failure);
+
+  @override
   Future<Result<void>> acceptInvitation(String conversationId) async =>
       const Err(failure);
 
@@ -101,17 +128,17 @@ class UnconfiguredMessagesRepository implements MessagesRepository {
 
   @override
   Future<Result<ConversationMatch>> proposeMatch(
-    String conversationId,
-  ) async => const Err(failure);
+    String conversationId, {
+    required String recipientId,
+  }) async => const Err(failure);
 
   @override
   Future<Result<ConversationMatch>> acceptMatch(String conversationId) async =>
       const Err(failure);
 
   @override
-  Future<Result<ConversationMatch>> declineMatch(
-    String conversationId,
-  ) async => const Err(failure);
+  Future<Result<ConversationMatch>> declineMatch(String conversationId) async =>
+      const Err(failure);
 
   @override
   Future<Result<ConversationMatch>> cancelMatch(String conversationId) async =>
@@ -119,5 +146,9 @@ class UnconfiguredMessagesRepository implements MessagesRepository {
 
   @override
   Future<Result<void>> hideConversation(String conversationId) async =>
+      const Err(failure);
+
+  @override
+  Future<Result<void>> markConversationRead(String conversationId) async =>
       const Err(failure);
 }

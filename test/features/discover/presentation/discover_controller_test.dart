@@ -100,28 +100,34 @@ void main() {
         fakeDiscoverProfile(
           'p${i.toString().padLeft(2, '0')}',
           displayName: 'Alice $i',
-          city: i < 16 ? 'Lyon' : 'Paris',
+          traits: CompatibilityTraits(
+            country: i < 16 ? 'France' : 'Sénégal',
+          ),
         ),
     ]);
+    repo.candidatesHasMore = true;
     container.listen(discoverControllerProvider, (_, _) {});
     await pumpMicrotasks();
 
     await container
         .read(discoverControllerProvider.notifier)
-        .applyQuery(const DiscoverQuery(city: 'Lyon'));
+        .applyQuery(const DiscoverQuery(country: 'France'));
 
     var state = container.read(discoverControllerProvider);
-    expect(state.others.length, 12);
+    expect(state.recommended, isEmpty);
+    expect(state.others, isNotEmpty);
+    expect(
+      state.others.every((p) => p.traits.country == 'France'),
+      isTrue,
+    );
+    expect(repo.fetchCandidatesCalls, 2);
+    expect(repo.fetchCandidatesQueries.last.country, 'France');
     expect(state.hasMoreOthers, isTrue);
-    expect(state.others.every((p) => p.city == 'Lyon'), isTrue);
-    expect(repo.fetchCandidatesCalls, 1);
 
     await container.read(discoverControllerProvider.notifier).loadMore();
     state = container.read(discoverControllerProvider);
-    expect(state.others.length, greaterThan(12));
-    expect(state.others.every((p) => p.city == 'Lyon'), isTrue);
-    expect(state.hasMoreOthers, isFalse);
-    expect(repo.fetchCandidatesCalls, 1);
+    expect(state.others.every((p) => p.traits.country == 'France'), isTrue);
+    expect(repo.fetchCandidatesCalls, 3);
   });
 
   test('initial error sets errorMessage', () async {
@@ -169,13 +175,21 @@ void main() {
 
   test('applyQuery filters recommended and others after reload', () async {
     repo.candidates = Ok([
-      fakeDiscoverProfile('p01', displayName: 'Alice', city: 'Paris'),
-      fakeDiscoverProfile('p02', displayName: 'Béatrice', city: 'Lyon'),
+      fakeDiscoverProfile(
+        'p01',
+        displayName: 'Alice',
+        traits: const CompatibilityTraits(country: 'France'),
+      ),
+      fakeDiscoverProfile(
+        'p02',
+        displayName: 'Béatrice',
+        traits: const CompatibilityTraits(country: 'Sénégal'),
+      ),
       for (var i = 3; i <= 20; i++)
         fakeDiscoverProfile(
           'p${i.toString().padLeft(2, '0')}',
           displayName: 'Alice $i',
-          city: 'Paris',
+          traits: const CompatibilityTraits(country: 'France'),
         ),
     ]);
     container.listen(discoverControllerProvider, (_, _) {});
@@ -183,26 +197,33 @@ void main() {
 
     await container
         .read(discoverControllerProvider.notifier)
-        .applyQuery(const DiscoverQuery(city: 'Lyon'));
+        .applyQuery(const DiscoverQuery(country: 'Sénégal'));
 
     final state = container.read(discoverControllerProvider);
-    expect(state.query.city, 'Lyon');
+    expect(state.query.country, 'Sénégal');
     expect(state.query.isEmpty, isFalse);
-    final visible = [...state.recommended, ...state.others];
-    expect(visible, isNotEmpty);
-    expect(visible.every((p) => p.city == 'Lyon'), isTrue);
-    expect(visible.map((p) => p.id), contains('p02'));
+    expect(state.recommended, isEmpty);
+    expect(state.others.map((p) => p.id), ['p02']);
+    expect(repo.fetchCandidatesCalls, 2);
   });
 
   test('clearQuery restores unfiltered lists', () async {
     repo.candidates = Ok([
-      fakeDiscoverProfile('p01', displayName: 'Alice', city: 'Paris'),
-      fakeDiscoverProfile('p02', displayName: 'Béatrice', city: 'Lyon'),
+      fakeDiscoverProfile(
+        'p01',
+        displayName: 'Alice',
+        traits: const CompatibilityTraits(country: 'France'),
+      ),
+      fakeDiscoverProfile(
+        'p02',
+        displayName: 'Béatrice',
+        traits: const CompatibilityTraits(country: 'Sénégal'),
+      ),
       for (var i = 3; i <= 20; i++)
         fakeDiscoverProfile(
           'p${i.toString().padLeft(2, '0')}',
           displayName: 'Alice $i',
-          city: 'Paris',
+          traits: const CompatibilityTraits(country: 'France'),
         ),
     ]);
     container.listen(discoverControllerProvider, (_, _) {});
@@ -210,7 +231,7 @@ void main() {
 
     await container
         .read(discoverControllerProvider.notifier)
-        .applyQuery(const DiscoverQuery(city: 'Lyon'));
+        .applyQuery(const DiscoverQuery(country: 'Sénégal'));
     await container.read(discoverControllerProvider.notifier).clearQuery();
 
     final state = container.read(discoverControllerProvider);

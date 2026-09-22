@@ -18,7 +18,6 @@ class _SupportComposePageState extends ConsumerState<SupportComposePage> {
   final _subject = TextEditingController();
   final _message = TextEditingController();
   var _saving = false;
-  String? _error;
 
   @override
   void dispose() {
@@ -29,13 +28,10 @@ class _SupportComposePageState extends ConsumerState<SupportComposePage> {
 
   Future<void> _submit() async {
     if (_subject.text.trim().isEmpty || _message.text.trim().isEmpty) {
-      setState(() => _error = 'Objet et message sont requis.');
+      AppToast.show(context, 'Objet et message sont requis.');
       return;
     }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
+    setState(() => _saving = true);
     final result = await ref
         .read(supportRepositoryProvider)
         .openTicket(subject: _subject.text, message: _message.text);
@@ -45,7 +41,7 @@ class _SupportComposePageState extends ConsumerState<SupportComposePage> {
       case Ok<SupportTicket>():
         Navigator.of(context).pop();
       case Err<SupportTicket>(:final failure):
-        setState(() => _error = failure.message);
+        AppToast.show(context, failure.message);
     }
   }
 
@@ -64,10 +60,6 @@ class _SupportComposePageState extends ConsumerState<SupportComposePage> {
             minLines: 4,
             maxLines: 8,
           ),
-          if (_error != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(_error!),
-          ],
           const SizedBox(height: AppSpacing.lg),
           AppButton(label: 'Envoyer', isLoading: _saving, onPressed: _submit),
         ],

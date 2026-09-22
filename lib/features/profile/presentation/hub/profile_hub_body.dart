@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/result.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../feed/presentation/pages/my_posts_page.dart';
-import '../../../onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
 import '../../di/profile_providers.dart';
-import '../../domain/entities/profile_field_keys.dart';
 import '../../domain/entities/profile_hub_section.dart';
 import '../faith/faith_page.dart';
 import '../favorites/favorites_page.dart';
@@ -14,11 +13,11 @@ import '../interested/interested_page.dart';
 import '../more_info/more_info_page.dart';
 import '../my_profile/my_profile_page.dart';
 import '../privacy/privacy_page.dart';
+import '../profile_completion_banner_builder.dart';
 import '../public_profile/public_profile_page.dart';
 import '../security/account_security_page.dart';
 import 'profile_hub_controller.dart';
 import 'profile_hub_state.dart';
-import 'widgets/profile_completion_banner.dart';
 import 'widgets/profile_hub_error.dart';
 import 'widgets/profile_hub_header.dart';
 import 'widgets/profile_hub_row.dart';
@@ -107,12 +106,22 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
       return const [SliverToBoxAdapter(child: ProfileHubSkeleton())];
     }
 
-    final completenessAsync = ref.watch(profileCompletenessProvider);
-    final completeness = completenessAsync.asData?.value;
-    final showCompletion =
-        !_completionDismissed &&
-        completeness != null &&
-        !completeness.isComplete;
+    final completeness = ref.watch(profileCompletenessProvider).asData?.value;
+    final photoVerificationStatus = switch (ref
+        .watch(profileFieldsProvider)
+        .asData
+        ?.value) {
+      Ok(:final value) => value.photoVerificationStatus,
+      _ => null,
+    };
+    final completionBanner = _completionDismissed
+        ? null
+        : buildProfileCompletionBanner(
+            context: context,
+            completeness: completeness,
+            photoVerificationStatus: photoVerificationStatus,
+            onDismiss: () => setState(() => _completionDismissed = true),
+          );
 
     return [
       SliverToBoxAdapter(
@@ -134,31 +143,7 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
           },
         ),
       ),
-      if (showCompletion)
-        SliverToBoxAdapter(
-          child: ProfileCompletionBanner(
-            percent: completeness.percentComplete,
-            onTap: () {
-              final needOnboarding =
-                  completeness.missingKeys.contains(ProfileFieldKeys.gender) ||
-                  completeness.missingKeys.contains(
-                    ProfileFieldKeys.birthDate,
-                  ) ||
-                  completeness.missingKeys.contains(ProfileFieldKeys.country);
-              final focusPhotos = completeness.missingKeys.contains(
-                ProfileFieldKeys.photo,
-              );
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => needOnboarding
-                      ? const OnboardingFlowPage()
-                      : MyProfilePage(focusPhotos: focusPhotos),
-                ),
-              );
-            },
-            onDismiss: () => setState(() => _completionDismissed = true),
-          ),
-        ),
+      if (completionBanner != null) SliverToBoxAdapter(child: completionBanner),
       SliverToBoxAdapter(
         child: AppSettingsGroup(
           title: 'Mon compte',

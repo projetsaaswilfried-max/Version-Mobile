@@ -64,6 +64,47 @@ class _FakeRemote implements MessagesRemoteDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> insertImageMessage({
+    required String conversationId,
+    required String localPath,
+  }) async {
+    inserted = {
+      'id': 'm-new-image',
+      'conversation_id': conversationId,
+      'sender_id': userId,
+      'type': 'IMAGE',
+      'media_url': 'https://example.com/photo.jpg',
+      'created_at': '2026-09-19T12:00:00Z',
+    };
+    return inserted!;
+  }
+
+  @override
+  Future<Map<String, dynamic>> insertVoiceMessage({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  }) async {
+    inserted = {
+      'id': 'm-new-voice',
+      'conversation_id': conversationId,
+      'sender_id': userId,
+      'type': 'VOICE',
+      'media_url': 'https://example.com/note.m4a',
+      'duration_seconds': durationSeconds,
+      'created_at': '2026-09-19T12:00:00Z',
+    };
+    return inserted!;
+  }
+
+  String? deletedMessageId;
+
+  @override
+  Future<void> softDeleteMessage(String messageId) async {
+    deletedMessageId = messageId;
+  }
+
+  @override
   Future<void> updateConversationStatus({
     required String conversationId,
     required String status,
@@ -81,6 +122,13 @@ class _FakeRemote implements MessagesRemoteDataSource {
     hiddenId = conversationId;
   }
 
+  String? readConversationId;
+
+  @override
+  Future<void> markConversationRead(String conversationId) async {
+    readConversationId = conversationId;
+  }
+
   @override
   Future<Map<String, dynamic>?> fetchActiveMatchRow(
     String conversationId,
@@ -88,8 +136,9 @@ class _FakeRemote implements MessagesRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> insertMatchProposal(
-    String conversationId,
-  ) async {
+    String conversationId, {
+    required String recipientId,
+  }) async {
     proposedMatch = {
       'id': 'match-1',
       'conversation_id': conversationId,
@@ -188,6 +237,20 @@ void main() {
     expect(remote.inserted?['content'], 'Salut');
   });
 
+  test('sendVoice inserts and maps duration', () async {
+    final remote = _FakeRemote();
+    final repo = MessagesRepositoryImpl(remote);
+    final result = await repo.sendVoice(
+      conversationId: 'c1',
+      localPath: '/tmp/note.m4a',
+      durationSeconds: 6,
+    );
+    final message = (result as Ok<Message>).value;
+    expect(message.type, MessageType.voice);
+    expect(message.durationSeconds, 6);
+    expect(remote.inserted?['type'], 'VOICE');
+  });
+
   test('accept / decline / hide delegate', () async {
     final remote = _FakeRemote();
     final repo = MessagesRepositoryImpl(remote);
@@ -197,13 +260,15 @@ void main() {
     expect(remote.updatedStatus, 'DECLINED');
     await repo.hideConversation('c1');
     expect(remote.hiddenId, 'c1');
+    await repo.markConversationRead('c1');
+    expect(remote.readConversationId, 'c1');
   });
 
   test('match propose / accept / cancel', () async {
     final remote = _FakeRemote();
     final repo = MessagesRepositoryImpl(remote);
 
-    final proposed = await repo.proposeMatch('c1');
+    final proposed = await repo.proposeMatch('c1', recipientId: 'peer-1');
     expect((proposed as Ok).value.status, ConversationMatchStatus.pending);
     expect(remote.proposedMatch?['status'], 'PENDING');
 

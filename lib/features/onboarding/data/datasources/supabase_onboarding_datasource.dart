@@ -13,7 +13,7 @@ import 'onboarding_remote_datasource.dart';
 ///
 /// Colonnes `profiles` (schéma live) :
 /// `gender`, `birth_date`, `country`, `church_denomination`,
-/// `marital_status`, `why_marriage`, `onboarding_completed`.
+/// `marital_status`, `why_marriage`, `onboarding_completed`, `hobbies`.
 ///
 /// Photos : bucket Storage [AppStorageBuckets.avatars], table
 /// `profile_photos` (`storage_path`, `is_primary`, `moderation_status` = `DRAFT`).
@@ -33,6 +33,7 @@ class SupabaseOnboardingDataSource implements OnboardingRemoteDataSource {
     required String maritalStatusDb,
     required String whyMarriage,
     required bool onboardingCompleted,
+    List<String> hobbies = const [],
   }) async {
     final userId = _requireUserId();
     try {
@@ -47,6 +48,7 @@ class SupabaseOnboardingDataSource implements OnboardingRemoteDataSource {
               maritalStatusDb: maritalStatusDb,
               whyMarriage: whyMarriage,
               onboardingCompleted: onboardingCompleted,
+              hobbies: hobbies,
             ),
           )
           .eq('id', userId);

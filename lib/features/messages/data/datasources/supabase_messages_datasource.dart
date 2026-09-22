@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/app_storage_buckets.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/supabase_exception_mapping.dart';
 import '../../../../core/network/chunk_ids.dart';
 import '../../../../core/parsing/json.dart';
+import '../models/message_attachment_merge.dart';
 import 'messages_remote_datasource.dart';
 import 'messages_schema.dart';
 
@@ -16,22 +18,34 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
 
   static const _photosBucket = 'avatars';
 
+  /// D19 : `initiated_by` et `last_message_at` existent ; `created_by` /
+  /// `updated_at` / `initiator_id` non. Les demander en premier faisait
+  /// échouer le select, puis les fallbacks perdaient l'initiateur : les
+  /// invitations PENDING n'étaient plus distinguées (ni chip, ni
+  /// Accepter/Refuser, ni aperçu web).
   static const _conversationSelects = [
-    'id, status, is_system_broadcast, updated_at, last_message_at, created_at, created_by, initiator_id, initiated_by',
-    'id, status, is_system_broadcast, updated_at, created_at, created_by',
-    'id, status, is_system_broadcast, updated_at, created_at',
+    'id, status, is_system_broadcast, last_message_at, created_at, initiated_by',
+    'id, status, is_system_broadcast, last_message_at, created_at',
+    'id, status, is_system_broadcast, created_at, initiated_by',
     'id, status, is_system_broadcast, created_at',
     'id, status, created_at',
     'id, status',
   ];
 
+  /// Colonnes `messages` confirmées. `body` / `text` / `author_id` n'existent
+  /// pas : les demander en premier faisait perdre `type`, donc IMAGE/VOICE
+  /// étaient lus comme du texte.
   static const _messageSelects = [
-    'id, conversation_id, content, body, text, created_at, sender_id, author_id, deleted_at',
-    'id, conversation_id, content, created_at, sender_id, deleted_at',
-    'id, conversation_id, body, created_at, sender_id',
-    'id, conversation_id, content, created_at, author_id',
+    'id, conversation_id, sender_id, type, content, status, deleted_at, created_at, read_at',
+    'id, conversation_id, sender_id, type, content, deleted_at, created_at',
+    'id, conversation_id, sender_id, content, deleted_at, created_at',
     'id, conversation_id, content, created_at',
   ];
+
+  static const _attachmentSelect =
+      'id, message_id, type, storage_path, url, file_name, size_bytes, duration_seconds, mime_type';
+
+  static const _signedUrlTtlSeconds = 60 * 60 * 6;
 
   static const _profileSelects = [
     'id, first_name, last_name, photo_url, avatar_url, profile_photos(storage_path, url, is_primary)',
@@ -146,9 +160,11 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
         byConversation[conversationId] ?? const [],
       );
       rows.sort((a, b) {
-        final aAt = Json(a).dateTime('created_at') ??
+        final aAt =
+            Json(a).dateTime('created_at') ??
             DateTime.fromMillisecondsSinceEpoch(0);
-        final bAt = Json(b).dateTime('created_at') ??
+        final bAt =
+            Json(b).dateTime('created_at') ??
             DateTime.fromMillisecondsSinceEpoch(0);
         return aAt.compareTo(bAt);
       });
@@ -227,6 +243,228 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> insertImageMessage({
+    required String conversationId,
+    required String localPath,
+  }) async {
+    final userId = _requireUserId();
+    final file = File(localPath);
+    if (!file.existsSync()) {
+      throw const ServerException('Photo introuvable.');
+    }
+    try {
+      final payloads = <Map<String, dynamic>>[
+        {
+          'conversation_id': conversationId,
+          'sender_id': userId,
+          'type': 'IMAGE',
+        },
+        {
+          'conversation_id': conversationId,
+          'author_id': userId,
+          'type': 'IMAGE',
+        },
+      ];
+      PostgrestException? lastMissing;
+      Map<String, dynamic>? row;
+      for (final payload in payloads) {
+        try {
+          final inserted = await _client
+              .from('messages')
+              .insert(payload)
+              .select()
+              .single();
+          row = Map<String, dynamic>.from(inserted);
+          break;
+        } on PostgrestException catch (e) {
+          if (_looksLikeMissingColumn(e)) {
+            lastMissing = e;
+            continue;
+          }
+          rethrow;
+        }
+      }
+      if (row == null) {
+        throw lastMissing ??
+            const ServerException('Impossible d\'envoyer la photo.');
+      }
+      final messageId = _stringId(row, 'id');
+      if (messageId == null) {
+        throw const ServerException('Photo envoyée mais illisible.');
+      }
+      final ext = _imageExtension(localPath);
+      final objectPath = '$conversationId/$messageId.$ext';
+      await _client.storage
+          .from(AppStorageBuckets.messageAttachments)
+          .upload(
+            objectPath,
+            file,
+            fileOptions: FileOptions(contentType: 'image/$ext'),
+          );
+      await _client.from('message_attachments').insert({
+        'message_id': messageId,
+        'type': 'IMAGE',
+        'storage_path': objectPath,
+        'mime_type': 'image/$ext',
+      });
+      final signedUrl = await _client.storage
+          .from(AppStorageBuckets.messageAttachments)
+          .createSignedUrl(objectPath, _signedUrlTtlSeconds);
+      mergeAttachmentIntoMessage(
+        row,
+        attachment: const {},
+        resolvedUrl: signedUrl,
+      );
+      return row;
+    } on AuthException catch (e) {
+      throw mapSupabaseAuthException(e);
+    } on PostgrestException catch (e) {
+      throw mapPostgrestException(e);
+    } on StorageException catch (e) {
+      throw mapUnknownSupabase(e);
+    } on SocketException catch (e) {
+      throw NetworkException(e.message);
+    } on UnauthorizedException {
+      rethrow;
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw mapUnknownSupabase(e);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> insertVoiceMessage({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  }) async {
+    final userId = _requireUserId();
+    final file = File(localPath);
+    if (!file.existsSync()) {
+      throw const ServerException('Note vocale introuvable.');
+    }
+    try {
+      // messages.type (PRD) = VOICE ; message_attachments.type = AUDIO
+      // (enum pièce jointe distinct, VOICE y est rejeté).
+      final payloads = <Map<String, dynamic>>[
+        for (final type in const ['VOICE', 'AUDIO']) ...[
+          {
+            'conversation_id': conversationId,
+            'sender_id': userId,
+            'type': type,
+          },
+          {
+            'conversation_id': conversationId,
+            'author_id': userId,
+            'type': type,
+          },
+        ],
+      ];
+      PostgrestException? lastMissing;
+      Map<String, dynamic>? row;
+      for (final payload in payloads) {
+        try {
+          final inserted = await _client
+              .from('messages')
+              .insert(payload)
+              .select()
+              .single();
+          row = Map<String, dynamic>.from(inserted);
+          break;
+        } on PostgrestException catch (e) {
+          if (_looksLikeMissingColumn(e) || _looksLikeInvalidEnum(e)) {
+            lastMissing = e;
+            continue;
+          }
+          rethrow;
+        }
+      }
+      if (row == null) {
+        throw lastMissing ??
+            const ServerException('Impossible d\'envoyer la note vocale.');
+      }
+      final messageId = _stringId(row, 'id');
+      if (messageId == null) {
+        throw const ServerException('Note vocale envoyée mais illisible.');
+      }
+      final objectPath = '$conversationId/$messageId.m4a';
+      await _client.storage
+          .from(AppStorageBuckets.messageAttachments)
+          .upload(
+            objectPath,
+            file,
+            fileOptions: const FileOptions(contentType: 'audio/mp4'),
+          );
+      final attachmentType = await _insertAudioAttachment(
+        messageId: messageId,
+        objectPath: objectPath,
+        durationSeconds: durationSeconds,
+      );
+      final signedUrl = await _client.storage
+          .from(AppStorageBuckets.messageAttachments)
+          .createSignedUrl(objectPath, _signedUrlTtlSeconds);
+      mergeAttachmentIntoMessage(
+        row,
+        attachment: {
+          'type': attachmentType,
+          'duration_seconds': durationSeconds,
+          'mime_type': 'audio/mp4',
+          'file_name': 'note-vocale.m4a',
+        },
+        resolvedUrl: signedUrl,
+      );
+      return row;
+    } on AuthException catch (e) {
+      throw mapSupabaseAuthException(e);
+    } on PostgrestException catch (e) {
+      throw mapPostgrestException(e);
+    } on StorageException catch (e) {
+      throw mapUnknownSupabase(e);
+    } on SocketException catch (e) {
+      throw NetworkException(e.message);
+    } on UnauthorizedException {
+      rethrow;
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw mapUnknownSupabase(e);
+    }
+  }
+
+  @override
+  Future<void> softDeleteMessage(String messageId) async {
+    final userId = _requireUserId();
+    try {
+      await _client
+          .from('messages')
+          .update({'deleted_at': DateTime.now().toUtc().toIso8601String()})
+          .eq('id', messageId)
+          // Défense en profondeur : la RLS doit déjà interdire de
+          // supprimer le message d'autrui, on le vérifie aussi ici.
+          .eq('sender_id', userId);
+    } on AuthException catch (e) {
+      throw mapSupabaseAuthException(e);
+    } on PostgrestException catch (e) {
+      throw mapPostgrestException(e);
+    } on SocketException catch (e) {
+      throw NetworkException(e.message);
+    } on UnauthorizedException {
+      rethrow;
+    } catch (e) {
+      throw mapUnknownSupabase(e);
+    }
+  }
+
+  String _imageExtension(String path) {
+    final dot = path.lastIndexOf('.');
+    if (dot < 0 || dot == path.length - 1) return 'jpg';
+    final ext = path.substring(dot + 1).toLowerCase();
+    const allowed = ['jpg', 'jpeg', 'png', 'heic', 'webp'];
+    return allowed.contains(ext) ? ext : 'jpg';
+  }
+
+  @override
   Future<void> updateConversationStatus({
     required String conversationId,
     required String status,
@@ -259,9 +497,7 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
         try {
           await _client
               .from('conversation_participants')
-              .update({
-                'hidden_at': DateTime.now().toUtc().toIso8601String(),
-              })
+              .update({'hidden_at': DateTime.now().toUtc().toIso8601String()})
               .eq('conversation_id', conversationId)
               .eq(column, userId);
           return;
@@ -275,6 +511,44 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
       }
       throw lastMissing ??
           const ServerException('Impossible de masquer la discussion.');
+    } on AuthException catch (e) {
+      throw mapSupabaseAuthException(e);
+    } on PostgrestException catch (e) {
+      throw mapPostgrestException(e);
+    } on SocketException catch (e) {
+      throw NetworkException(e.message);
+    } on UnauthorizedException {
+      rethrow;
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw mapUnknownSupabase(e);
+    }
+  }
+
+  @override
+  Future<void> markConversationRead(String conversationId) async {
+    final userId = _requireUserId();
+    try {
+      PostgrestException? lastMissing;
+      for (final column in messagesParticipantIdColumns) {
+        try {
+          await _client
+              .from('conversation_participants')
+              .update({'last_read_at': DateTime.now().toUtc().toIso8601String()})
+              .eq('conversation_id', conversationId)
+              .eq(column, userId);
+          return;
+        } on PostgrestException catch (e) {
+          if (_looksLikeMissingColumn(e)) {
+            lastMissing = e;
+            continue;
+          }
+          rethrow;
+        }
+      }
+      throw lastMissing ??
+          const ServerException('Impossible de marquer comme lu.');
     } on AuthException catch (e) {
       throw mapSupabaseAuthException(e);
     } on PostgrestException catch (e) {
@@ -341,29 +615,39 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> insertMatchProposal(
-    String conversationId,
-  ) async {
+    String conversationId, {
+    required String recipientId,
+  }) async {
     final userId = _requireUserId();
     try {
+      // Colonnes réelles confirmées via export de schéma (2026-09-20) :
+      // `matches(id, conversation_id, requester_id, recipient_id, status,
+      // created_at, ...)`. La RLS exige recipient_id (sinon "new row
+      // violates row-level security policy") - sans, l'insert passait la
+      // validation de colonnes mais échouait toujours côté RLS.
       final payloads = <Map<String, dynamic>>[
         {
           'conversation_id': conversationId,
+          'requester_id': userId,
+          'recipient_id': recipientId,
+          'status': 'PENDING',
+        },
+        {
+          'conversation_id': conversationId,
           'proposer_id': userId,
+          'recipient_id': recipientId,
           'status': 'PENDING',
         },
         {
           'conversation_id': conversationId,
           'initiated_by': userId,
-          'status': 'PENDING',
-        },
-        {
-          'conversation_id': conversationId,
-          'requester_id': userId,
+          'recipient_id': recipientId,
           'status': 'PENDING',
         },
         {
           'conversation_id': conversationId,
           'created_by': userId,
+          'recipient_id': recipientId,
           'status': 'PENDING',
         },
       ];
@@ -593,7 +877,9 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
   // L'embed imbriqué profiles->profile_photos ne remonte pas toujours de
   // résultat (même constat que Découvrir/Favoris) : on complète par une
   // requête directe pour les profils sans photo dans l'embed.
-  Future<void> _fillMissingPhotos(Map<String, Map<String, dynamic>> byId) async {
+  Future<void> _fillMissingPhotos(
+    Map<String, Map<String, dynamic>> byId,
+  ) async {
     final missingIds = [
       for (final entry in byId.entries)
         if (!_hasEmbeddedPhoto(entry.value)) entry.key,
@@ -648,6 +934,9 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
             byConversation.putIfAbsent(id, () => []).add(map);
           }
         }
+        await _hydrateAttachments([
+          for (final list in byConversation.values) ...list,
+        ]);
         return byConversation;
       } on PostgrestException catch (e) {
         if (_looksLikeMissingColumn(e)) continue;
@@ -655,6 +944,84 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
       }
     }
     return const {};
+  }
+
+  Future<void> _hydrateAttachments(List<Map<String, dynamic>> messages) async {
+    if (messages.isEmpty) return;
+    final ids = <String>[
+      for (final message in messages)
+        if (_stringId(message, 'id') case final id?) id,
+    ];
+    if (ids.isEmpty) return;
+
+    final byMessage = <String, Map<String, dynamic>>{};
+    try {
+      for (final chunk in chunkIds(ids)) {
+        final rows = await _client
+            .from('message_attachments')
+            .select(_attachmentSelect)
+            .inFilter('message_id', chunk);
+        for (final row in rows) {
+          final map = Map<String, dynamic>.from(row);
+          final messageId = _stringId(map, 'message_id');
+          if (messageId == null) continue;
+          byMessage.putIfAbsent(messageId, () => map);
+        }
+      }
+    } on PostgrestException {
+      return;
+    }
+    if (byMessage.isEmpty) return;
+
+    final paths = <String>[];
+    for (final attachment in byMessage.values) {
+      final path = attachmentObjectPath(attachment);
+      if (path != null) paths.add(path);
+    }
+    final signedByPath = await _signAttachmentPaths(paths);
+
+    for (final message in messages) {
+      final id = _stringId(message, 'id');
+      if (id == null) continue;
+      final attachment = byMessage[id];
+      if (attachment == null) continue;
+      final path = attachmentObjectPath(attachment);
+      mergeAttachmentIntoMessage(
+        message,
+        attachment: attachment,
+        resolvedUrl:
+            (path == null ? null : signedByPath[path]) ??
+            attachmentHttpUrl(attachment),
+      );
+    }
+  }
+
+  Future<Map<String, String>> _signAttachmentPaths(List<String> paths) async {
+    if (paths.isEmpty) return const {};
+    final unique = paths.toSet().toList();
+    final signed = <String, String>{};
+    try {
+      final results = await _client.storage
+          .from(AppStorageBuckets.messageAttachments)
+          .createSignedUrlsResult(unique, _signedUrlTtlSeconds);
+      for (final item in results) {
+        switch (item) {
+          case SignedUrlSuccess(:final path, :final signedUrl):
+            if (signedUrl.isNotEmpty) signed[path] = signedUrl;
+          case SignedUrlFailure():
+            break;
+        }
+      }
+    } catch (_) {
+      for (final path in unique) {
+        try {
+          signed[path] = await _client.storage
+              .from(AppStorageBuckets.messageAttachments)
+              .createSignedUrl(path, _signedUrlTtlSeconds);
+        } catch (_) {}
+      }
+    }
+    return signed;
   }
 
   Map<String, dynamic>? _latestVisibleMessage(
@@ -734,5 +1101,43 @@ class SupabaseMessagesDataSource implements MessagesRemoteDataSource {
         all.contains('could not find') ||
         all.contains('relationship') ||
         all.contains('embedding');
+  }
+
+  bool _looksLikeInvalidEnum(PostgrestException e) {
+    final all = '${e.message} ${e.details} ${e.hint} ${e.code}'.toLowerCase();
+    return all.contains('invalid input value for enum') ||
+        all.contains('invalid enum') ||
+        all.contains('22p02');
+  }
+
+  /// `message_attachments.type` n'accepte pas forcément `VOICE` (messages)
+  /// : l'enum pièce jointe est en général `AUDIO`.
+  Future<String> _insertAudioAttachment({
+    required String messageId,
+    required String objectPath,
+    required int durationSeconds,
+  }) async {
+    PostgrestException? lastEnum;
+    for (final type in const ['AUDIO', 'VOICE']) {
+      try {
+        await _client.from('message_attachments').insert({
+          'message_id': messageId,
+          'type': type,
+          'storage_path': objectPath,
+          'mime_type': 'audio/mp4',
+          'file_name': 'note-vocale.m4a',
+          'duration_seconds': durationSeconds,
+        });
+        return type;
+      } on PostgrestException catch (e) {
+        if (_looksLikeInvalidEnum(e)) {
+          lastEnum = e;
+          continue;
+        }
+        rethrow;
+      }
+    }
+    throw lastEnum ??
+        const ServerException('Impossible d\'envoyer la note vocale.');
   }
 }

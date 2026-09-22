@@ -230,8 +230,11 @@ class SupabaseProfileAccountDataSource
           'marriage_horizon',
           'marriage_timeline',
         ]),
-        likes: json.string('likes'),
-        dislikes: json.string('dislikes'),
+        // `likes`/`dislikes` sont des colonnes tableau (`text[]`, confirmé
+        // via information_schema 2026-09-22) alors que le champ est du
+        // texte libre côté UI : on aplatit en une seule chaîne à l'affichage.
+        likes: json.stringList('likes').join(', '),
+        dislikes: json.stringList('dislikes').join(', '),
         qualitiesAvailable: [
           'qualities',
           'personal_qualities',
@@ -280,8 +283,19 @@ class SupabaseProfileAccountDataSource
       _putIfKnown(patch, 'desired_children', details.childrenWanted);
       _putIfKnown(patch, 'marriage_horizon', details.marriageHorizon);
       _putIfKnown(patch, 'marriage_timeline', details.marriageHorizon);
-      _putIfKnown(patch, 'likes', details.likes);
-      _putIfKnown(patch, 'dislikes', details.dislikes);
+      // Colonnes tableau (`text[]`) : on renvoie le texte libre comme un
+      // seul élément (ou tableau vide), pas une string brute — sinon
+      // Postgres rejette avec "malformed array literal".
+      _putList(
+        patch,
+        const ['likes'],
+        details.likes.trim().isEmpty ? const [] : [details.likes.trim()],
+      );
+      _putList(
+        patch,
+        const ['dislikes'],
+        details.dislikes.trim().isEmpty ? const [] : [details.dislikes.trim()],
+      );
       if (patch.isEmpty) return;
       await _client.from('profiles').update(patch).eq('id', _requireUserId());
     });
@@ -417,7 +431,8 @@ class SupabaseProfileAccountDataSource
       final profile = await _client
           .from('profiles')
           .select(
-            'photo_verification_status, gender, birth_date, country, church_denomination, why_marriage',
+            'photo_verification_status, gender, birth_date, country, '
+            'church_denomination, why_marriage, marital_status, hobbies',
           )
           .eq('id', userId)
           .maybeSingle();
@@ -433,6 +448,8 @@ class SupabaseProfileAccountDataSource
           json.stringOrNull('country') != null &&
           json.stringOrNull('church_denomination') != null &&
           json.stringOrNull('why_marriage') != null &&
+          json.stringOrNull('marital_status') != null &&
+          json.stringList('hobbies').isNotEmpty &&
           hasPhoto;
       String? rejection;
       try {
@@ -642,9 +659,11 @@ class SupabaseProfileAccountDataSource
       final slot = existing.length;
       final objectPath = '$userId/slot_$slot.jpg';
       await _uploadJpeg(objectPath, photoPath);
+      final url = _client.storage.from(_photosBucket).getPublicUrl(objectPath);
       await _client.from('profile_photos').insert({
         'profile_id': userId,
         'storage_path': objectPath,
+        'url': url,
         'is_primary': existing.isEmpty,
         'moderation_status': 'PENDING',
       });

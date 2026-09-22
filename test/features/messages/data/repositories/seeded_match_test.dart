@@ -9,7 +9,10 @@ void main() {
     final before = await repo.fetchMatch('fake-accepted-1');
     expect((before as Ok).value, ConversationMatch.none);
 
-    final proposed = await repo.proposeMatch('fake-accepted-1');
+    final proposed = await repo.proposeMatch(
+      'fake-accepted-1',
+      recipientId: 'peer-1',
+    );
     expect(
       (proposed as Ok).value.status,
       ConversationMatchStatus.pending,

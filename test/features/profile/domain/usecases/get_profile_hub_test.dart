@@ -27,6 +27,8 @@ void main() {
             hasPrimaryPhoto: false,
             hasFaithConfession: true,
             hasWhyMarriage: true,
+            hasMaritalStatus: true,
+            hasHobbies: true,
             firstName: 'Paul',
             lastName: 'N.',
             photoVerificationStatus: 'VERIFIED',

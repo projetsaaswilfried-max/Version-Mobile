@@ -16,6 +16,8 @@ ProfileFieldsSnapshot fields({
     hasPrimaryPhoto: primaryPhotoUrl != null,
     hasFaithConfession: true,
     hasWhyMarriage: true,
+    hasMaritalStatus: true,
+    hasHobbies: true,
     firstName: firstName,
     lastName: lastName,
     photoVerificationStatus: photoVerificationStatus,

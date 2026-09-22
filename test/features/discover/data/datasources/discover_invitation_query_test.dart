@@ -26,11 +26,4 @@ void main() {
       ],
     );
   });
-
-  test('calendar month start is the 1st of the local month', () {
-    expect(
-      discoverCalendarMonthStartIso(DateTime(2026, 9, 19, 22, 15)),
-      DateTime(2026, 9, 1).toIso8601String(),
-    );
-  });
 }

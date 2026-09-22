@@ -18,12 +18,14 @@ import 'package:agapeo/features/discover/presentation/discover_body.dart';
 import 'package:agapeo/features/discover/presentation/widgets/discover_profile_sheet.dart';
 import 'package:agapeo/features/discover/presentation/widgets/discover_verify_sheet.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
+import 'package:agapeo/features/profile/presentation/security/verification_page.dart';
 import 'package:agapeo/features/profile/domain/entities/profile_completeness.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/discover_test_fakes.dart';
+import '../../../helpers/profile_account_test_fakes.dart';
 
 const _detail = DiscoverProfileDetail(
   id: 'p1',
@@ -241,6 +243,9 @@ void main() {
             (ref) async =>
                 const ProfileCompleteness(isComplete: true, missingKeys: []),
           ),
+          profileAccountRepositoryProvider.overrideWithValue(
+            FakeProfileAccountRepository(),
+          ),
         ],
         child: MaterialApp(
           theme: AppTheme.light,
@@ -261,7 +266,8 @@ void main() {
     expect(repo.fetchDetailIds, isEmpty);
 
     await tester.tap(find.text('Vérifier mon profil'));
-    await tester.pumpAndSettle();
-    expect(find.text('Vérification du profil : bientôt'), findsOneWidget);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(VerificationPage), findsOneWidget);
   });
 }

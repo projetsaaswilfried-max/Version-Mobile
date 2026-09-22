@@ -101,10 +101,18 @@ class RecapStep extends ConsumerWidget {
                 onTap: () => controller.goToStep(1),
               ),
               AppSettingsRow(
+                label: 'Centres d\'intérêt',
+                subtitle: draft.hobbies.isEmpty
+                    ? 'Aucun'
+                    : draft.hobbies.join(', '),
+                icon: Icons.interests_outlined,
+                onTap: () => controller.goToStep(2),
+              ),
+              AppSettingsRow(
                 label: 'Photo',
                 subtitle: photo == null ? 'Aucune' : 'Ajoutée',
                 icon: Icons.photo_outlined,
-                onTap: () => controller.goToStep(2),
+                onTap: () => controller.goToStep(3),
               ),
             ],
           ),

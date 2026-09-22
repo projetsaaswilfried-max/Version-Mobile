@@ -15,6 +15,13 @@ abstract class DiscoverRemoteDataSource {
     required int offset,
     required int limit,
     String? search,
+    String? country,
+    String? city,
+    String? profession,
+    List<String> denominations = const [],
+    List<String> maritalStatuses = const [],
+    String? bornOnOrAfter,
+    String? bornOnOrBefore,
   });
 
   Future<Set<String>> fetchLikedProfileIds();
@@ -36,8 +43,6 @@ abstract class DiscoverRemoteDataSource {
   Future<void> favoriteProfile(String profileId);
 
   Future<void> unfavoriteProfile(String profileId);
-
-  Future<int> countMonthlyInvitations();
 
   Future<void> sendInvitation({required String profileId, String? message});
 }

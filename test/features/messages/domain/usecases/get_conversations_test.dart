@@ -37,6 +37,23 @@ class _FakeMessagesRepository implements MessagesRepository {
   }) async => Err(ServerFailure('unused'));
 
   @override
+  Future<Result<Message>> sendImage({
+    required String conversationId,
+    required String localPath,
+  }) async => Err(ServerFailure('unused'));
+
+  @override
+  Future<Result<Message>> sendVoice({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  }) async => Err(ServerFailure('unused'));
+
+  @override
+  Future<Result<void>> deleteMessage(String messageId) async =>
+      Err(ServerFailure('unused'));
+
+  @override
   Future<Result<void>> acceptInvitation(String conversationId) async =>
       const Ok(null);
 
@@ -50,17 +67,17 @@ class _FakeMessagesRepository implements MessagesRepository {
 
   @override
   Future<Result<ConversationMatch>> proposeMatch(
-    String conversationId,
-  ) async => const Ok(ConversationMatch.none);
+    String conversationId, {
+    required String recipientId,
+  }) async => const Ok(ConversationMatch.none);
 
   @override
   Future<Result<ConversationMatch>> acceptMatch(String conversationId) async =>
       const Ok(ConversationMatch.none);
 
   @override
-  Future<Result<ConversationMatch>> declineMatch(
-    String conversationId,
-  ) async => const Ok(ConversationMatch.none);
+  Future<Result<ConversationMatch>> declineMatch(String conversationId) async =>
+      const Ok(ConversationMatch.none);
 
   @override
   Future<Result<ConversationMatch>> cancelMatch(String conversationId) async =>
@@ -68,6 +85,10 @@ class _FakeMessagesRepository implements MessagesRepository {
 
   @override
   Future<Result<void>> hideConversation(String conversationId) async =>
+      const Ok(null);
+
+  @override
+  Future<Result<void>> markConversationRead(String conversationId) async =>
       const Ok(null);
 }
 

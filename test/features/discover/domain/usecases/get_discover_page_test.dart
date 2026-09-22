@@ -4,6 +4,7 @@ import 'package:agapeo/features/discover/domain/entities/discover_candidates_pag
 import 'package:agapeo/features/discover/domain/entities/discover_page.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_profile.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_profile_detail.dart';
+import 'package:agapeo/features/discover/domain/entities/discover_query.dart';
 import 'package:agapeo/features/discover/domain/entities/visitor_context.dart';
 import 'package:agapeo/features/discover/domain/masking/discover_mask.dart';
 import 'package:agapeo/features/discover/domain/repositories/discover_repository.dart';
@@ -28,10 +29,10 @@ class _FakeDiscoverRepository implements DiscoverRepository {
   Future<Result<DiscoverCandidatesPage>> fetchCandidates({
     required int offset,
     required int limit,
-    String? search,
+    DiscoverQuery query = const DiscoverQuery(),
   }) async {
     fetchCandidatesCalls++;
-    lastSearch = search;
+    lastSearch = query.search;
     fetchCandidatesOffsets.add(offset);
     return switch (candidates) {
       Ok(:final value) =>
@@ -77,9 +78,6 @@ class _FakeDiscoverRepository implements DiscoverRepository {
   @override
   Future<Result<void>> unfavoriteProfile(String profileId) async =>
       const Ok(null);
-
-  @override
-  Future<Result<int>> countMonthlyInvitations() async => const Ok(0);
 
   @override
   Future<Result<void>> sendInvitation({

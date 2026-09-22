@@ -1,7 +1,8 @@
 import '../../../../core/parsing/json.dart';
 import '../../domain/entities/conversation_summary.dart';
 import '../../domain/invite/incoming_invite.dart';
-import '../../domain/preview/truncate_preview.dart';
+import '../../domain/invite/invite_list_preview.dart';
+import '../../domain/preview/media_type_preview.dart';
 import '../../domain/unread/unread_count.dart';
 import '../datasources/messages_schema.dart';
 
@@ -24,17 +25,28 @@ class ConversationSummaryModel {
     if (status == 'DECLINED') return null;
 
     final isSystem = json.boolValue('is_system_broadcast');
-    final initiatorId = _firstString(json, messagesInitiatorColumns);
+    final initiatorId =
+        _firstString(json, messagesInitiatorColumns) ??
+        _messageSender(latestMessage);
+    final isIncomingInvite = isIncomingConversationInvite(
+      status: status,
+      currentUserId: currentUserId,
+      initiatorId: initiatorId,
+    );
     final lastAt =
-        _firstDate(json, messagesActivityColumns) ??
-        _messageCreatedAt(latestMessage);
+        json.dateTime('last_message_at') ??
+        _messageCreatedAt(latestMessage) ??
+        json.dateTime('created_at');
 
     return ConversationSummary(
       id: id,
       peerName: isSystem ? messagesSystemPeerName : _displayName(peer),
       peerPhotoUrl: isSystem ? null : _httpPhoto(peer),
-      preview: truncateConversationPreview(
-        _messageText(latestMessage),
+      preview: conversationListPreview(
+        status: status,
+        isIncomingInvite: isIncomingInvite,
+        isSystem: isSystem,
+        lastMessage: _previewSource(latestMessage),
         maxChars: messagesPreviewMaxChars,
       ),
       lastAt: lastAt,
@@ -44,11 +56,7 @@ class ConversationSummaryModel {
       ),
       status: status,
       isSystem: isSystem,
-      isIncomingInvite: isIncomingConversationInvite(
-        status: status,
-        currentUserId: currentUserId,
-        initiatorId: initiatorId,
-      ),
+      isIncomingInvite: isIncomingInvite,
       peerId: isSystem
           ? null
           : (peer == null ? null : Json(peer).stringOrNull('id')),
@@ -57,23 +65,31 @@ class ConversationSummaryModel {
 
   static String? _firstString(Json json, List<String> keys) {
     for (final key in keys) {
-      final value = json.stringOrNull(key);
-      if (value != null) return value;
+      final value = json.string(key).trim();
+      if (value.isNotEmpty) return value;
     }
     return null;
   }
 
-  static DateTime? _firstDate(Json json, List<String> keys) {
-    for (final key in keys) {
-      final value = json.dateTime(key);
-      if (value != null) return value;
-    }
-    return null;
+  static String? _messageSender(Map<String, dynamic>? message) {
+    if (message == null) return null;
+    return _firstString(Json(message), messagesSenderColumns);
   }
 
   static DateTime? _messageCreatedAt(Map<String, dynamic>? message) {
     if (message == null) return null;
     return Json(message).dateTime('created_at');
+  }
+
+  static String? _previewSource(Map<String, dynamic>? message) {
+    if (message == null) return null;
+    final json = Json(message);
+    if (json.dateTime('deleted_at') != null) return null;
+    return conversationLastMessagePreview(
+      type: json.stringOrNull('type'),
+      content: _messageText(message),
+      fileName: json.stringOrNull('file_name'),
+    );
   }
 
   static String? _messageText(Map<String, dynamic>? message) {

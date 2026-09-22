@@ -17,15 +17,3 @@ List<Map<String, dynamic>> discoverInvitationRpcParamAttempts({
     ],
   ];
 }
-
-/// Début du mois civil local (quota 3 invitations / mois, spec D06).
-String discoverCalendarMonthStartIso(DateTime now) {
-  final local = now.isUtc ? now.toLocal() : now;
-  return DateTime(local.year, local.month, 1).toIso8601String();
-}
-
-/// Colonne initiateur sur `conversations` — confirmée via export de schéma
-/// (2026-09-20).
-const discoverInitiatorColumnFallbacks = ['initiated_by'];
-
-const discoverMonthlyInvitationStatuses = ['PENDING', 'ACCEPTED'];

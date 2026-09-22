@@ -61,6 +61,7 @@ class OnboardingFlowController extends Notifier<OnboardingFlowState> {
       fieldErrors: remaining,
       completedLocally: false,
       skippedPhoto: false,
+      skippedHobbies: false,
       clearSubmitError: true,
     );
   }
@@ -80,6 +81,11 @@ class OnboardingFlowController extends Notifier<OnboardingFlowState> {
       fieldErrors: const {},
     );
     return true;
+  }
+
+  void skipHobbies() {
+    state = state.copyWith(skippedHobbies: true);
+    next();
   }
 
   void goToStep(int step) {

@@ -11,11 +11,17 @@ class ProfileCompletionBanner extends StatelessWidget {
     required this.percent,
     required this.onTap,
     this.onDismiss,
+    this.title = 'Complète ton profil',
+    this.subtitle =
+        'Un profil complet obtient de meilleures suggestions et plus de '
+            'réponses.',
   });
 
   final int percent;
   final VoidCallback onTap;
   final VoidCallback? onDismiss;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -76,15 +82,14 @@ class ProfileCompletionBanner extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Complète ton profil',
+                          title,
                           style: typography.title.copyWith(
                             color: colors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xxs),
                         Text(
-                          'Un profil complet obtient de meilleures '
-                          'suggestions et plus de réponses.',
+                          subtitle,
                           style: typography.bodySmall.copyWith(
                             color: colors.textSecondary,
                           ),

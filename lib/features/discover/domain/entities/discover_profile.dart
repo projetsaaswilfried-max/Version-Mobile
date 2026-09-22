@@ -8,6 +8,7 @@ class DiscoverProfile extends Equatable {
     required this.displayName,
     this.age,
     this.city,
+    this.profession,
     this.photoUrl,
     this.isVerified = false,
     this.score = 0,
@@ -25,6 +26,7 @@ class DiscoverProfile extends Equatable {
   final String displayName;
   final int? age;
   final String? city;
+  final String? profession;
   final String? photoUrl;
   final bool isVerified;
   final int score;
@@ -43,6 +45,8 @@ class DiscoverProfile extends Equatable {
     bool clearAge = false,
     String? city,
     bool clearCity = false,
+    String? profession,
+    bool clearProfession = false,
     String? photoUrl,
     bool? isVerified,
     int? score,
@@ -61,6 +65,7 @@ class DiscoverProfile extends Equatable {
       displayName: displayName ?? this.displayName,
       age: clearAge ? null : (age ?? this.age),
       city: clearCity ? null : (city ?? this.city),
+      profession: clearProfession ? null : (profession ?? this.profession),
       photoUrl: photoUrl ?? this.photoUrl,
       isVerified: isVerified ?? this.isVerified,
       score: score ?? this.score,
@@ -81,6 +86,7 @@ class DiscoverProfile extends Equatable {
     displayName,
     age,
     city,
+    profession,
     photoUrl,
     isVerified,
     score,

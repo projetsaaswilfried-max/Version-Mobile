@@ -44,6 +44,12 @@ class DiscoverState extends Equatable {
       recommended.isEmpty &&
       others.isEmpty;
 
+  /// Fetch de recherche/filtres : les listes sont vidées le temps de la
+  /// requête. Distinct du `loadMore` en bas de liste, pour centrer le
+  /// spinner au lieu de le coller en haut du scroll.
+  bool get isReloadingResults =>
+      isLoadingMore && recommended.isEmpty && others.isEmpty;
+
   bool get shouldOfferPremiumSheet => shouldShowDiscoverPremiumSheet(
     subscriptionStatus: subscriptionStatus,
     isStaff: visitorIsStaff,

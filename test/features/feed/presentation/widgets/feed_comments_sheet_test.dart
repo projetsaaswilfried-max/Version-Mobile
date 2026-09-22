@@ -66,6 +66,27 @@ void main() {
     expect(repo.commentsByPost['1']!.last.parentId, 'c1');
   });
 
+  testWidgets('sheet hides replies until Voir N réponses', (tester) async {
+    final repo = FakeFeedRepository()
+      ..commentsByPost['1'] = const [
+        PostComment(id: 'c1', body: 'Amen', authorName: 'Léa'),
+        PostComment(id: 'c2', body: 'Oui', authorName: 'Paul', parentId: 'c1'),
+      ];
+    await tester.pumpWidget(_sheet(repo));
+    await tester.pumpAndSettle();
+    expect(find.text('Oui'), findsNothing);
+    expect(find.text('Voir 1 réponse'), findsOneWidget);
+    await tester.tap(find.text('Voir 1 réponse'));
+    await tester.pump();
+    expect(find.text('Oui'), findsOneWidget);
+    // Un seul toggle une fois déplié, positionné après la réponse (pas de
+    // doublon sous le commentaire principal).
+    expect(find.text('Masquer les réponses'), findsOneWidget);
+    final replyY = tester.getCenter(find.text('Oui')).dy;
+    final toggleY = tester.getCenter(find.text('Masquer les réponses')).dy;
+    expect(toggleY, greaterThan(replyY));
+  });
+
   testWidgets('sheet shows a rose verified badge for verified authors', (
     tester,
   ) async {

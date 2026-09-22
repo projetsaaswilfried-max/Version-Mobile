@@ -6,6 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/format_relative_time.dart';
 import '../../domain/entities/conversation_summary.dart';
+import '../../domain/invite/invite_list_preview.dart';
 
 class MessagesConversationTile extends StatelessWidget {
   const MessagesConversationTile({
@@ -21,6 +22,7 @@ class MessagesConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final typography = context.typography;
+    final preview = _previewText(conversation);
     final initial = conversation.peerName.trim().isEmpty
         ? '?'
         : conversation.peerName.trim().characters.first.toUpperCase();
@@ -73,14 +75,19 @@ class MessagesConversationTile extends StatelessWidget {
           ],
         ],
       ),
-      subtitle: conversation.preview == null
+      subtitle: preview == null
           ? null
           : Text(
-              conversation.preview!,
+              preview,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: typography.bodyMedium.copyWith(
-                color: colors.textSecondary,
+                color: conversation.isIncomingInvite
+                    ? colors.primary
+                    : colors.textSecondary,
+                fontWeight: conversation.isIncomingInvite
+                    ? FontWeight.w600
+                    : FontWeight.w400,
               ),
             ),
       trailing: Column(
@@ -103,4 +110,11 @@ class MessagesConversationTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _previewText(ConversationSummary conversation) {
+  final preview = conversation.preview?.trim();
+  if (preview != null && preview.isNotEmpty) return preview;
+  if (conversation.isIncomingInvite) return kIncomingInvitePreview;
+  return null;
 }

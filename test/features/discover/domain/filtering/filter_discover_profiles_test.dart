@@ -8,30 +8,47 @@ DiscoverProfile _profile({
   required String id,
   String displayName = 'Léa Martin',
   String? city = 'Paris',
+  int? age = 28,
+  String? country,
   String? confession,
+  String? maritalStatus,
 }) {
   return DiscoverProfile(
     id: id,
     displayName: displayName,
     city: city,
-    traits: CompatibilityTraits(confession: confession),
+    age: age,
+    traits: CompatibilityTraits(
+      country: country,
+      confession: confession,
+      maritalStatus: maritalStatus,
+    ),
   );
 }
 
 void main() {
   test('DiscoverQuery is empty when all fields are null or blank', () {
     expect(const DiscoverQuery().isEmpty, isTrue);
-    expect(const DiscoverQuery(search: '  ', city: '\n').isEmpty, isTrue);
+    expect(const DiscoverQuery(search: '  ', country: '\n').isEmpty, isTrue);
+    expect(const DiscoverQuery(ageMin: 18, ageMax: 80).isEmpty, isTrue);
     expect(const DiscoverQuery().hasSheetFilters, isFalse);
     expect(const DiscoverQuery().hasActiveConstraints, isFalse);
   });
 
   test('DiscoverQuery is not empty when any field is set', () {
     expect(const DiscoverQuery(search: 'léa').isEmpty, isFalse);
-    expect(const DiscoverQuery(city: 'Lyon').isEmpty, isFalse);
-    expect(const DiscoverQuery(denomination: 'catho').isEmpty, isFalse);
-    expect(const DiscoverQuery(profession: 'médecin').isEmpty, isFalse);
-    expect(const DiscoverQuery(city: 'Lyon').hasSheetFilters, isTrue);
+    expect(const DiscoverQuery(country: 'France').isEmpty, isFalse);
+    expect(
+      const DiscoverQuery(denominations: ['Catholique']).isEmpty,
+      isFalse,
+    );
+    expect(
+      const DiscoverQuery(maritalStatuses: ['DIVORCED']).isEmpty,
+      isFalse,
+    );
+    expect(const DiscoverQuery(ageMin: 25).isEmpty, isFalse);
+    expect(const DiscoverQuery(ageMax: 40).isEmpty, isFalse);
+    expect(const DiscoverQuery(country: 'France').hasSheetFilters, isTrue);
     expect(const DiscoverQuery(search: 'léa').hasSheetFilters, isFalse);
     expect(const DiscoverQuery(search: 'léa').hasActiveConstraints, isTrue);
   });
@@ -65,50 +82,89 @@ void main() {
     expect(filtered.map((p) => p.id), ['2']);
   });
 
-  test('city filter matches city case-insensitive contains', () {
+  test('country filter matches traits.country exactly', () {
     final list = [
-      _profile(id: '1', city: 'Paris'),
-      _profile(id: '2', city: 'Marseille'),
+      _profile(id: '1', country: 'France'),
+      _profile(id: '2', country: 'Sénégal'),
     ];
     final filtered = filterDiscoverProfiles(
       list,
-      const DiscoverQuery(city: 'PAR'),
+      const DiscoverQuery(country: 'france'),
     );
     expect(filtered.map((p) => p.id), ['1']);
   });
 
-  test('denomination filter matches traits.confession', () {
+  test('denomination filter matches traits.confession exactly', () {
     final list = [
       _profile(id: '1', confession: 'Catholique'),
-      _profile(id: '2', confession: 'Protestant'),
+      _profile(id: '2', confession: 'Protestante'),
     ];
     final filtered = filterDiscoverProfiles(
       list,
-      const DiscoverQuery(denomination: 'catho'),
+      const DiscoverQuery(denominations: ['Catholique']),
     );
     expect(filtered.map((p) => p.id), ['1']);
   });
 
-  test('profession is ignored because it is not on DiscoverProfile', () {
+  test('denomination filter ORs several closed-list values', () {
     final list = [
-      _profile(id: '1', displayName: 'Léa'),
-      _profile(id: '2', displayName: 'Naomie'),
+      _profile(id: '1', confession: 'Catholique'),
+      _profile(id: '2', confession: 'Évangélique'),
+      _profile(id: '3', confession: 'Baptiste'),
     ];
     final filtered = filterDiscoverProfiles(
       list,
-      const DiscoverQuery(profession: 'médecin'),
+      const DiscoverQuery(denominations: ['Catholique', 'Baptiste']),
     );
-    expect(filtered, list);
+    expect(filtered.map((p) => p.id), ['1', '3']);
   });
 
-  test('combines search and city with AND', () {
+  test('marital filter matches traits.maritalStatus', () {
     final list = [
-      _profile(id: '1', displayName: 'Léa Martin', city: 'Paris'),
-      _profile(id: '2', displayName: 'Léa Durand', city: 'Lyon'),
+      _profile(id: '1', maritalStatus: 'SINGLE_NO_CHILDREN'),
+      _profile(id: '2', maritalStatus: 'DIVORCED'),
     ];
     final filtered = filterDiscoverProfiles(
       list,
-      const DiscoverQuery(search: 'léa', city: 'lyon'),
+      const DiscoverQuery(maritalStatuses: ['divorced']),
+    );
+    expect(filtered.map((p) => p.id), ['2']);
+  });
+
+  test('age filter keeps profiles inside the inclusive range', () {
+    final list = [
+      _profile(id: '1', age: 22),
+      _profile(id: '2', age: 30),
+      _profile(id: '3', age: 48),
+      _profile(id: '4', age: 55),
+    ];
+    final filtered = filterDiscoverProfiles(
+      list,
+      const DiscoverQuery(ageMin: 28, ageMax: 48),
+    );
+    expect(filtered.map((p) => p.id), ['2', '3']);
+  });
+
+  test('age filter drops profiles without an age', () {
+    final list = [
+      _profile(id: '1', age: 30),
+      _profile(id: '2', age: null),
+    ];
+    final filtered = filterDiscoverProfiles(
+      list,
+      const DiscoverQuery(ageMin: 25),
+    );
+    expect(filtered.map((p) => p.id), ['1']);
+  });
+
+  test('combines search and country with AND', () {
+    final list = [
+      _profile(id: '1', displayName: 'Léa Martin', country: 'France'),
+      _profile(id: '2', displayName: 'Léa Durand', country: 'Sénégal'),
+    ];
+    final filtered = filterDiscoverProfiles(
+      list,
+      const DiscoverQuery(search: 'léa', country: 'Sénégal'),
     );
     expect(filtered.map((p) => p.id), ['2']);
   });

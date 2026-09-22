@@ -52,19 +52,11 @@ bool canInviteDiscoverProfile({
   bool isStaff = false,
 }) => kBypassPremiumGatesForTesting || isStaff || visitorVerified;
 
-/// Quota invitation : FREE/CANCELED max 3/mois civil ; ACTIVE/staff illimité.
-bool canSendFreeInvitation({
-  required String subscriptionStatus,
-  required int monthlyCount,
-  bool isStaff = false,
-}) {
+/// Abonnement actif, sans aucune tolérance gratuite (D29) : envoyer une
+/// invitation, écrire dans une conversation déjà acceptée.
+bool isPremiumActive({required String subscriptionStatus, bool isStaff = false}) {
   if (kBypassPremiumGatesForTesting) return true;
   if (isStaff) return true;
-  final status = parseSubscriptionStatus(subscriptionStatus);
-  if (status == SubscriptionStatus.active) return true;
-  if (status == SubscriptionStatus.free ||
-      status == SubscriptionStatus.canceled) {
-    return monthlyCount < 3;
-  }
-  return false;
+  return parseSubscriptionStatus(subscriptionStatus) ==
+      SubscriptionStatus.active;
 }

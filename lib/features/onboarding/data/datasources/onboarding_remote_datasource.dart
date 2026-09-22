@@ -10,6 +10,7 @@ abstract class OnboardingRemoteDataSource {
     required String maritalStatusDb,
     required String whyMarriage,
     required bool onboardingCompleted,
+    List<String> hobbies = const [],
   });
 
   Future<void> uploadPhoto({
@@ -32,6 +33,7 @@ extension OnboardingRemoteDataSourcePayload on OnboardingRemoteDataSource {
       maritalStatusDb: payload.maritalStatusDb,
       whyMarriage: payload.whyMarriage,
       onboardingCompleted: onboardingCompleted,
+      hobbies: payload.hobbies,
     );
   }
 }

@@ -10,6 +10,7 @@ class OnboardingSubmitPayload {
     required this.maritalStatusDb,
     required this.whyMarriage,
     this.photoPaths = const [],
+    this.hobbies = const [],
   });
 
   final String genderDb;
@@ -19,6 +20,7 @@ class OnboardingSubmitPayload {
   final String maritalStatusDb;
   final String whyMarriage;
   final List<String> photoPaths;
+  final List<String> hobbies;
 
   String? get profilePhotoPath => photoPaths.isEmpty ? null : photoPaths.first;
 
@@ -39,6 +41,7 @@ class OnboardingSubmitPayload {
       maritalStatusDb: maritalToDb(m),
       whyMarriage: draft.whyMarriage.trim(),
       photoPaths: draft.photoPaths,
+      hobbies: draft.hobbies,
     );
   }
 }

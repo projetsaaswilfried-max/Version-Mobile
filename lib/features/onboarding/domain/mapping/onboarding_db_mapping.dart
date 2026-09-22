@@ -44,6 +44,7 @@ Map<String, Object> onboardingProfilesPatch({
   required String maritalStatusDb,
   required String whyMarriage,
   required bool onboardingCompleted,
+  List<String> hobbies = const [],
 }) {
   return {
     'gender': genderDb,
@@ -53,5 +54,6 @@ Map<String, Object> onboardingProfilesPatch({
     'marital_status': maritalStatusDb,
     'why_marriage': whyMarriage,
     'onboarding_completed': onboardingCompleted,
+    'hobbies': hobbies,
   };
 }

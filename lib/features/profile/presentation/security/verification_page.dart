@@ -166,7 +166,7 @@ class _StatusHero extends StatelessWidget {
       _ when info.isRejected => (
         Icons.error_outline,
         colors.error,
-        'Ta dernière demande a été refusée — vois le motif ci-dessous.',
+        'Ta dernière demande a été refusée, vois le motif ci-dessous.',
       ),
       _ => (
         Icons.shield_outlined,
@@ -261,6 +261,8 @@ class _RequirementsCard extends StatelessWidget {
     'Une photo de profil principale',
     'Ta confession',
     'Pourquoi le mariage t\'intéresse',
+    'Ta situation matrimoniale',
+    'Tes centres d\'intérêt',
     'Ton genre',
     'Ta date de naissance',
     'Ton pays',

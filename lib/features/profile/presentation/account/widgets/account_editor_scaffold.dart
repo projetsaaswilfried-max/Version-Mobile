@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/error/user_facing_message.dart';
 import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/widgets.dart';
 
-class AccountEditorScaffold extends StatelessWidget {
+class AccountEditorScaffold extends StatefulWidget {
   const AccountEditorScaffold({
     super.key,
     required this.title,
@@ -32,29 +33,34 @@ class AccountEditorScaffold extends StatelessWidget {
   final bool showSave;
 
   @override
+  State<AccountEditorScaffold> createState() => _AccountEditorScaffoldState();
+}
+
+class _AccountEditorScaffoldState extends State<AccountEditorScaffold> {
+  @override
+  void didUpdateWidget(covariant AccountEditorScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final error = widget.saveError;
+    if (error != null && error != oldWidget.saveError) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        AppToast.show(context, userFacingMessageFromRaw(error));
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: isLoading
+      appBar: AppBar(title: Text(widget.title)),
+      body: widget.isLoading
           ? const _Skeleton()
-          : errorMessage != null
-          ? _Error(message: errorMessage!, onRetry: onRetry)
+          : widget.errorMessage != null
+          ? _Error(message: widget.errorMessage!, onRetry: widget.onRetry)
           : Column(
               children: [
-                Expanded(child: child),
-                if (saveError != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Text(
-                      saveError!,
-                      style: context.typography.bodySmall.copyWith(
-                        color: context.colors.error,
-                      ),
-                    ),
-                  ),
-                if (showSave)
+                Expanded(child: widget.child),
+                if (widget.showSave)
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       AppSpacing.lg,
@@ -63,9 +69,9 @@ class AccountEditorScaffold extends StatelessWidget {
                       AppSpacing.lg + MediaQuery.paddingOf(context).bottom,
                     ),
                     child: AppButton(
-                      label: saveLabel,
-                      isLoading: isSaving,
-                      onPressed: onSave,
+                      label: widget.saveLabel,
+                      isLoading: widget.isSaving,
+                      onPressed: widget.onSave,
                     ),
                   ),
               ],

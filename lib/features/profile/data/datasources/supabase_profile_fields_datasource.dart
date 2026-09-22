@@ -22,6 +22,8 @@ class SupabaseProfileFieldsDataSource implements ProfileFieldsRemoteDataSource {
       String? country,
       String? denomination,
       String? whyMarriage,
+      String? maritalStatus,
+      List<String> hobbies,
       bool hasPrimaryPhoto,
       String? firstName,
       String? lastName,
@@ -40,6 +42,7 @@ class SupabaseProfileFieldsDataSource implements ProfileFieldsRemoteDataSource {
           .from('profiles')
           .select(
             'gender, birth_date, country, church_denomination, why_marriage, '
+            'marital_status, hobbies, '
             'first_name, last_name, photo_verification_status',
           )
           .eq('id', userId)
@@ -60,6 +63,8 @@ class SupabaseProfileFieldsDataSource implements ProfileFieldsRemoteDataSource {
         country: json.stringOrNull('country'),
         denomination: json.stringOrNull('church_denomination'),
         whyMarriage: json.stringOrNull('why_marriage'),
+        maritalStatus: json.stringOrNull('marital_status'),
+        hobbies: json.stringList('hobbies'),
         hasPrimaryPhoto: photo != null,
         firstName: json.stringOrNull('first_name'),
         lastName: json.stringOrNull('last_name'),

@@ -95,6 +95,60 @@ class MessagesRepositoryImpl implements MessagesRepository {
   }
 
   @override
+  Future<Result<Message>> sendImage({
+    required String conversationId,
+    required String localPath,
+  }) async {
+    try {
+      final userId = await _remote.currentUserId();
+      final row = await _remote.insertImageMessage(
+        conversationId: conversationId,
+        localPath: localPath,
+      );
+      final message = MessageModel.fromRow(row: row, currentUserId: userId);
+      if (message == null) {
+        return const Err(ServerFailure('Photo envoyée mais illisible.'));
+      }
+      return Ok(message);
+    } catch (error) {
+      return Err(mapDataException(error));
+    }
+  }
+
+  @override
+  Future<Result<Message>> sendVoice({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  }) async {
+    try {
+      final userId = await _remote.currentUserId();
+      final row = await _remote.insertVoiceMessage(
+        conversationId: conversationId,
+        localPath: localPath,
+        durationSeconds: durationSeconds,
+      );
+      final message = MessageModel.fromRow(row: row, currentUserId: userId);
+      if (message == null) {
+        return const Err(ServerFailure('Note vocale envoyée mais illisible.'));
+      }
+      return Ok(message);
+    } catch (error) {
+      return Err(mapDataException(error));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteMessage(String messageId) async {
+    try {
+      await _remote.softDeleteMessage(messageId);
+      return const Ok(null);
+    } catch (error) {
+      return Err(mapDataException(error));
+    }
+  }
+
+  @override
   Future<Result<void>> acceptInvitation(String conversationId) async {
     try {
       await _remote.updateConversationStatus(
@@ -136,11 +190,15 @@ class MessagesRepositoryImpl implements MessagesRepository {
 
   @override
   Future<Result<ConversationMatch>> proposeMatch(
-    String conversationId,
-  ) async {
+    String conversationId, {
+    required String recipientId,
+  }) async {
     try {
       final userId = await _remote.currentUserId();
-      final row = await _remote.insertMatchProposal(conversationId);
+      final row = await _remote.insertMatchProposal(
+        conversationId,
+        recipientId: recipientId,
+      );
       return Ok(
         ConversationMatchModel.fromRow(row: row, currentUserId: userId),
       );
@@ -155,9 +213,7 @@ class MessagesRepositoryImpl implements MessagesRepository {
   }
 
   @override
-  Future<Result<ConversationMatch>> declineMatch(
-    String conversationId,
-  ) async {
+  Future<Result<ConversationMatch>> declineMatch(String conversationId) async {
     final result = await _setMatchStatus(conversationId, 'CANCELLED');
     return switch (result) {
       Ok() => const Ok(ConversationMatch.none),
@@ -181,8 +237,7 @@ class MessagesRepositoryImpl implements MessagesRepository {
     try {
       final userId = await _remote.currentUserId();
       final current = await _remote.fetchActiveMatchRow(conversationId);
-      final matchId =
-          current == null
+      final matchId = current == null
           ? null
           : (Json(current).stringOrNull('id') ??
                 Json(current).intOrNull('id')?.toString());
@@ -205,6 +260,16 @@ class MessagesRepositoryImpl implements MessagesRepository {
   Future<Result<void>> hideConversation(String conversationId) async {
     try {
       await _remote.hideParticipation(conversationId);
+      return const Ok(null);
+    } catch (error) {
+      return Err(mapDataException(error));
+    }
+  }
+
+  @override
+  Future<Result<void>> markConversationRead(String conversationId) async {
+    try {
+      await _remote.markConversationRead(conversationId);
       return const Ok(null);
     } catch (error) {
       return Err(mapDataException(error));

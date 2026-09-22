@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/church_denominations.dart';
+import '../../../../core/config/countries.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../profile/domain/mapping/marital_status_label.dart';
 import '../../domain/entities/discover_query.dart';
 
 class DiscoverFiltersSheet extends StatefulWidget {
@@ -57,101 +60,244 @@ class DiscoverFiltersSheet extends StatefulWidget {
 }
 
 class _DiscoverFiltersSheetState extends State<DiscoverFiltersSheet> {
-  late final TextEditingController _city;
-  late final TextEditingController _denomination;
-  late final TextEditingController _profession;
+  static const _maritalDbValues = [
+    'SINGLE_NO_CHILDREN',
+    'SINGLE_WITH_CHILDREN',
+    'DIVORCED',
+    'WIDOWED',
+  ];
+
+  late final TextEditingController _cityController;
+  late final TextEditingController _professionController;
+  late RangeValues _age;
+  String? _country;
+  late Set<String> _maritalStatuses;
+  late Set<String> _denominations;
 
   @override
   void initState() {
     super.initState();
-    _city = TextEditingController(text: widget.initialQuery.city ?? '');
-    _denomination = TextEditingController(
-      text: widget.initialQuery.denomination ?? '',
+    final initial = widget.initialQuery.normalized;
+    _cityController = TextEditingController(text: initial.city ?? '');
+    _professionController = TextEditingController(
+      text: initial.profession ?? '',
     );
-    _profession = TextEditingController(
-      text: widget.initialQuery.profession ?? '',
+    _age = RangeValues(
+      (initial.ageMin ?? DiscoverQuery.minAge).toDouble(),
+      (initial.ageMax ?? DiscoverQuery.maxAge).toDouble(),
     );
+    _country = initial.country;
+    _maritalStatuses = {...initial.maritalStatuses};
+    _denominations = {...initial.denominations};
   }
 
   @override
   void dispose() {
-    _city.dispose();
-    _denomination.dispose();
-    _profession.dispose();
+    _cityController.dispose();
+    _professionController.dispose();
     super.dispose();
-  }
-
-  String? _trimOrNull(String value) {
-    final trimmed = value.trim();
-    return trimmed.isEmpty ? null : trimmed;
   }
 
   void _apply() {
     widget.onApply(
       DiscoverQuery(
-        city: _trimOrNull(_city.text),
-        denomination: _trimOrNull(_denomination.text),
-        profession: _trimOrNull(_profession.text),
-      ),
+        country: _country,
+        city: _cityController.text,
+        profession: _professionController.text,
+        denominations: _denominations.toList(),
+        maritalStatuses: _maritalStatuses.toList(),
+        ageMin: _age.start.round(),
+        ageMax: _age.end.round(),
+      ).normalized,
     );
+  }
+
+  void _toggle(Set<String> target, String id) {
+    setState(() {
+      if (target.contains(id)) {
+        target.remove(id);
+      } else {
+        target.add(id);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final typography = context.typography;
     final bottom = MediaQuery.paddingOf(context).bottom;
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          (bottom > 0 ? bottom : AppSpacing.lg) + keyboard,
-        ),
+    final height =
+        MediaQuery.sizeOf(context).height * AppSpacing.sheetMaxHeightFactor;
+    final ageMin = _age.start.round();
+    final ageMax = _age.end.round();
+    final maritalItems = [
+      for (final db in _maritalDbValues)
+        AppOptionItem(id: db, label: maritalStatusLabel(db) ?? db),
+    ];
+    final denominationItems = [
+      for (final name in churchDenominations)
+        AppOptionItem(id: name, label: name),
+    ];
+
+    return SizedBox(
+      height: height,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottom > 0 ? bottom : AppSpacing.md),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Filtres', style: typography.headline),
-            const SizedBox(height: AppSpacing.lg),
-            AppTextField(
-              key: const ValueKey('discover-filter-city'),
-              controller: _city,
-              label: 'Ville',
-              textInputAction: TextInputAction.next,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.sm,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                0,
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Fermer',
+                    onPressed: widget.onDismiss,
+                    icon: const Icon(Icons.close),
+                  ),
+                  Expanded(
+                    child: Text(
+                      'Filtres',
+                      textAlign: TextAlign.center,
+                      style: typography.title.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xxxl),
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            AppTextField(
-              key: const ValueKey('discover-filter-denomination'),
-              controller: _denomination,
-              label: 'Dénomination',
-              textInputAction: TextInputAction.next,
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _RangeHeader(
+                      label: 'Âge',
+                      value: '$ageMin - $ageMax',
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: colors.primary,
+                        inactiveTrackColor: colors.chipBackground,
+                        thumbColor: colors.primary,
+                        overlayColor: colors.primary.withValues(alpha: 0.16),
+                      ),
+                      child: RangeSlider(
+                        key: const ValueKey('discover-filter-age'),
+                        values: _age,
+                        min: DiscoverQuery.minAge.toDouble(),
+                        max: DiscoverQuery.maxAge.toDouble(),
+                        divisions: DiscoverQuery.maxAge - DiscoverQuery.minAge,
+                        onChanged: (values) => setState(() => _age = values),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    AppCountryPicker(
+                      key: const ValueKey('discover-filter-country'),
+                      countries: kOnboardingCountries,
+                      value: _country,
+                      hint: 'Tous les pays',
+                      onChanged: (country) => setState(() => _country = country),
+                      onCleared: _country == null
+                          ? null
+                          : () => setState(() => _country = null),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    AppTextField(
+                      key: const ValueKey('discover-filter-city'),
+                      label: 'Ville',
+                      hint: 'Toutes les villes',
+                      controller: _cityController,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    AppTextField(
+                      key: const ValueKey('discover-filter-profession'),
+                      label: 'Profession',
+                      hint: 'Toutes les professions',
+                      controller: _professionController,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Text('Situation matrimoniale', style: typography.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppFilterChips(
+                      items: maritalItems,
+                      selectedIds: _maritalStatuses,
+                      onToggled: (id) => _toggle(_maritalStatuses, id),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Text('Confession', style: typography.label),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppFilterChips(
+                      items: denominationItems,
+                      selectedIds: _denominations,
+                      onToggled: (id) => _toggle(_denominations, id),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            AppTextField(
-              key: const ValueKey('discover-filter-profession'),
-              controller: _profession,
-              label: 'Profession',
-              textInputAction: TextInputAction.done,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            AppButton(label: 'Appliquer', onPressed: _apply),
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Réinitialiser',
-              variant: AppButtonVariant.secondary,
-              onPressed: widget.onReset,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Fermer',
-              variant: AppButtonVariant.text,
-              onPressed: widget.onDismiss,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      label: 'Réinitialiser',
+                      variant: AppButtonVariant.secondary,
+                      onPressed: widget.onReset,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: AppButton(label: 'Appliquer', onPressed: _apply),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RangeHeader extends StatelessWidget {
+  const _RangeHeader({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final typography = context.typography;
+    return Row(
+      children: [
+        Expanded(child: Text(label, style: typography.label)),
+        Text(
+          value,
+          style: typography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

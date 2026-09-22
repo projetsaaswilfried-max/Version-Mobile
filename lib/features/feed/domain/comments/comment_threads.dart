@@ -35,10 +35,17 @@ PostComment replyTarget(PostComment comment, List<PostComment> comments) {
 int visibleReplyCount(
   int replyCount, {
   bool expanded = false,
-  int preview = 2,
+  int preview = 0,
 }) {
-  if (expanded || replyCount <= preview) return replyCount;
-  return preview;
+  if (expanded) return replyCount;
+  if (preview <= 0) return 0;
+  return preview < replyCount ? preview : replyCount;
+}
+
+String repliesToggleLabel({required int count, required bool expanded}) {
+  if (expanded) return 'Masquer les réponses';
+  if (count == 1) return 'Voir 1 réponse';
+  return 'Voir les $count réponses';
 }
 
 String? _rootId(PostComment comment, Map<String, PostComment> byId) {

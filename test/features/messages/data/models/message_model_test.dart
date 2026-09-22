@@ -37,4 +37,35 @@ void main() {
     expect(message.senderIsMe, isFalse);
     expect(message.mediaUrl, 'https://example.com/a.jpg');
   });
+
+  test('fromRow VOICE with duration and AUDIO alias', () {
+    final voice = MessageModel.fromRow(
+      row: {
+        'id': '3',
+        'conversation_id': 'c',
+        'type': 'VOICE',
+        'sender_id': 'other',
+        'created_at': '2026-09-19T10:00:00Z',
+        'media_url': 'https://example.com/a.m4a',
+        'duration_seconds': 12,
+      },
+      currentUserId: 'me',
+    )!;
+    expect(voice.type, MessageType.voice);
+    expect(voice.mediaUrl, 'https://example.com/a.m4a');
+    expect(voice.durationSeconds, 12);
+
+    final audio = MessageModel.fromRow(
+      row: {
+        'id': '4',
+        'conversation_id': 'c',
+        'type': 'AUDIO',
+        'sender_id': 'me',
+        'created_at': '2026-09-19T10:00:00Z',
+      },
+      currentUserId: 'me',
+    )!;
+    expect(audio.type, MessageType.voice);
+    expect(audio.senderIsMe, isTrue);
+  });
 }

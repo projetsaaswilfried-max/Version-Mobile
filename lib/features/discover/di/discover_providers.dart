@@ -8,9 +8,9 @@ import '../data/datasources/supabase_discover_datasource.dart';
 import '../data/repositories/discover_repository_impl.dart';
 import '../domain/entities/discover_candidates_page.dart';
 import '../domain/entities/discover_profile_detail.dart';
+import '../domain/entities/discover_query.dart';
 import '../domain/entities/visitor_context.dart';
 import '../domain/repositories/discover_repository.dart';
-import '../domain/usecases/count_monthly_discover_invitations.dart';
 import '../domain/usecases/favorite_discover_profile.dart';
 import '../domain/usecases/get_discover_page.dart';
 import '../domain/usecases/get_discover_profile_detail.dart';
@@ -72,11 +72,6 @@ final sendDiscoverInvitationProvider = Provider(
   (ref) => SendDiscoverInvitation(ref.watch(discoverRepositoryProvider)),
 );
 
-final countMonthlyDiscoverInvitationsProvider = Provider(
-  (ref) =>
-      CountMonthlyDiscoverInvitations(ref.watch(discoverRepositoryProvider)),
-);
-
 class UnconfiguredDiscoverRepository implements DiscoverRepository {
   const UnconfiguredDiscoverRepository();
 
@@ -92,7 +87,7 @@ class UnconfiguredDiscoverRepository implements DiscoverRepository {
   Future<Result<DiscoverCandidatesPage>> fetchCandidates({
     required int offset,
     required int limit,
-    String? search,
+    DiscoverQuery query = const DiscoverQuery(),
   }) async => const Err(failure);
 
   @override
@@ -135,9 +130,6 @@ class UnconfiguredDiscoverRepository implements DiscoverRepository {
   @override
   Future<Result<void>> unfavoriteProfile(String profileId) async =>
       const Err(failure);
-
-  @override
-  Future<Result<int>> countMonthlyInvitations() async => const Err(failure);
 
   @override
   Future<Result<void>> sendInvitation({

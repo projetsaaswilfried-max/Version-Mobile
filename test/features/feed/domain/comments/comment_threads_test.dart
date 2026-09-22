@@ -51,10 +51,25 @@ void main() {
     expect(replyTarget(root, const [root, reply]).id, 'c1');
   });
 
-  test('hides replies beyond the first two until expanded', () {
+  test('hides every reply until the thread is expanded', () {
     expect(visibleReplyCount(0), 0);
-    expect(visibleReplyCount(2), 2);
-    expect(visibleReplyCount(3), 2);
+    expect(visibleReplyCount(2), 0);
+    expect(visibleReplyCount(3), 0);
     expect(visibleReplyCount(5, expanded: true), 5);
+  });
+
+  test('toggle label matches the web thread copy', () {
+    expect(
+      repliesToggleLabel(count: 1, expanded: false),
+      'Voir 1 réponse',
+    );
+    expect(
+      repliesToggleLabel(count: 2, expanded: false),
+      'Voir les 2 réponses',
+    );
+    expect(
+      repliesToggleLabel(count: 3, expanded: true),
+      'Masquer les réponses',
+    );
   });
 }

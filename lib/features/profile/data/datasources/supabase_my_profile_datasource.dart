@@ -210,6 +210,7 @@ class SupabaseMyProfileDataSource implements MyProfileRemoteDataSource {
             contentType: 'image/jpeg',
           ),
         );
+    final url = _client.storage.from(_photosBucket).getPublicUrl(objectPath);
     final existing = await _client
         .from('profile_photos')
         .select('id')
@@ -219,7 +220,11 @@ class SupabaseMyProfileDataSource implements MyProfileRemoteDataSource {
     if (existing != null) {
       await _client
           .from('profile_photos')
-          .update({'is_primary': isPrimary, 'moderation_status': 'DRAFT'})
+          .update({
+            'url': url,
+            'is_primary': isPrimary,
+            'moderation_status': 'DRAFT',
+          })
           .eq('id', existing['id']);
     } else {
       if (isPrimary) {
@@ -231,6 +236,7 @@ class SupabaseMyProfileDataSource implements MyProfileRemoteDataSource {
       await _client.from('profile_photos').insert({
         'profile_id': userId,
         'storage_path': objectPath,
+        'url': url,
         'is_primary': isPrimary,
         'moderation_status': 'DRAFT',
       });

@@ -68,9 +68,12 @@ class _SupportThreadPageState extends ConsumerState<SupportThreadPage> {
         .sendMessage(ticketId: widget.ticket.id, message: text);
     if (!mounted) return;
     setState(() => _sending = false);
-    if (result is Ok<void>) {
-      _input.clear();
-      await _load();
+    switch (result) {
+      case Ok<void>():
+        _input.clear();
+        await _load();
+      case Err<void>(:final failure):
+        AppToast.show(context, failure.message);
     }
   }
 

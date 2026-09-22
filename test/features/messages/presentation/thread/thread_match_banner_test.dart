@@ -2,9 +2,12 @@ import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/features/messages/data/repositories/seeded_messages_repository.dart';
 import 'package:agapeo/features/messages/di/messages_providers.dart';
 import 'package:agapeo/features/messages/presentation/thread/conversation_thread_page.dart';
+import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../../helpers/auth_test_fakes.dart';
 
 void main() {
   Future<void> pumpThread(WidgetTester tester, String id) async {
@@ -13,6 +16,9 @@ void main() {
         overrides: [
           messagesRepositoryProvider.overrideWithValue(
             SeededMessagesRepository(),
+          ),
+          profileGateRepositoryProvider.overrideWithValue(
+            FakeProfileGateRepository(),
           ),
         ],
         child: MaterialApp(
@@ -31,7 +37,13 @@ void main() {
     expect(find.text('Proposer un match'), findsOneWidget);
     await tester.tap(find.text('Proposer un match'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Explique les conséquences (disparition de Découvrir) avant d'envoyer.
+    expect(find.textContaining('Proposer un match à'), findsOneWidget);
+    await tester.tap(find.text('Proposer'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('En attente de réponse'), findsOneWidget);
     await tester.tap(find.text('Annuler'));
@@ -46,6 +58,12 @@ void main() {
 
     expect(find.text('Proposition de match reçue'), findsOneWidget);
     await tester.tap(find.text('Accepter'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Explique les conséquences (disparition de Découvrir) avant de valider.
+    expect(find.textContaining('Accepter le match avec'), findsOneWidget);
+    await tester.tap(find.text('Confirmer le match'));
     await tester.pump();
     await tester.pump();
 

@@ -9,25 +9,28 @@ class OnboardingFlowState extends Equatable {
     this.fieldErrors = const {},
     this.completedLocally = false,
     this.skippedPhoto = false,
+    this.skippedHobbies = false,
     this.isSubmitting = false,
     this.submitError,
     this.essentialsLocked = false,
   });
 
-  static const stepCount = 4;
+  static const stepCount = 5;
 
   final OnboardingDraft draft;
   final int currentStep;
   final Map<String, String> fieldErrors;
   final bool completedLocally;
   final bool skippedPhoto;
+  final bool skippedHobbies;
   final bool isSubmitting;
   final String? submitError;
   final bool essentialsLocked;
 
   bool get isLastStep => currentStep >= stepCount - 1;
-  bool get isPhotoStep => currentStep == 2;
-  bool get isRecapStep => currentStep == 3;
+  bool get isHobbiesStep => currentStep == 2;
+  bool get isPhotoStep => currentStep == 3;
+  bool get isRecapStep => currentStep == 4;
 
   OnboardingFlowState copyWith({
     OnboardingDraft? draft,
@@ -35,6 +38,7 @@ class OnboardingFlowState extends Equatable {
     Map<String, String>? fieldErrors,
     bool? completedLocally,
     bool? skippedPhoto,
+    bool? skippedHobbies,
     bool? isSubmitting,
     String? submitError,
     bool clearSubmitError = false,
@@ -46,6 +50,7 @@ class OnboardingFlowState extends Equatable {
       fieldErrors: fieldErrors ?? this.fieldErrors,
       completedLocally: completedLocally ?? this.completedLocally,
       skippedPhoto: skippedPhoto ?? this.skippedPhoto,
+      skippedHobbies: skippedHobbies ?? this.skippedHobbies,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       submitError: clearSubmitError ? null : (submitError ?? this.submitError),
       essentialsLocked: essentialsLocked ?? this.essentialsLocked,
@@ -59,6 +64,7 @@ class OnboardingFlowState extends Equatable {
     fieldErrors,
     completedLocally,
     skippedPhoto,
+    skippedHobbies,
     isSubmitting,
     submitError,
     essentialsLocked,

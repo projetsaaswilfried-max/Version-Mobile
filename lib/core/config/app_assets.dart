@@ -31,5 +31,8 @@ class AppAssets {
   static const icGoogle = '$_icons/ic_google.svg';
   static const icSend = '$_icons/ic_send.svg';
   static const icClose = '$_icons/ic_close.svg';
+  static const icPaperclip = '$_icons/ic_paperclip.svg';
+  static const icMic = '$_icons/ic_mic.svg';
+  static const icTrash = '$_icons/ic_trash.svg';
   static const appIcon = 'assets/branding/app_icon.png';
 }

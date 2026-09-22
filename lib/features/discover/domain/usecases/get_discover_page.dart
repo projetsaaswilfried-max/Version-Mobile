@@ -3,6 +3,7 @@ import '../daily/daily_recommended.dart';
 import '../eligibility/discover_eligibility.dart';
 import '../entities/discover_page.dart';
 import '../entities/discover_profile.dart';
+import '../entities/discover_query.dart';
 import '../entities/visitor_context.dart';
 import '../masking/discover_mask.dart';
 import '../repositories/discover_repository.dart';
@@ -44,12 +45,12 @@ class GetDiscoverPage {
   Future<Result<DiscoverMorePage>> more({
     required VisitorContext visitor,
     required int offset,
-    String? search,
+    DiscoverQuery query = const DiscoverQuery(),
   }) async {
     final candidatesFuture = _repo.fetchCandidates(
       offset: offset,
       limit: serverBatchSize,
-      search: search,
+      query: query,
     );
     final likedFuture = _repo.fetchLikedProfileIds();
     final favoritedFuture = _repo.fetchFavoritedProfileIds();

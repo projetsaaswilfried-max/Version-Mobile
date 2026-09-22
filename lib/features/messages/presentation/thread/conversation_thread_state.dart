@@ -15,6 +15,7 @@ class ConversationThreadState extends Equatable {
     this.sending = false,
     this.errorMessage,
     this.closed = false,
+    this.isPremiumActive = true,
   });
 
   final ConversationSummary? conversation;
@@ -25,6 +26,11 @@ class ConversationThreadState extends Equatable {
   final String? errorMessage;
   final bool closed;
 
+  /// Abonnement actif du visiteur (D29) — `true` par défaut tant que le
+  /// statut n'est pas encore chargé, pour ne pas afficher le bandeau
+  /// Premium à tort pendant le premier chargement.
+  final bool isPremiumActive;
+
   ThreadComposerMode get composerMode {
     final c = conversation;
     if (c == null) return ThreadComposerMode.canCompose;
@@ -32,6 +38,7 @@ class ConversationThreadState extends Equatable {
       status: c.status,
       isSystem: c.isSystem,
       isIncomingInvite: c.isIncomingInvite,
+      isPremiumActive: isPremiumActive,
     );
   }
 
@@ -48,6 +55,7 @@ class ConversationThreadState extends Equatable {
     bool? closed,
     bool clearError = false,
     bool clearConversation = false,
+    bool? isPremiumActive,
   }) {
     return ConversationThreadState(
       conversation: clearConversation
@@ -59,6 +67,7 @@ class ConversationThreadState extends Equatable {
       sending: sending ?? this.sending,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       closed: closed ?? this.closed,
+      isPremiumActive: isPremiumActive ?? this.isPremiumActive,
     );
   }
 
@@ -71,5 +80,6 @@ class ConversationThreadState extends Equatable {
     sending,
     errorMessage,
     closed,
+    isPremiumActive,
   ];
 }

@@ -13,6 +13,8 @@ class ComputeProfileCompleteness {
     if (!s.hasPrimaryPhoto) missing.add(ProfileFieldKeys.photo);
     if (!s.hasFaithConfession) missing.add(ProfileFieldKeys.confession);
     if (!s.hasWhyMarriage) missing.add(ProfileFieldKeys.whyMarriage);
+    if (!s.hasMaritalStatus) missing.add(ProfileFieldKeys.maritalStatus);
+    if (!s.hasHobbies) missing.add(ProfileFieldKeys.hobbies);
     return ProfileCompleteness(
       isComplete: missing.isEmpty,
       missingKeys: missing,

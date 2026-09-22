@@ -15,6 +15,7 @@ class OnboardingDraft extends Equatable {
     this.heightCm,
     this.whyMarriage = '',
     this.bio = '',
+    this.hobbies = const [],
   });
 
   static const maxFreePhotos = 1;
@@ -28,6 +29,7 @@ class OnboardingDraft extends Equatable {
   final int? heightCm;
   final String whyMarriage;
   final String bio;
+  final List<String> hobbies;
 
   String? get profilePhotoPath => photoPaths.isEmpty ? null : photoPaths.first;
 
@@ -44,6 +46,7 @@ class OnboardingDraft extends Equatable {
     bool clearHeight = false,
     String? whyMarriage,
     String? bio,
+    List<String>? hobbies,
   }) {
     final List<String> nextPhotos;
     if (clearProfilePhoto) {
@@ -65,6 +68,7 @@ class OnboardingDraft extends Equatable {
       heightCm: clearHeight ? null : (heightCm ?? this.heightCm),
       whyMarriage: whyMarriage ?? this.whyMarriage,
       bio: bio ?? this.bio,
+      hobbies: hobbies ?? this.hobbies,
     );
   }
 
@@ -79,6 +83,7 @@ class OnboardingDraft extends Equatable {
     heightCm,
     whyMarriage,
     bio,
+    hobbies,
   ];
 }
 
@@ -129,6 +134,8 @@ class OnboardingValidators {
       case 2:
         return {};
       case 3:
+        return {};
+      case 4:
         return {};
       default:
         return {};

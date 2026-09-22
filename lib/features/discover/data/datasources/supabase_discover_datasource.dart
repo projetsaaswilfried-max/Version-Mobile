@@ -26,8 +26,7 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
     'id, first_name, last_name, gender, birth_date, city, country, profession, bio, photo_verification_status, is_staff, is_matched, church_denomination, why_marriage, marital_status, spiritual_engagement, values, hobbies, accepted_countries, accepted_age_min, accepted_age_max, accepted_marital, profile_photos(storage_path, url, is_primary)',
     'id, first_name, last_name, gender, birth_date, city, country, photo_verification_status, is_staff, is_matched, church_denomination, why_marriage, marital_status, spiritual_engagement, values, hobbies, accepted_countries, accepted_age_min, accepted_age_max, accepted_marital, profile_photos(storage_path, url, is_primary)',
     'id, first_name, last_name, gender, birth_date, city, country, photo_verification_status, is_staff, is_matched, church_denomination, why_marriage, marital_status, profile_photos(storage_path, url, is_primary)',
-    'id, first_name, last_name, gender, birth_date, city, country, photo_verification_status, is_staff, is_matched, church_denomination, why_marriage, profile_photos(storage_path, url, is_primary)',
-    'id, first_name, last_name, gender, birth_date, city, country, photo_verification_status, is_staff, is_matched, church_denomination, why_marriage',
+    'id, first_name, last_name, gender, birth_date, city, country, photo_verification_status, is_staff, is_matched, church_denomination, why_marriage, marital_status',
   ];
 
   final _selectCache = DiscoverSelectCache();
@@ -128,6 +127,13 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
     required int offset,
     required int limit,
     String? search,
+    String? country,
+    String? city,
+    String? profession,
+    List<String> denominations = const [],
+    List<String> maritalStatuses = const [],
+    String? bornOnOrAfter,
+    String? bornOnOrBefore,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
@@ -141,6 +147,13 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
         offset: offset,
         limit: limit,
         search: search,
+        country: country,
+        city: city,
+        profession: profession,
+        denominations: denominations,
+        maritalStatuses: maritalStatuses,
+        bornOnOrAfter: bornOnOrAfter,
+        bornOnOrBefore: bornOnOrBefore,
       );
       return _hydratePhotos(rows);
     } on AuthException catch (e) {
@@ -377,54 +390,6 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
   }
 
   @override
-  Future<int> countMonthlyInvitations() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      throw const UnauthorizedException('Session expirée.');
-    }
-
-    // Best-effort : PRD liste `conversations.status` et
-    // `conversation_participants` sans colonne initiateur. On filtre
-    // PENDING+ACCEPTED sur `created_by` puis `initiator_id` /
-    // `initiated_by`, mois civil local, `created_at >= 1er`.
-    // Erreur réelle → mapping Err (pas de soft-fail 0).
-    final monthStart = discoverCalendarMonthStartIso(DateTime.now());
-    PostgrestException? lastMissingColumn;
-    try {
-      for (final column in discoverInitiatorColumnFallbacks) {
-        try {
-          return await _client
-              .from('conversations')
-              .count(CountOption.exact)
-              .eq(column, userId)
-              .inFilter('status', discoverMonthlyInvitationStatuses)
-              .gte('created_at', monthStart);
-        } on PostgrestException catch (e) {
-          if (_looksLikeMissingColumn(e)) {
-            lastMissingColumn = e;
-            continue;
-          }
-          rethrow;
-        }
-      }
-      throw lastMissingColumn ??
-          const ServerException('Impossible de compter les invitations.');
-    } on AuthException catch (e) {
-      throw mapSupabaseAuthException(e);
-    } on PostgrestException catch (e) {
-      throw mapPostgrestException(e);
-    } on SocketException catch (e) {
-      throw NetworkException(e.message);
-    } on UnauthorizedException {
-      rethrow;
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw mapUnknownSupabase(e);
-    }
-  }
-
-  @override
   Future<void> sendInvitation({
     required String profileId,
     String? message,
@@ -504,6 +469,13 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
     int offset = 0,
     int limit = 0,
     String? search,
+    String? country,
+    String? city,
+    String? profession,
+    List<String> denominations = const [],
+    List<String> maritalStatuses = const [],
+    String? bornOnOrAfter,
+    String? bornOnOrBefore,
   }) async {
     final select = _selectCache.get(single: single) ?? _selects[selectIndex];
     try {
@@ -529,6 +501,30 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
           'city.ilike.%$needle%',
         );
       }
+      final countryFilter = country?.trim();
+      if (countryFilter != null && countryFilter.isNotEmpty) {
+        query = query.eq('country', countryFilter);
+      }
+      final cityFilter = _sanitizeSearch(city);
+      if (cityFilter != null) {
+        query = query.ilike('city', '%$cityFilter%');
+      }
+      final professionFilter = _sanitizeSearch(profession);
+      if (professionFilter != null) {
+        query = query.ilike('profession', '%$professionFilter%');
+      }
+      if (denominations.isNotEmpty) {
+        query = query.inFilter('church_denomination', denominations);
+      }
+      if (maritalStatuses.isNotEmpty) {
+        query = query.inFilter('marital_status', maritalStatuses);
+      }
+      if (bornOnOrAfter != null && bornOnOrAfter.isNotEmpty) {
+        query = query.gte('birth_date', bornOnOrAfter);
+      }
+      if (bornOnOrBefore != null && bornOnOrBefore.isNotEmpty) {
+        query = query.lte('birth_date', bornOnOrBefore);
+      }
       final rows = await query.order('id').range(offset, offset + limit - 1);
       _selectCache.set(select, single: false);
       return [for (final row in rows) Map<String, dynamic>.from(row)];
@@ -553,6 +549,11 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
         offset: offset,
         limit: limit,
         search: search,
+        country: country,
+        denominations: denominations,
+        maritalStatuses: maritalStatuses,
+        bornOnOrAfter: bornOnOrAfter,
+        bornOnOrBefore: bornOnOrBefore,
       );
     }
   }
@@ -671,13 +672,5 @@ class SupabaseDiscoverDataSource implements DiscoverRemoteDataSource {
   String _publicPhotoUrl(String path) {
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
     return _client.storage.from(_photosBucket).getPublicUrl(path);
-  }
-
-  bool _looksLikeMissingColumn(PostgrestException e) {
-    final all = '${e.message} ${e.details} ${e.hint}'.toLowerCase();
-    return (all.contains('column') && all.contains('does not exist')) ||
-        all.contains('could not find') ||
-        all.contains('relationship') ||
-        all.contains('embedding');
   }
 }

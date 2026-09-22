@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_toast.dart';
 import '../../di/discover_providers.dart';
 import '../../domain/entities/discover_profile_detail.dart';
 import '../../domain/premium/discover_premium_gate.dart';
+import '../../../premium/presentation/widgets/premium_feature_sheet.dart';
 import '../../../safety/presentation/widgets/profile_safety_sheet.dart';
 import 'discover_error_state.dart';
 import 'discover_invite_sheet.dart';
@@ -217,34 +218,30 @@ class _DiscoverProfileSheetState extends ConsumerState<DiscoverProfileSheet> {
       DiscoverVerifySheet.show(context, onVerify: widget.onVerifyProfile);
       return;
     }
-    unawaited(_openInviteIfQuotaAllows());
+    unawaited(_openInviteIfPremium());
   }
 
-  Future<void> _openInviteIfQuotaAllows() async {
+  Future<void> _openInviteIfPremium() async {
     if (_inviteBusy) return;
-    _inviteBusy = true;
-    final countResult = await ref.read(
-      countMonthlyDiscoverInvitationsProvider,
-    )();
-    if (!mounted) return;
-    _inviteBusy = false;
-    final allowSend = switch (countResult) {
-      Err() => true,
-      Ok(:final value) => canSendFreeInvitation(
-        subscriptionStatus: widget.subscriptionStatus,
-        monthlyCount: value,
-        isStaff: widget.visitorIsStaff,
-      ),
-    };
-    if (!allowSend) {
-      DiscoverPremiumSheet.show(context);
+    if (!isPremiumActive(
+      subscriptionStatus: widget.subscriptionStatus,
+      isStaff: widget.visitorIsStaff,
+    )) {
+      await PremiumFeatureSheet.show(
+        context,
+        title: 'Envoyer une invitation',
+        message: 'Passe Premium pour démarrer une conversation avec ce '
+            'profil.',
+      );
       return;
     }
+    _inviteBusy = true;
     await DiscoverInviteSheet.show(
       context,
       profileId: widget.profileId,
       displayName: _detail?.displayName ?? '',
     );
+    if (mounted) _inviteBusy = false;
   }
 
   Future<void> _toggleLike() async {
@@ -349,8 +346,8 @@ class _DiscoverProfileSheetState extends ConsumerState<DiscoverProfileSheet> {
                     onPressed: _onFavoritePressed,
                   ),
                   _CircleAction(
-                    tooltip: 'Inviter',
-                    icon: Icons.chat_bubble_outline,
+                    tooltip: 'Envoyer un message',
+                    icon: Icons.send_rounded,
                     active: false,
                     activeColor: colors.primary,
                     onPressed: _onInvitePressed,

@@ -11,6 +11,7 @@ Réfs : PRD §3 / §7, D02 chrome, D04 sheet
 | Qui filtre | ACTIVE ou staff (`canUseDiscoverSearchFilters`) |
 | FREE | Chrome D02 inchangé → Premium sheet |
 | Filtres V1 | Ville (texte), dénomination (texte), profession (texte) ; champs vides = ignore |
+| Filtres V1 | Âge (range 18-80), pays (liste inscription), situation matrimoniale (chips), confession (liste fermée D10). Ville/profession hors sheet. |
 | Recherche | Query texte sur displayName / city (client après fetch candidats ou filtre local sur listes chargées) |
 | Appliquer | Reset pagination + reload `loadInitial` avec `DiscoverQuery` ; après load OK, sheet Premium D04 si FREE (déjà) / aussi si changement filtre pour non-premium N/A |
 | Sheet filtres | Bottom sheet + Appliquer / Réinitialiser / Fermer |

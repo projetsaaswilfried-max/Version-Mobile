@@ -49,7 +49,7 @@ authentifié/rendu JS) — à parcourir manuellement dans l'éditeur.
 
 | Écran Agapeo | Réf. PRD | Ce qu'on adapte du web | Ce qu'on regarde dans les sources |
 |---|---|---|---|
-| Découvrir (liste, pas swipe) | §7 | Structure liste + sections "Recommandée" / "Autres" | **Livré (D15)** : carte split photo 4:5 + bandeau identité/actions (Datify). Pas de pile swipable. |
+| Découvrir (liste, pas swipe) | §7 | Structure liste + sections "Recommandée" / "Autres" | **Livré (D15)** : carte split photo 4:5 + bandeau identité/actions (Datify). Pas de pile swipable. **Filtres (D30)** : sheet type dating app (slider âge, dropdown pays, chips situation/confession) - pas de distance/swipe. |
 | Fiche profil complète | §6, §7 | Champs, masquage progressif | **Livré (D17)** : fiche Découvrir Datify (carrousel, méta, sections, actions circulaires). |
 | Messagerie (invitation → accepté) | §8 | Statuts PENDING/ACCEPTED, bulles, accusés de lecture | Écrans de chat (Orange Dating App), indicateur "en train d'écrire" |
 | Onboarding multi-étapes | §5 | 3-5 étapes, jamais bloquant | **Livré** : chrome Behance + récap non-retour (D10). Confession = liste fermée. Inputs outlined DS. |

@@ -6,6 +6,8 @@ abstract class ProfileFieldsRemoteDataSource {
       String? country,
       String? denomination,
       String? whyMarriage,
+      String? maritalStatus,
+      List<String> hobbies,
       bool hasPrimaryPhoto,
       String? firstName,
       String? lastName,

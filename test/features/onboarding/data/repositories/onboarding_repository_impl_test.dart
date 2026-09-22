@@ -20,6 +20,7 @@ class _FakeRemote implements OnboardingRemoteDataSource {
     required String maritalStatusDb,
     required String whyMarriage,
     required bool onboardingCompleted,
+    List<String> hobbies = const [],
   }) async {
     if (throwOnUpdate != null) throw throwOnUpdate!;
     calls.add('update:$onboardingCompleted');

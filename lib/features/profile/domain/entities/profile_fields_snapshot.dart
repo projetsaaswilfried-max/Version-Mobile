@@ -10,6 +10,8 @@ class ProfileFieldsSnapshot extends Equatable {
     required this.hasPrimaryPhoto,
     required this.hasFaithConfession,
     required this.hasWhyMarriage,
+    required this.hasMaritalStatus,
+    required this.hasHobbies,
     this.genderDb,
     this.birthDate,
     this.country,
@@ -25,6 +27,8 @@ class ProfileFieldsSnapshot extends Equatable {
   final bool hasPrimaryPhoto;
   final bool hasFaithConfession;
   final bool hasWhyMarriage;
+  final bool hasMaritalStatus;
+  final bool hasHobbies;
   final String? genderDb;
   final DateTime? birthDate;
   final String? country;
@@ -66,6 +70,8 @@ class ProfileFieldsSnapshot extends Equatable {
     hasPrimaryPhoto,
     hasFaithConfession,
     hasWhyMarriage,
+    hasMaritalStatus,
+    hasHobbies,
     genderDb,
     birthDate,
     country,

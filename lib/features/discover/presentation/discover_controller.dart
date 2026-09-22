@@ -20,11 +20,12 @@ class DiscoverController extends Notifier<DiscoverState> {
   var _serverOffset = GetDiscoverPage.serverBatchSize;
   var _hasMoreServer = false;
 
-  // Recherche texte (nom/ville) : requête serveur dédiée, indépendante du
-  // vivier `_othersAll` déjà chargé — sinon on ne trouve jamais un profil
-  // hors des ~60 premiers candidats en mémoire (bug remonté en test manuel).
+  // Contraintes actives (recherche texte et/ou filtres sheet) : requête
+  // serveur dédiée, indépendante du vivier `_othersAll` déjà chargé —
+  // sinon on ne trouve jamais un profil hors des ~60 premiers candidats
+  // en mémoire (bug remonté en test manuel sur la recherche nom).
   List<DiscoverProfile> _searchResults = const [];
-  String? _activeSearch;
+  DiscoverQuery? _activeServerQuery;
   var _searchOffset = 0;
   var _searchHasMore = false;
 
@@ -39,27 +40,26 @@ class DiscoverController extends Notifier<DiscoverState> {
   Future<void> applyQuery(DiscoverQuery query) async {
     final normalized = query.normalized;
     state = state.copyWith(query: normalized);
-    final search = normalized.search;
-    if (search == null) {
-      _activeSearch = null;
+    if (!normalized.hasActiveConstraints) {
+      _activeServerQuery = null;
       _othersVisibleCount = othersPageSize;
       _emitVisible();
       return;
     }
-    await _runSearch(search);
+    await _runServerQuery(normalized);
   }
 
   Future<void> clearQuery() async {
     state = state.copyWith(query: const DiscoverQuery());
-    _activeSearch = null;
+    _activeServerQuery = null;
     _othersVisibleCount = othersPageSize;
     _emitVisible();
   }
 
-  Future<void> _runSearch(String search) async {
+  Future<void> _runServerQuery(DiscoverQuery query) async {
     final visitor = state.visitor;
     if (visitor == null) return;
-    _activeSearch = search;
+    _activeServerQuery = query;
     _searchResults = const [];
     _searchOffset = 0;
     _searchHasMore = false;
@@ -72,8 +72,8 @@ class DiscoverController extends Notifier<DiscoverState> {
     );
     final result = await ref
         .read(getDiscoverPageProvider)
-        .more(visitor: visitor, offset: 0, search: search);
-    if (!ref.mounted || _activeSearch != search) return;
+        .more(visitor: visitor, offset: 0, query: query);
+    if (!ref.mounted || _activeServerQuery != query) return;
     switch (result) {
       case Ok<DiscoverMorePage>(:final value):
         _searchResults = value.others;
@@ -145,7 +145,14 @@ class DiscoverController extends Notifier<DiscoverState> {
     _emitVisible();
   }
 
-  Future<void> refresh() => _load(reset: true, refreshing: true);
+  Future<void> refresh() async {
+    final query = state.query.normalized;
+    if (query.hasActiveConstraints && state.visitor != null) {
+      await _runServerQuery(query);
+      return;
+    }
+    return _load(reset: true, refreshing: true);
+  }
 
   Future<void> loadMore() async {
     if (!state.hasMoreOthers ||
@@ -156,16 +163,16 @@ class DiscoverController extends Notifier<DiscoverState> {
       return;
     }
 
-    if (_activeSearch != null) {
+    if (_activeServerQuery != null) {
       if (!_searchHasMore) return;
       final visitor = state.visitor;
       if (visitor == null) return;
-      final search = _activeSearch!;
+      final query = _activeServerQuery!;
       state = state.copyWith(isLoadingMore: true);
       final result = await ref
           .read(getDiscoverPageProvider)
-          .more(visitor: visitor, offset: _searchOffset, search: search);
-      if (!ref.mounted || _activeSearch != search) return;
+          .more(visitor: visitor, offset: _searchOffset, query: query);
+      if (!ref.mounted || _activeServerQuery != query) return;
       switch (result) {
         case Ok<DiscoverMorePage>(:final value):
           _searchResults = [..._searchResults, ...value.others];
@@ -214,7 +221,7 @@ class DiscoverController extends Notifier<DiscoverState> {
 
   Future<void> _load({required bool reset, required bool refreshing}) async {
     if (reset) {
-      _activeSearch = null;
+      _activeServerQuery = null;
       _searchResults = const [];
       _searchOffset = 0;
       _searchHasMore = false;
@@ -268,7 +275,7 @@ class DiscoverController extends Notifier<DiscoverState> {
   }
 
   void _emitVisible() {
-    if (_activeSearch != null) {
+    if (_activeServerQuery != null) {
       state = state.copyWith(
         recommended: const [],
         others: _filter(_searchResults),

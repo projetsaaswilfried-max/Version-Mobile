@@ -55,6 +55,7 @@ void _goToPhotoStep(ProviderContainer container) {
   );
   expect(controller.next(), isTrue);
   expect(controller.next(), isTrue);
+  expect(controller.next(), isTrue);
 }
 
 void _goToRecapStep(ProviderContainer container) {

@@ -9,6 +9,7 @@ export 'app_select_field.dart';
 export 'app_empty_state.dart';
 export 'app_option_item.dart';
 export 'app_option_chips.dart';
+export 'app_filter_chips.dart';
 export 'app_option_rows.dart';
 export 'app_gender_cards.dart';
 export 'app_birth_date_field.dart';

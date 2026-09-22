@@ -12,10 +12,24 @@ abstract class MessagesRepository {
     required String conversationId,
     required String text,
   });
+  Future<Result<Message>> sendImage({
+    required String conversationId,
+    required String localPath,
+  });
+  Future<Result<Message>> sendVoice({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  });
+  Future<Result<void>> deleteMessage(String messageId);
+  Future<Result<void>> markConversationRead(String conversationId);
   Future<Result<void>> acceptInvitation(String conversationId);
   Future<Result<void>> declineInvitation(String conversationId);
   Future<Result<ConversationMatch>> fetchMatch(String conversationId);
-  Future<Result<ConversationMatch>> proposeMatch(String conversationId);
+  Future<Result<ConversationMatch>> proposeMatch(
+    String conversationId, {
+    required String recipientId,
+  });
   Future<Result<ConversationMatch>> acceptMatch(String conversationId);
   Future<Result<ConversationMatch>> declineMatch(String conversationId);
   Future<Result<ConversationMatch>> cancelMatch(String conversationId);

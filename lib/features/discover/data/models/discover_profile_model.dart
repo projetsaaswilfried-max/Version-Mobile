@@ -32,6 +32,7 @@ class DiscoverProfileModel {
       displayName: _displayName(json),
       age: age,
       city: json.stringOrNull('city'),
+      profession: json.stringOrNull('profession'),
       photoUrl: photoUrl,
       isVerified: _isVerified(json),
       gender: json.stringOrNull('gender'),

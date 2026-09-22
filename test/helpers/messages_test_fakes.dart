@@ -68,6 +68,58 @@ class FakeMessagesRepository implements MessagesRepository {
   }
 
   @override
+  Future<Result<Message>> sendImage({
+    required String conversationId,
+    required String localPath,
+  }) async {
+    return Ok(
+      Message(
+        id: 'fake-image-sent',
+        conversationId: conversationId,
+        type: MessageType.image,
+        createdAt: DateTime.now(),
+        mediaUrl: 'https://picsum.photos/seed/fake/800/1200',
+        senderIsMe: true,
+      ),
+    );
+  }
+
+  String? lastSendVoicePath;
+  int? lastSendVoiceDuration;
+  var sendVoiceCalls = 0;
+
+  @override
+  Future<Result<Message>> sendVoice({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  }) async {
+    sendVoiceCalls++;
+    lastSendVoicePath = localPath;
+    lastSendVoiceDuration = durationSeconds;
+    return Ok(
+      Message(
+        id: 'fake-voice-sent',
+        conversationId: conversationId,
+        type: MessageType.voice,
+        createdAt: DateTime.now(),
+        durationSeconds: durationSeconds,
+        senderIsMe: true,
+      ),
+    );
+  }
+
+  var deleteMessageCalls = 0;
+  String? lastDeletedMessageId;
+
+  @override
+  Future<Result<void>> deleteMessage(String messageId) async {
+    deleteMessageCalls++;
+    lastDeletedMessageId = messageId;
+    return const Ok(null);
+  }
+
+  @override
   Future<Result<void>> acceptInvitation(String conversationId) async =>
       const Ok(null);
 
@@ -81,8 +133,9 @@ class FakeMessagesRepository implements MessagesRepository {
 
   @override
   Future<Result<ConversationMatch>> proposeMatch(
-    String conversationId,
-  ) async {
+    String conversationId, {
+    required String recipientId,
+  }) async {
     match = const ConversationMatch(status: ConversationMatchStatus.pending);
     return Ok(match);
   }
@@ -94,9 +147,7 @@ class FakeMessagesRepository implements MessagesRepository {
   }
 
   @override
-  Future<Result<ConversationMatch>> declineMatch(
-    String conversationId,
-  ) async {
+  Future<Result<ConversationMatch>> declineMatch(String conversationId) async {
     match = ConversationMatch.none;
     return const Ok(ConversationMatch.none);
   }
@@ -110,4 +161,12 @@ class FakeMessagesRepository implements MessagesRepository {
   @override
   Future<Result<void>> hideConversation(String conversationId) async =>
       const Ok(null);
+
+  var markReadCalls = 0;
+
+  @override
+  Future<Result<void>> markConversationRead(String conversationId) async {
+    markReadCalls++;
+    return const Ok(null);
+  }
 }

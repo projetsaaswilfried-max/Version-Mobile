@@ -7,10 +7,12 @@ import 'package:agapeo/features/messages/di/messages_providers.dart';
 import 'package:agapeo/features/messages/domain/entities/conversation_summary.dart';
 import 'package:agapeo/features/messages/presentation/messages_body.dart';
 import 'package:agapeo/features/messages/presentation/widgets/messages_conversation_tile.dart';
+import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/auth_test_fakes.dart';
 import '../../../helpers/messages_test_fakes.dart';
 
 void main() {
@@ -21,7 +23,12 @@ void main() {
   }) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [messagesRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          messagesRepositoryProvider.overrideWithValue(repo),
+          profileGateRepositoryProvider.overrideWithValue(
+            FakeProfileGateRepository(),
+          ),
+        ],
         child: MaterialApp(theme: AppTheme.light, home: home),
       ),
     );
@@ -70,6 +77,28 @@ void main() {
     expect(find.text('Invitation'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
     expect(find.text('Paul'), findsOneWidget);
+  });
+
+  testWidgets('incoming invite shows web copy when preview is empty', (
+    tester,
+  ) async {
+    await pumpMessages(
+      tester,
+      repo: FakeMessagesRepository(
+        conversations: Ok([
+          const ConversationSummary(
+            id: 'c-invite',
+            peerName: 'Sarah Cet-line',
+            status: 'PENDING',
+            isIncomingInvite: true,
+          ),
+        ]),
+      ),
+    );
+
+    expect(find.text('Sarah Cet-line'), findsOneWidget);
+    expect(find.text('Souhaite discuter avec toi'), findsOneWidget);
+    expect(find.text('Invitation'), findsOneWidget);
   });
 
   testWidgets('filters the list on search', (tester) async {
@@ -135,7 +164,12 @@ void main() {
     final repo = SeededMessagesRepository();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [messagesRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          messagesRepositoryProvider.overrideWithValue(repo),
+          profileGateRepositoryProvider.overrideWithValue(
+            FakeProfileGateRepository(),
+          ),
+        ],
         child: MaterialApp(
           theme: AppTheme.light,
           home: const Scaffold(body: MessagesBody()),

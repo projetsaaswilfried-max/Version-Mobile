@@ -3,7 +3,9 @@ import '../../../../core/error/map_data_exception.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/discover_candidates_page.dart';
 import '../../domain/entities/discover_profile_detail.dart';
+import '../../domain/entities/discover_query.dart';
 import '../../domain/entities/visitor_context.dart';
+import '../../domain/filtering/discover_age_bounds.dart';
 import '../../domain/repositories/discover_repository.dart';
 import '../../domain/scoring/compatibility_traits.dart';
 import '../datasources/discover_remote_datasource.dart';
@@ -38,13 +40,22 @@ class DiscoverRepositoryImpl implements DiscoverRepository {
   Future<Result<DiscoverCandidatesPage>> fetchCandidates({
     required int offset,
     required int limit,
-    String? search,
+    DiscoverQuery query = const DiscoverQuery(),
   }) async {
     try {
+      final now = (clock ?? DateTime.now)();
+      final normalized = query.normalized;
       final rows = await _remote.fetchCandidateRows(
         offset: offset,
         limit: limit,
-        search: search,
+        search: normalized.search,
+        country: normalized.country,
+        city: normalized.city,
+        profession: normalized.profession,
+        denominations: normalized.denominations,
+        maritalStatuses: normalized.maritalStatuses,
+        bornOnOrAfter: DiscoverAgeBounds.isoBornOnOrAfter(normalized, now),
+        bornOnOrBefore: DiscoverAgeBounds.isoBornOnOrBefore(normalized, now),
       );
       final profiles = [
         for (final row in rows)
@@ -162,15 +173,6 @@ class DiscoverRepositoryImpl implements DiscoverRepository {
     try {
       await _remote.unfavoriteProfile(profileId);
       return const Ok(null);
-    } catch (error) {
-      return Err(mapDataException(error));
-    }
-  }
-
-  @override
-  Future<Result<int>> countMonthlyInvitations() async {
-    try {
-      return Ok(await _remote.countMonthlyInvitations());
     } catch (error) {
       return Err(mapDataException(error));
     }

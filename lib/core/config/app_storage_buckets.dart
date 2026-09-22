@@ -10,4 +10,5 @@ class AppStorageBuckets {
 
   static const avatars = 'avatars';
   static const postMedia = 'post-media';
+  static const messageAttachments = 'message-attachments';
 }

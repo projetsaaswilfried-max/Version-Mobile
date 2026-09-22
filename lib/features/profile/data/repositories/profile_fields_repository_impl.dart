@@ -18,6 +18,7 @@ class ProfileFieldsRepositoryImpl implements ProfileFieldsRepository {
       final country = raw.country?.trim();
       final denomination = raw.denomination?.trim();
       final why = raw.whyMarriage?.trim();
+      final maritalStatus = raw.maritalStatus?.trim();
       return Ok(
         ProfileFieldsSnapshot(
           hasGender: gender != null && gender.isNotEmpty,
@@ -26,6 +27,8 @@ class ProfileFieldsRepositoryImpl implements ProfileFieldsRepository {
           hasPrimaryPhoto: raw.hasPrimaryPhoto,
           hasFaithConfession: denomination != null && denomination.isNotEmpty,
           hasWhyMarriage: why != null && why.isNotEmpty,
+          hasMaritalStatus: maritalStatus != null && maritalStatus.isNotEmpty,
+          hasHobbies: raw.hobbies.isNotEmpty,
           genderDb: gender,
           birthDate: birth == null ? null : DateTime.tryParse(birth),
           country: country,

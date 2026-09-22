@@ -11,14 +11,16 @@ class DiscoverToolbar extends StatelessWidget {
   const DiscoverToolbar({
     super.key,
     required this.unlocked,
-    required this.onLockedTap,
+    required this.onSearchLocked,
+    required this.onFiltersLocked,
     required this.onSearchTap,
     required this.onFiltersTap,
     this.filtersActive = false,
   });
 
   final bool unlocked;
-  final VoidCallback onLockedTap;
+  final VoidCallback onSearchLocked;
+  final VoidCallback onFiltersLocked;
   final VoidCallback onSearchTap;
   final VoidCallback onFiltersTap;
   final bool filtersActive;
@@ -33,14 +35,14 @@ class DiscoverToolbar extends StatelessWidget {
           _ToolbarIcon(
             icon: Icons.search,
             tooltip: unlocked ? 'Rechercher' : 'Passe Premium pour rechercher',
-            onTap: unlocked ? onSearchTap : onLockedTap,
+            onTap: unlocked ? onSearchTap : onSearchLocked,
           ),
           _ToolbarIcon(
             icon: Icons.tune,
             tooltip: unlocked
                 ? (filtersActive ? 'Filtres actifs' : 'Filtres')
                 : 'Passe Premium pour filtrer',
-            onTap: unlocked ? onFiltersTap : onLockedTap,
+            onTap: unlocked ? onFiltersTap : onFiltersLocked,
             showBadge: unlocked && filtersActive,
           ),
         ],

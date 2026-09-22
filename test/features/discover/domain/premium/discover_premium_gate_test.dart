@@ -84,45 +84,17 @@ void main() {
     );
   });
 
-  test('canSendFreeInvitation staff and ACTIVE are unlimited', () {
+  test('isPremiumActive is true for ACTIVE or staff', () {
+    expect(isPremiumActive(subscriptionStatus: 'ACTIVE'), isTrue);
     expect(
-      canSendFreeInvitation(
-        subscriptionStatus: 'FREE',
-        monthlyCount: 99,
-        isStaff: true,
-      ),
-      isTrue,
-    );
-    expect(
-      canSendFreeInvitation(
-        subscriptionStatus: 'ACTIVE',
-        monthlyCount: 99,
-      ),
+      isPremiumActive(subscriptionStatus: 'FREE', isStaff: true),
       isTrue,
     );
   });
 
-  test('canSendFreeInvitation FREE and CANCELED allow under 3 per month', () {
-    for (final status in ['FREE', 'CANCELED']) {
-      expect(
-        canSendFreeInvitation(subscriptionStatus: status, monthlyCount: 0),
-        isTrue,
-      );
-      expect(
-        canSendFreeInvitation(subscriptionStatus: status, monthlyCount: 2),
-        isTrue,
-      );
-      expect(
-        canSendFreeInvitation(subscriptionStatus: status, monthlyCount: 3),
-        isFalse,
-      );
+  test('isPremiumActive is false without any free tolerance (D29)', () {
+    for (final status in ['FREE', 'CANCELED', 'EXPIRED']) {
+      expect(isPremiumActive(subscriptionStatus: status), isFalse);
     }
-  });
-
-  test('canSendFreeInvitation EXPIRED denies send', () {
-    expect(
-      canSendFreeInvitation(subscriptionStatus: 'EXPIRED', monthlyCount: 0),
-      isFalse,
-    );
   });
 }

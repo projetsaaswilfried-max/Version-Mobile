@@ -12,19 +12,27 @@ class AppCountryPicker extends StatelessWidget {
     required this.onChanged,
     this.value,
     this.label = 'Pays',
+    this.hint = 'Choisir',
     this.errorText,
+    this.filled = false,
+    this.onCleared,
   });
 
   final List<String> countries;
   final String? value;
   final ValueChanged<String> onChanged;
   final String label;
+  final String hint;
   final String? errorText;
+  final bool filled;
+  final VoidCallback? onCleared;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final typography = context.typography;
+    final hasValue = value != null && value!.trim().isNotEmpty;
+    final radius = filled ? AppRadius.lgRadius : AppRadius.mdRadius;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,35 +40,59 @@ class AppCountryPicker extends StatelessWidget {
         Text(label, style: typography.label),
         const SizedBox(height: AppSpacing.xs),
         Material(
-          color: colors.surface,
+          color: filled ? colors.chipBackground : colors.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.mdRadius,
-            side: BorderSide(
-              color: errorText != null ? colors.error : colors.border,
-            ),
+            borderRadius: radius,
+            side: filled
+                ? BorderSide.none
+                : BorderSide(
+                    color: errorText != null ? colors.error : colors.border,
+                  ),
           ),
           child: InkWell(
-            borderRadius: AppRadius.mdRadius,
+            borderRadius: radius,
             onTap: () => _openSheet(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.md,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: AppSpacing.inputHeight,
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      value ?? 'Choisir',
-                      style: typography.bodyLarge.copyWith(
-                        color: value == null
-                            ? colors.textSecondary
-                            : colors.textPrimary,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        hasValue ? value! : hint,
+                        style: typography.bodyLarge.copyWith(
+                          color: hasValue
+                              ? colors.textPrimary
+                              : colors.textSecondary,
+                        ),
                       ),
                     ),
-                  ),
-                  Icon(Icons.expand_more, color: colors.textSecondary),
-                ],
+                    if (hasValue && onCleared != null)
+                      IconButton(
+                        tooltip: 'Effacer',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: AppSpacing.xxl,
+                          minHeight: AppSpacing.xxl,
+                        ),
+                        onPressed: onCleared,
+                        icon: Icon(
+                          Icons.close,
+                          size: AppSpacing.lg,
+                          color: colors.textSecondary,
+                        ),
+                      )
+                    else
+                      Icon(Icons.expand_more, color: colors.textSecondary),
+                  ],
+                ),
               ),
             ),
           ),

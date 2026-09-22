@@ -5,7 +5,9 @@ import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_candidates_page.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_profile.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_profile_detail.dart';
+import 'package:agapeo/features/discover/domain/entities/discover_query.dart';
 import 'package:agapeo/features/discover/domain/entities/visitor_context.dart';
+import 'package:agapeo/features/discover/domain/filtering/filter_discover_profiles.dart';
 import 'package:agapeo/features/discover/domain/repositories/discover_repository.dart';
 import 'package:agapeo/features/discover/domain/scoring/compatibility_traits.dart';
 
@@ -36,6 +38,7 @@ class FakeDiscoverRepository implements DiscoverRepository {
   var fetchCandidatesCalls = 0;
   final fetchCandidatesOffsets = <int>[];
   final fetchCandidatesSearches = <String?>[];
+  final fetchCandidatesQueries = <DiscoverQuery>[];
   /// Par défaut, une seule page — `hasMore: false`. Les tests de pagination
   /// peuvent le surcharger pour simuler un pool serveur plus grand.
   bool candidatesHasMore = false;
@@ -58,7 +61,6 @@ class FakeDiscoverRepository implements DiscoverRepository {
   Result<bool> isFavorited = const Ok(false);
   Result<void> favorite = const Ok(null);
   Result<void> unfavorite = const Ok(null);
-  Result<int> monthlyInvitationCount = const Ok(0);
   Result<void> sendInvitationResult = const Ok(null);
   final sendInvitationCalls = <({String profileId, String? message})>[];
 
@@ -69,37 +71,21 @@ class FakeDiscoverRepository implements DiscoverRepository {
   Future<Result<DiscoverCandidatesPage>> fetchCandidates({
     required int offset,
     required int limit,
-    String? search,
+    DiscoverQuery query = const DiscoverQuery(),
   }) async {
     fetchCandidatesCalls++;
     fetchCandidatesOffsets.add(offset);
-    fetchCandidatesSearches.add(search);
+    fetchCandidatesSearches.add(query.search);
+    fetchCandidatesQueries.add(query);
     return switch (candidates) {
       Ok(:final value) => Ok(
         DiscoverCandidatesPage(
-          profiles: search == null ? value : _matchingSearch(value, search),
+          profiles: filterDiscoverProfiles(value, query),
           hasMore: candidatesHasMore,
         ),
       ),
       Err(:final failure) => Err(failure),
     };
-  }
-
-  /// Simule une recherche serveur nom/ville sur tout le vivier `candidates`
-  /// (pas seulement une page déjà chargée) — reproduit le comportement
-  /// attendu de la vraie requête Supabase `.ilike`.
-  List<DiscoverProfile> _matchingSearch(
-    List<DiscoverProfile> pool,
-    String search,
-  ) {
-    final needle = search.toLowerCase();
-    return pool
-        .where(
-          (p) =>
-              p.displayName.toLowerCase().contains(needle) ||
-              (p.city ?? '').toLowerCase().contains(needle),
-        )
-        .toList();
   }
 
   @override
@@ -163,9 +149,6 @@ class FakeDiscoverRepository implements DiscoverRepository {
     unfavoriteIds.add(profileId);
     return unfavorite;
   }
-
-  @override
-  Future<Result<int>> countMonthlyInvitations() async => monthlyInvitationCount;
 
   @override
   Future<Result<void>> sendInvitation({

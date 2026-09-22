@@ -54,5 +54,7 @@
 	<string>Agapeo utilise la caméra pour ta photo de profil et le selfie de vérification.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Agapeo utilise ta photothèque pour les photos de profil.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Agapeo utilise le micro pour enregistrer tes notes vocales.</string>
 </dict>
 </plist>

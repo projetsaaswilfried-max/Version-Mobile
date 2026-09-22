@@ -31,6 +31,8 @@ ProfileFieldsSnapshot fakeProfileFieldsSnapshot({
   bool? hasPrimaryPhoto,
   bool hasFaithConfession = true,
   bool hasWhyMarriage = true,
+  bool hasMaritalStatus = true,
+  bool hasHobbies = true,
 }) {
   return ProfileFieldsSnapshot(
     hasGender: hasGender,
@@ -39,6 +41,8 @@ ProfileFieldsSnapshot fakeProfileFieldsSnapshot({
     hasPrimaryPhoto: hasPrimaryPhoto ?? primaryPhotoUrl != null,
     hasFaithConfession: hasFaithConfession,
     hasWhyMarriage: hasWhyMarriage,
+    hasMaritalStatus: hasMaritalStatus,
+    hasHobbies: hasHobbies,
     firstName: firstName,
     lastName: lastName,
     photoVerificationStatus: photoVerificationStatus,

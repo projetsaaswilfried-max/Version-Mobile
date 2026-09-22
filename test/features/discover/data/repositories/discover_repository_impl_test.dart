@@ -6,6 +6,7 @@ import 'package:agapeo/features/discover/data/repositories/discover_repository_i
 import 'package:agapeo/features/discover/di/discover_providers.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_candidates_page.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_profile_detail.dart';
+import 'package:agapeo/features/discover/domain/entities/discover_query.dart';
 import 'package:agapeo/features/discover/domain/entities/visitor_context.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,6 +31,14 @@ class _FakeRemote implements DiscoverRemoteDataSource {
   List<Map<String, dynamic>> candidates = const [];
   int? lastCandidatesOffset;
   int? lastCandidatesLimit;
+  String? lastSearch;
+  String? lastCountry;
+  String? lastCity;
+  String? lastProfession;
+  List<String> lastDenominations = const [];
+  List<String> lastMaritalStatuses = const [];
+  String? lastBornOnOrAfter;
+  String? lastBornOnOrBefore;
   Set<String> likedProfileIds = const {};
   Object? likedProfileIdsError;
   Set<String> favoritedProfileIds = const {};
@@ -52,8 +61,6 @@ class _FakeRemote implements DiscoverRemoteDataSource {
   String? isFavoritedProfileId;
   String? favoritedProfileId;
   String? unfavoritedProfileId;
-  int monthlyInvitationCount = 0;
-  Object? countError;
   Object? sendError;
   String? sentProfileId;
   String? sentMessage;
@@ -69,9 +76,24 @@ class _FakeRemote implements DiscoverRemoteDataSource {
     required int offset,
     required int limit,
     String? search,
+    String? country,
+    String? city,
+    String? profession,
+    List<String> denominations = const [],
+    List<String> maritalStatuses = const [],
+    String? bornOnOrAfter,
+    String? bornOnOrBefore,
   }) async {
     lastCandidatesOffset = offset;
     lastCandidatesLimit = limit;
+    lastSearch = search;
+    lastCountry = country;
+    lastCity = city;
+    lastProfession = profession;
+    lastDenominations = denominations;
+    lastMaritalStatuses = maritalStatuses;
+    lastBornOnOrAfter = bornOnOrAfter;
+    lastBornOnOrBefore = bornOnOrBefore;
     if (candidatesError != null) throw candidatesError!;
     return candidates;
   }
@@ -139,12 +161,6 @@ class _FakeRemote implements DiscoverRemoteDataSource {
   Future<void> unfavoriteProfile(String profileId) async {
     if (unfavoriteError != null) throw unfavoriteError!;
     unfavoritedProfileId = profileId;
-  }
-
-  @override
-  Future<int> countMonthlyInvitations() async {
-    if (countError != null) throw countError!;
-    return monthlyInvitationCount;
   }
 
   @override
@@ -222,6 +238,31 @@ void main() {
     expect(page.hasMore, isFalse);
     expect(remote.lastCandidatesOffset, 0);
     expect(remote.lastCandidatesLimit, 60);
+  });
+
+  test('fetchCandidates forwards sheet filters and age birth-date bounds', () async {
+    final remote = _FakeRemote();
+    final now = DateTime(2026, 9, 22);
+    await DiscoverRepositoryImpl(remote, clock: () => now).fetchCandidates(
+      offset: 0,
+      limit: 60,
+      query: const DiscoverQuery(
+        country: 'Sénégal',
+        city: 'Dakar',
+        profession: 'Ingénieure',
+        denominations: ['Catholique'],
+        maritalStatuses: ['DIVORCED'],
+        ageMin: 28,
+        ageMax: 48,
+      ),
+    );
+    expect(remote.lastCountry, 'Sénégal');
+    expect(remote.lastCity, 'Dakar');
+    expect(remote.lastProfession, 'Ingénieure');
+    expect(remote.lastDenominations, ['Catholique']);
+    expect(remote.lastMaritalStatuses, ['DIVORCED']);
+    expect(remote.lastBornOnOrBefore, '1998-09-22');
+    expect(remote.lastBornOnOrAfter, '1977-09-23');
   });
 
   test('hasMore is true when the raw row count fills the requested page', () async {
@@ -368,31 +409,11 @@ void main() {
     'UnconfiguredDiscoverRepository returns Err for invitation operations',
     () async {
       const repo = UnconfiguredDiscoverRepository();
-      final count = await repo.countMonthlyInvitations();
       final send = await repo.sendInvitation(profileId: 'p1');
-      expect(count, isA<Err<int>>());
       expect(send, isA<Err<void>>());
-      expect((count as Err).failure, UnconfiguredDiscoverRepository.failure);
       expect((send as Err).failure, UnconfiguredDiscoverRepository.failure);
     },
   );
-
-  test('countMonthlyInvitations returns Ok from datasource', () async {
-    final remote = _FakeRemote()..monthlyInvitationCount = 2;
-    final result = await DiscoverRepositoryImpl(
-      remote,
-    ).countMonthlyInvitations();
-    expect(result, isA<Ok<int>>());
-    expect((result as Ok<int>).value, 2);
-  });
-
-  test('maps countMonthlyInvitations errors', () async {
-    final result = await DiscoverRepositoryImpl(
-      _FakeRemote()..countError = const NetworkException('offline'),
-    ).countMonthlyInvitations();
-    expect(result, isA<Err<int>>());
-    expect((result as Err).failure, isA<NetworkFailure>());
-  });
 
   test('sendInvitation delegates profileId and message', () async {
     final remote = _FakeRemote();

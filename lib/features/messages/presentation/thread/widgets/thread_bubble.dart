@@ -32,7 +32,7 @@ class ThreadBubble extends StatelessWidget {
     }
 
     final mine = message.senderIsMe;
-    final fill = mine ? colors.primary : colors.border;
+    final fill = mine ? colors.primary : colors.chipBackground;
     final textColor = message.deleted
         ? (mine ? colors.onScrim.withValues(alpha: 0.8) : colors.textSecondary)
         : (mine ? colors.onScrim : colors.textPrimary);

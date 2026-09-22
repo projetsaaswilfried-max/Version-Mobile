@@ -42,7 +42,9 @@ class MessageModel {
       fileName: json.stringOrNull('file_name') ?? json.stringOrNull('filename'),
       durationSeconds: json.intOrNull('duration_seconds') ??
           json.intOrNull('duration'),
-      mediaUrl: json.stringOrNull('media_url') ?? json.stringOrNull('url'),
+      mediaUrl: json.stringOrNull('media_url') ??
+          json.stringOrNull('url') ??
+          _httpContentIfMedia(typeRaw, content),
     );
   }
 
@@ -55,6 +57,19 @@ class MessageModel {
       'SYSTEM' => MessageType.system,
       _ => MessageType.text,
     };
+  }
+
+  static String? _httpContentIfMedia(String typeRaw, String? content) {
+    if (content == null || content.isEmpty) return null;
+    final isMedia = switch (typeRaw) {
+      'IMAGE' || 'VOICE' || 'AUDIO' || 'VIDEO' || 'DOCUMENT' => true,
+      _ => false,
+    };
+    if (!isMedia) return null;
+    if (content.startsWith('http://') || content.startsWith('https://')) {
+      return content;
+    }
+    return null;
   }
 
   static String? _firstString(Json json, List<String> keys) {

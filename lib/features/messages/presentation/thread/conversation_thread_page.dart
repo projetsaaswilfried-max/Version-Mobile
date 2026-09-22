@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/media/crop_profile_image.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -13,6 +15,7 @@ import 'message_image_viewer_page.dart';
 import 'widgets/thread_match_banner.dart';
 import 'widgets/thread_message_list.dart';
 import 'widgets/thread_attach_sheet.dart';
+import 'widgets/thread_options_sheet.dart';
 
 class ConversationThreadPage extends ConsumerWidget {
   const ConversationThreadPage({super.key, required this.conversationId});
@@ -69,57 +72,39 @@ class ConversationThreadPage extends ConsumerWidget {
           ],
         ),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              final peerId = state.conversation?.peerId;
-              if (value == 'report' && peerId != null) {
-                final sent = await ReportSheet.show(
-                  context,
-                  targetType: ReportTargetType.profile,
-                  targetId: peerId,
-                );
-                if (sent && context.mounted) {
-                  AppToast.show(
-                    context,
-                    'Signalement envoyé.',
-                    isError: false,
-                  );
+          if (state.conversation?.peerId != null)
+            IconButton(
+              tooltip: 'Options',
+              icon: const Icon(Icons.more_horiz),
+              onPressed: () async {
+                final peerId = state.conversation!.peerId!;
+                final action = await ThreadOptionsSheet.show(context);
+                if (!context.mounted || action == null) return;
+
+                switch (action) {
+                  case ThreadOptionsAction.report:
+                    final sent = await ReportSheet.show(
+                      context,
+                      targetType: ReportTargetType.profile,
+                      targetId: peerId,
+                    );
+                    if (sent && context.mounted) {
+                      AppToast.show(
+                        context,
+                        'Signalement envoyé.',
+                        isError: false,
+                      );
+                    }
+                  case ThreadOptionsAction.block:
+                    final blocked = await confirmAndBlock(
+                      context: context,
+                      ref: ref,
+                      profileId: peerId,
+                    );
+                    if (blocked) await notifier.hide();
                 }
-                return;
-              }
-              if (value == 'block' && peerId != null) {
-                final blocked = await confirmAndBlock(
-                  context: context,
-                  ref: ref,
-                  profileId: peerId,
-                );
-                if (blocked) await notifier.hide();
-                return;
-              }
-              if (value != 'hide') return;
-              final confirmed = await AppConfirmDialog.show(
-                context,
-                title: 'Masquer la discussion ?',
-                message:
-                    'Elle disparaîtra de ta liste. Ce n\'est pas une '
-                    'suppression : elle pourra réapparaître plus tard.',
-                confirmLabel: 'Masquer',
-              );
-              if (confirmed == true) {
-                await notifier.hide();
-              }
-            },
-            itemBuilder: (context) => [
-              if (state.conversation?.peerId != null) ...[
-                const PopupMenuItem(value: 'report', child: Text('Signaler')),
-                const PopupMenuItem(value: 'block', child: Text('Bloquer')),
-              ],
-              const PopupMenuItem(
-                value: 'hide',
-                child: Text('Masquer la discussion'),
-              ),
-            ],
-          ),
+              },
+            ),
         ],
       ),
       body: state.isLoading
@@ -128,8 +113,37 @@ class ConversationThreadPage extends ConsumerWidget {
               children: [
                 ThreadMatchBanner(
                   mode: state.matchBannerModeValue,
-                  onPropose: notifier.proposeMatch,
-                  onAccept: notifier.acceptMatch,
+                  onPropose: () async {
+                    final peerName =
+                        state.conversation?.peerName ?? 'cette personne';
+                    final confirmed = await AppConfirmDialog.show(
+                      context,
+                      title: 'Proposer un match à $peerName ?',
+                      message:
+                          'Si $peerName accepte, vous serez officiellement '
+                          'en couple : vos deux profils disparaîtront de '
+                          'Découvrir pour tout le monde. Un seul match '
+                          'actif à la fois est possible.',
+                      confirmLabel: 'Proposer',
+                    );
+                    if (confirmed != true || !context.mounted) return;
+                    await notifier.proposeMatch();
+                  },
+                  onAccept: () async {
+                    final peerName =
+                        state.conversation?.peerName ?? 'cette personne';
+                    final confirmed = await AppConfirmDialog.show(
+                      context,
+                      title: 'Accepter le match avec $peerName ?',
+                      message:
+                          'Vous serez officiellement en couple : vos deux '
+                          'profils disparaîtront de Découvrir pour tout le '
+                          'monde.',
+                      confirmLabel: 'Confirmer le match',
+                    );
+                    if (confirmed != true || !context.mounted) return;
+                    await notifier.acceptMatch();
+                  },
                   onDecline: notifier.declineMatch,
                   onCancel: notifier.cancelMatch,
                 ),
@@ -142,7 +156,42 @@ class ConversationThreadPage extends ConsumerWidget {
                     onAttach: () async {
                       final type = await ThreadAttachSheet.show(context);
                       if (!context.mounted || type == null) return;
-                      AppToast.show(context, 'Média : bientôt', isError: false);
+                      final picked = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 85,
+                      );
+                      if (picked == null || !context.mounted) return;
+                      final croppedPath = await cropProfileImage(picked.path);
+                      if (croppedPath == null || !context.mounted) return;
+                      await notifier.sendImage(croppedPath);
+                      if (!context.mounted) return;
+                      final error = ref
+                          .read(
+                            conversationThreadControllerProvider(
+                              conversationId,
+                            ),
+                          )
+                          .errorMessage;
+                      if (error != null) {
+                        AppToast.show(context, error);
+                      }
+                    },
+                    onSendVoice: (path, durationSeconds) async {
+                      await notifier.sendVoice(
+                        path,
+                        durationSeconds: durationSeconds,
+                      );
+                      if (!context.mounted) return;
+                      final error = ref
+                          .read(
+                            conversationThreadControllerProvider(
+                              conversationId,
+                            ),
+                          )
+                          .errorMessage;
+                      if (error != null) {
+                        AppToast.show(context, error);
+                      }
                     },
                     onMediaTap: (message) {
                       final url = message.mediaUrl;
@@ -157,9 +206,19 @@ class ConversationThreadPage extends ConsumerWidget {
                             ),
                           ),
                         );
-                        return;
                       }
-                      AppToast.show(context, 'Média : bientôt', isError: false);
+                    },
+                    onDeleteMessage: (message) async {
+                      final confirmed = await AppConfirmDialog.show(
+                        context,
+                        title: 'Supprimer ce message ?',
+                        message:
+                            'Il sera remplacé par "Message supprimé" pour '
+                            'tout le monde. Action irréversible.',
+                        confirmLabel: 'Supprimer',
+                      );
+                      if (confirmed != true || !context.mounted) return;
+                      await notifier.deleteMessage(message.id);
                     },
                   ),
                 ),

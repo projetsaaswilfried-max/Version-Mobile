@@ -8,13 +8,27 @@ abstract class MessagesRemoteDataSource {
     required String conversationId,
     required String text,
   });
+  Future<Map<String, dynamic>> insertImageMessage({
+    required String conversationId,
+    required String localPath,
+  });
+  Future<Map<String, dynamic>> insertVoiceMessage({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  });
+  Future<void> softDeleteMessage(String messageId);
   Future<void> updateConversationStatus({
     required String conversationId,
     required String status,
   });
   Future<void> hideParticipation(String conversationId);
+  Future<void> markConversationRead(String conversationId);
   Future<Map<String, dynamic>?> fetchActiveMatchRow(String conversationId);
-  Future<Map<String, dynamic>> insertMatchProposal(String conversationId);
+  Future<Map<String, dynamic>> insertMatchProposal(
+    String conversationId, {
+    required String recipientId,
+  });
   Future<Map<String, dynamic>> updateMatchStatus({
     required String matchId,
     required String status,

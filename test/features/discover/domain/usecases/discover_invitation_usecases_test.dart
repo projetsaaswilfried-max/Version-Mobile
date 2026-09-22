@@ -2,21 +2,16 @@ import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_candidates_page.dart';
 import 'package:agapeo/features/discover/domain/entities/discover_profile_detail.dart';
+import 'package:agapeo/features/discover/domain/entities/discover_query.dart';
 import 'package:agapeo/features/discover/domain/entities/visitor_context.dart';
 import 'package:agapeo/features/discover/domain/repositories/discover_repository.dart';
-import 'package:agapeo/features/discover/domain/usecases/count_monthly_discover_invitations.dart';
 import 'package:agapeo/features/discover/domain/usecases/send_discover_invitation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeRepo implements DiscoverRepository {
-  int monthlyCountResult = 0;
-  Result<int> countResult = const Ok(0);
   Result<void> sendResult = const Ok(null);
   String? lastSendProfileId;
   String? lastSendMessage;
-
-  @override
-  Future<Result<int>> countMonthlyInvitations() async => countResult;
 
   @override
   Future<Result<void>> sendInvitation({
@@ -36,7 +31,7 @@ class _FakeRepo implements DiscoverRepository {
   Future<Result<DiscoverCandidatesPage>> fetchCandidates({
     required int offset,
     required int limit,
-    String? search,
+    DiscoverQuery query = const DiscoverQuery(),
   }) async => const Ok(DiscoverCandidatesPage(profiles: [], hasMore: false));
 
   @override
@@ -81,25 +76,6 @@ class _FakeRepo implements DiscoverRepository {
 }
 
 void main() {
-  test('CountMonthlyDiscoverInvitations forwards to repository', () async {
-    final repo = _FakeRepo()..countResult = const Ok(2);
-
-    final result = await CountMonthlyDiscoverInvitations(repo)();
-
-    expect(result, isA<Ok<int>>());
-    expect((result as Ok<int>).value, 2);
-  });
-
-  test('CountMonthlyDiscoverInvitations forwards repository Err', () async {
-    final repo = _FakeRepo()
-      ..countResult = const Err(NetworkFailure());
-
-    final result = await CountMonthlyDiscoverInvitations(repo)();
-
-    expect(result, isA<Err<int>>());
-    expect((result as Err).failure, isA<NetworkFailure>());
-  });
-
   test('SendDiscoverInvitation forwards profileId and message', () async {
     final repo = _FakeRepo();
 

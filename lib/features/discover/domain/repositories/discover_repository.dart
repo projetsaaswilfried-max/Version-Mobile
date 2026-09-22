@@ -1,6 +1,7 @@
 import '../../../../core/error/result.dart';
 import '../entities/discover_candidates_page.dart';
 import '../entities/discover_profile_detail.dart';
+import '../entities/discover_query.dart';
 import '../entities/visitor_context.dart';
 
 abstract class DiscoverRepository {
@@ -8,7 +9,7 @@ abstract class DiscoverRepository {
   Future<Result<DiscoverCandidatesPage>> fetchCandidates({
     required int offset,
     required int limit,
-    String? search,
+    DiscoverQuery query = const DiscoverQuery(),
   });
   Future<Result<Set<String>>> fetchLikedProfileIds();
   Future<Result<Set<String>>> fetchFavoritedProfileIds();
@@ -20,7 +21,6 @@ abstract class DiscoverRepository {
   Future<Result<bool>> isProfileFavorited(String profileId);
   Future<Result<void>> favoriteProfile(String profileId);
   Future<Result<void>> unfavoriteProfile(String profileId);
-  Future<Result<int>> countMonthlyInvitations();
   Future<Result<void>> sendInvitation({
     required String profileId,
     String? message,

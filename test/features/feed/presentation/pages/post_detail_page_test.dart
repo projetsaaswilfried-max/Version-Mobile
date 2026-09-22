@@ -117,9 +117,7 @@ void main() {
     expect(find.text('Amen'), findsOneWidget);
   });
 
-  testWidgets('collapses extra replies behind Voir les réponses', (
-    tester,
-  ) async {
+  testWidgets('replie les réponses derrière Voir N réponses', (tester) async {
     final repo = FakeFeedRepository()
       ..commentsByPost['1'] = const [
         PostComment(id: 'c1', body: 'Amen', authorName: 'Léa'),
@@ -140,16 +138,26 @@ void main() {
     await tester.pumpWidget(_detail(fakePost(id: '1'), repo: repo));
     await tester.pumpAndSettle();
 
-    expect(find.text('Oui'), findsOneWidget);
-    expect(find.text('Amen aussi'), findsOneWidget);
+    expect(find.text('Amen'), findsOneWidget);
+    expect(find.text('Oui'), findsNothing);
+    expect(find.text('Amen aussi'), findsNothing);
     expect(find.text('Merci'), findsNothing);
-    expect(find.text('Voir 1 réponse'), findsOneWidget);
+    expect(find.text('Voir les 3 réponses'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Voir 1 réponse'));
+    await tester.ensureVisible(find.text('Voir les 3 réponses'));
     await tester.pump();
-    await tester.tap(find.text('Voir 1 réponse'));
+    await tester.tap(find.text('Voir les 3 réponses'));
     await tester.pump();
+    expect(find.text('Oui'), findsOneWidget);
     expect(find.text('Merci'), findsOneWidget);
+    expect(find.text('Masquer les réponses'), findsWidgets);
+
+    await tester.ensureVisible(find.text('Masquer les réponses'));
+    await tester.pump();
+    await tester.tap(find.text('Masquer les réponses'));
+    await tester.pump();
+    expect(find.text('Oui'), findsNothing);
+    expect(find.text('Voir les 3 réponses'), findsOneWidget);
   });
 
   testWidgets('replying to a comment threads under the parent', (tester) async {

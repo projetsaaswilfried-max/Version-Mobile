@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/config/church_denominations.dart';
+import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/media/crop_profile_image.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -203,6 +204,11 @@ class _MyProfileFormState extends ConsumerState<_MyProfileForm> {
   @override
   Widget build(BuildContext context) {
     _seedIfNeeded();
+    ref.listen(myProfileControllerProvider, (previous, next) {
+      if (next.saveError != null && next.saveError != previous?.saveError) {
+        AppToast.show(context, userFacingMessageFromRaw(next.saveError));
+      }
+    });
     final state = ref.watch(myProfileControllerProvider);
     final profile = state.profile;
     if (profile == null) return const SizedBox.shrink();
@@ -391,13 +397,6 @@ class _MyProfileFormState extends ConsumerState<_MyProfileForm> {
                   child: const Text('Plus de détails dans Ma Foi'),
                 ),
               ),
-              if (state.saveError != null) ...[
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  state.saveError!,
-                  style: typography.bodySmall.copyWith(color: colors.error),
-                ),
-              ],
             ],
           ),
         ),

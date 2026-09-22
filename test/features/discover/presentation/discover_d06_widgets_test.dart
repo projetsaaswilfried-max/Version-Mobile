@@ -6,7 +6,6 @@ import 'package:agapeo/features/discover/domain/entities/discover_profile_detail
 import 'package:agapeo/features/discover/domain/entities/visitor_context.dart';
 import 'package:agapeo/features/discover/domain/premium/discover_premium_gate.dart';
 import 'package:agapeo/features/discover/domain/scoring/compatibility_traits.dart';
-import 'package:agapeo/features/discover/domain/usecases/count_monthly_discover_invitations.dart';
 import 'package:agapeo/features/discover/domain/usecases/favorite_discover_profile.dart';
 import 'package:agapeo/features/discover/domain/usecases/get_discover_profile_detail.dart';
 import 'package:agapeo/features/discover/domain/usecases/is_discover_profile_favorited.dart';
@@ -63,9 +62,6 @@ _sheetOverrides(FakeDiscoverRepository repo) {
     ),
     sendDiscoverInvitationProvider.overrideWithValue(
       SendDiscoverInvitation(repo),
-    ),
-    countMonthlyDiscoverInvitationsProvider.overrideWithValue(
-      CountMonthlyDiscoverInvitations(repo),
     ),
   ];
 }
@@ -233,7 +229,7 @@ void main() {
       onVerifyProfile: () => verifyCalled = true,
     );
 
-    await tester.tap(find.byTooltip('Inviter'));
+    await tester.tap(find.byTooltip('Envoyer un message'));
     await tester.pumpAndSettle();
 
     expect(find.text('Valide ton profil'), findsOneWidget);
@@ -244,36 +240,26 @@ void main() {
     expect(verifyCalled, isTrue);
   });
 
-  testWidgets('quota exhausted opens DiscoverPremiumSheet', (tester) async {
-    final repo = FakeDiscoverRepository(detail: const Ok(_detail))
-      ..monthlyInvitationCount = const Ok(3);
+  testWidgets('FREE Inviter opens targeted premium sheet (D29)', (
+    tester,
+  ) async {
+    final repo = FakeDiscoverRepository(detail: const Ok(_detail));
     await _pumpProfileSheet(tester, repo: repo, subscriptionStatus: 'FREE');
 
-    await tester.tap(find.byTooltip('Inviter'));
+    await tester.tap(find.byTooltip('Envoyer un message'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Découvre tout Agapeo'), findsOneWidget);
+    expect(find.text('Envoyer une invitation'), findsOneWidget);
+    expect(find.text('Découvre tout Agapeo'), findsNothing);
     expect(find.text('Envoyer'), findsNothing);
     expect(repo.sendInvitationCalls, isEmpty);
-  });
-
-  testWidgets('count Err still opens invite sheet', (tester) async {
-    final repo = FakeDiscoverRepository(detail: const Ok(_detail))
-      ..monthlyInvitationCount = const Err(ServerFailure());
-    await _pumpProfileSheet(tester, repo: repo, subscriptionStatus: 'FREE');
-
-    await tester.tap(find.byTooltip('Inviter'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Envoyer'), findsOneWidget);
-    expect(find.text('Découvre tout Agapeo'), findsNothing);
   });
 
   testWidgets('canInvite opens invite sheet with display name', (tester) async {
     final repo = FakeDiscoverRepository(detail: const Ok(_detail));
     await _pumpProfileSheet(tester, repo: repo);
 
-    await tester.tap(find.byTooltip('Inviter'));
+    await tester.tap(find.byTooltip('Envoyer un message'));
     await tester.pumpAndSettle();
 
     expect(find.text('Envoyer'), findsOneWidget);
@@ -337,7 +323,7 @@ void main() {
     await _pumpDiscoverBody(tester, repo: repo);
     await tester.tap(find.byKey(const ValueKey('discover-card-p1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Inviter'));
+    await tester.tap(find.byTooltip('Envoyer un message'));
     await tester.pumpAndSettle();
 
     expect(find.text('Envoyer'), findsOneWidget);

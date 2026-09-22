@@ -36,6 +36,7 @@ class SeededMessagesRepository implements MessagesRepository {
       ConversationSummary(
         id: 'fake-accepted-1',
         peerName: 'Léa Martin',
+        peerId: 'peer-lea',
         preview: 'À dimanche après la messe ?',
         lastAt: n.subtract(const Duration(minutes: 12)),
         unreadCount: 2,
@@ -43,7 +44,8 @@ class SeededMessagesRepository implements MessagesRepository {
       ConversationSummary(
         id: 'fake-pending-1',
         peerName: 'Thomas Dubois',
-        preview: 'Invitation à discuter',
+        peerId: 'peer-thomas',
+        preview: 'Souhaite discuter avec toi',
         lastAt: n.subtract(const Duration(hours: 3)),
         unreadCount: 1,
         status: 'PENDING',
@@ -52,6 +54,7 @@ class SeededMessagesRepository implements MessagesRepository {
       ConversationSummary(
         id: 'fake-pending-out',
         peerName: 'Sophie Leroy',
+        peerId: 'peer-sophie',
         preview: 'Invitation envoyée',
         lastAt: n.subtract(const Duration(hours: 5)),
         status: 'PENDING',
@@ -67,6 +70,7 @@ class SeededMessagesRepository implements MessagesRepository {
       ConversationSummary(
         id: 'fake-accepted-2',
         peerName: 'Camille Roux',
+        peerId: 'peer-camille',
         preview: 'Merci pour ton message !',
         lastAt: n.subtract(const Duration(days: 2)),
       ),
@@ -228,6 +232,66 @@ class SeededMessagesRepository implements MessagesRepository {
   }
 
   @override
+  Future<Result<Message>> sendImage({
+    required String conversationId,
+    required String localPath,
+  }) async {
+    final message = Message(
+      id: 'local-${_nextMessageId++}',
+      conversationId: conversationId,
+      type: MessageType.image,
+      createdAt: DateTime.now(),
+      mediaLabel: 'Photo',
+      mediaUrl: 'https://picsum.photos/seed/agapeo-$_nextMessageId/800/1200',
+      senderIsMe: true,
+    );
+    _messagesByConv.putIfAbsent(conversationId, () => []).add(message);
+    _updateConversationPreview(conversationId, 'Photo', message.createdAt);
+    return Ok(message);
+  }
+
+  @override
+  Future<Result<Message>> sendVoice({
+    required String conversationId,
+    required String localPath,
+    required int durationSeconds,
+  }) async {
+    final message = Message(
+      id: 'local-${_nextMessageId++}',
+      conversationId: conversationId,
+      type: MessageType.voice,
+      createdAt: DateTime.now(),
+      durationSeconds: durationSeconds,
+      senderIsMe: true,
+    );
+    _messagesByConv.putIfAbsent(conversationId, () => []).add(message);
+    _updateConversationPreview(conversationId, 'Audio', message.createdAt);
+    return Ok(message);
+  }
+
+  @override
+  Future<Result<void>> deleteMessage(String messageId) async {
+    for (final entry in _messagesByConv.entries) {
+      final index = entry.value.indexWhere((m) => m.id == messageId);
+      if (index < 0) continue;
+      final original = entry.value[index];
+      if (!original.senderIsMe) {
+        return const Err(ServerFailure('Impossible de supprimer ce message.'));
+      }
+      entry.value[index] = Message(
+        id: original.id,
+        conversationId: original.conversationId,
+        type: original.type,
+        createdAt: original.createdAt,
+        senderIsMe: original.senderIsMe,
+        deleted: true,
+      );
+      return const Ok(null);
+    }
+    return const Err(ServerFailure('Message introuvable.'));
+  }
+
+  @override
   Future<Result<void>> acceptInvitation(String conversationId) async {
     final index = _conversations.indexWhere((c) => c.id == conversationId);
     if (index < 0) {
@@ -261,8 +325,9 @@ class SeededMessagesRepository implements MessagesRepository {
 
   @override
   Future<Result<ConversationMatch>> proposeMatch(
-    String conversationId,
-  ) async {
+    String conversationId, {
+    required String recipientId,
+  }) async {
     final next = const ConversationMatch(
       status: ConversationMatchStatus.pending,
     );
@@ -280,9 +345,7 @@ class SeededMessagesRepository implements MessagesRepository {
   }
 
   @override
-  Future<Result<ConversationMatch>> declineMatch(
-    String conversationId,
-  ) async {
+  Future<Result<ConversationMatch>> declineMatch(String conversationId) async {
     _matches[conversationId] = ConversationMatch.none;
     return const Ok(ConversationMatch.none);
   }
@@ -298,6 +361,26 @@ class SeededMessagesRepository implements MessagesRepository {
     _conversations.removeWhere((c) => c.id == conversationId);
     _messagesByConv.remove(conversationId);
     _matches.remove(conversationId);
+    return const Ok(null);
+  }
+
+  @override
+  Future<Result<void>> markConversationRead(String conversationId) async {
+    final index = _conversations.indexWhere((c) => c.id == conversationId);
+    if (index < 0) return const Ok(null);
+    final current = _conversations[index];
+    _conversations[index] = ConversationSummary(
+      id: current.id,
+      peerName: current.peerName,
+      peerId: current.peerId,
+      peerPhotoUrl: current.peerPhotoUrl,
+      preview: current.preview,
+      lastAt: current.lastAt,
+      unreadCount: 0,
+      status: current.status,
+      isSystem: current.isSystem,
+      isIncomingInvite: current.isIncomingInvite,
+    );
     return const Ok(null);
   }
 

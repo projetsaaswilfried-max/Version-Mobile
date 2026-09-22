@@ -22,6 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/discover_test_fakes.dart';
+import '../../../helpers/profile_test_fakes.dart';
 
 const _detail = DiscoverProfileDetail(
   id: 'p1',
@@ -231,6 +232,12 @@ void main() {
           profileCompletenessProvider.overrideWith(
             (ref) async =>
                 const ProfileCompleteness(isComplete: true, missingKeys: []),
+          ),
+          // Complet + déjà VERIFIED : pas de bandeau de complétion / CTA de
+          // vérification qui viendrait dupliquer le tooltip "Fermer" de la
+          // fiche profil dans ces tests.
+          profileFieldsProvider.overrideWith(
+            (ref) async => Ok(fakeProfileFieldsSnapshot()),
           ),
         ],
         child: MaterialApp(

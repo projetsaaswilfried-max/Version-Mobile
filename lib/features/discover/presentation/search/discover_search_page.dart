@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../profile/presentation/security/verification_page.dart';
 import '../../domain/entities/discover_profile.dart';
 import '../../domain/entities/discover_query.dart';
 import '../../domain/premium/discover_premium_gate.dart';
@@ -65,9 +66,13 @@ class _DiscoverSearchPageState extends ConsumerState<DiscoverSearchPage> {
         .applyQuery(
           DiscoverQuery(
             search: _controller.text,
+            country: current.country,
             city: current.city,
-            denomination: current.denomination,
             profession: current.profession,
+            denominations: current.denominations,
+            maritalStatuses: current.maritalStatuses,
+            ageMin: current.ageMin,
+            ageMax: current.ageMax,
           ),
         );
   }
@@ -88,9 +93,13 @@ class _DiscoverSearchPageState extends ConsumerState<DiscoverSearchPage> {
             .applyQuery(
               DiscoverQuery(
                 search: current.search,
+                country: filters.country,
                 city: filters.city,
-                denomination: filters.denomination,
                 profession: filters.profession,
+                denominations: filters.denominations,
+                maritalStatuses: filters.maritalStatuses,
+                ageMin: filters.ageMin,
+                ageMax: filters.ageMax,
               ),
             );
       },
@@ -102,11 +111,9 @@ class _DiscoverSearchPageState extends ConsumerState<DiscoverSearchPage> {
   }
 
   void _onVerifyProfile() {
-    AppToast.show(
+    Navigator.of(
       context,
-      'Vérification du profil : bientôt',
-      isError: false,
-    );
+    ).push(MaterialPageRoute<void>(builder: (_) => const VerificationPage()));
   }
 
   void _onProfileTap(DiscoverProfile profile, DiscoverState state) {

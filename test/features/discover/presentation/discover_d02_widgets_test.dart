@@ -2,6 +2,7 @@ import 'package:agapeo/core/config/debug_flags.dart';
 import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
+import 'package:agapeo/core/widgets/app_search_field.dart';
 import 'package:agapeo/features/discover/di/discover_providers.dart';
 import 'package:agapeo/features/discover/domain/entities/visitor_context.dart';
 import 'package:agapeo/features/discover/domain/scoring/compatibility_traits.dart';
@@ -20,13 +21,17 @@ Widget _wrap(DiscoverToolbar toolbar) {
 }
 
 void main() {
-  testWidgets('locked search and filters call onLockedTap', (tester) async {
-    var locked = 0;
+  testWidgets('locked search and filters call their own locked callback', (
+    tester,
+  ) async {
+    var searchLocked = 0;
+    var filtersLocked = 0;
     await tester.pumpWidget(
       _wrap(
         DiscoverToolbar(
           unlocked: false,
-          onLockedTap: () => locked++,
+          onSearchLocked: () => searchLocked++,
+          onFiltersLocked: () => filtersLocked++,
           onSearchTap: () {},
           onFiltersTap: () {},
         ),
@@ -35,11 +40,12 @@ void main() {
 
     await tester.tap(find.byTooltip('Passe Premium pour rechercher'));
     await tester.pump();
-    expect(locked, 1);
+    expect(searchLocked, 1);
+    expect(filtersLocked, 0);
 
     await tester.tap(find.byTooltip('Passe Premium pour filtrer'));
     await tester.pump();
-    expect(locked, 2);
+    expect(filtersLocked, 1);
   });
 
   testWidgets('unlocked calls search and filters callbacks', (tester) async {
@@ -49,7 +55,8 @@ void main() {
       _wrap(
         DiscoverToolbar(
           unlocked: true,
-          onLockedTap: () {},
+          onSearchLocked: () {},
+          onFiltersLocked: () {},
           onSearchTap: () => search++,
           onFiltersTap: () => filters++,
         ),
@@ -71,7 +78,8 @@ void main() {
         DiscoverToolbar(
           unlocked: true,
           filtersActive: true,
-          onLockedTap: () {},
+          onSearchLocked: () {},
+          onFiltersLocked: () {},
           onSearchTap: () {},
           onFiltersTap: () {},
         ),
@@ -130,7 +138,8 @@ void main() {
     expect(find.byTooltip('Passe Premium pour rechercher'), findsOneWidget);
     await tester.tap(find.byTooltip('Passe Premium pour filtrer'));
     await tester.pumpAndSettle();
-    expect(find.text('Découvre tout Agapeo'), findsOneWidget);
+    expect(find.text('Filtres avancés'), findsOneWidget);
+    expect(find.text('Découvre tout Agapeo'), findsNothing);
   });
 
   testWidgets('empty list still shows locked toolbar', (tester) async {
@@ -173,7 +182,7 @@ void main() {
     expect(find.text('Impossible de charger Découvrir'), findsOneWidget);
   });
 
-  testWidgets('ACTIVE filters opens sheet and apply filters by city', (
+  testWidgets('ACTIVE filters opens sheet and apply filters by country', (
     tester,
   ) async {
     await pumpDiscoverBody(
@@ -189,11 +198,15 @@ void main() {
           ),
         ),
         candidates: Ok([
-          fakeDiscoverProfile('a', displayName: 'Alice Martin', city: 'Paris'),
+          fakeDiscoverProfile(
+            'a',
+            displayName: 'Alice Martin',
+            traits: const CompatibilityTraits(country: 'France'),
+          ),
           fakeDiscoverProfile(
             'b',
             displayName: 'Béatrice Durand',
-            city: 'Lyon',
+            traits: const CompatibilityTraits(country: 'Sénégal'),
           ),
         ]),
       ),
@@ -203,12 +216,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Filtres : bientôt'), findsNothing);
     expect(find.text('Découvre tout Agapeo'), findsNothing);
-    expect(find.text('Ville'), findsOneWidget);
+    expect(find.text('Pays'), findsOneWidget);
 
+    await tester.tap(find.text('Tous les pays'));
+    await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('discover-filter-city')),
-      'Lyon',
+      find.descendant(
+        of: find.byType(AppSearchField),
+        matching: find.byType(TextField),
+      ),
+      'Sén',
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sénégal'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Appliquer'));
     await tester.pumpAndSettle();
     expect(find.text('Alice Martin'), findsNothing);

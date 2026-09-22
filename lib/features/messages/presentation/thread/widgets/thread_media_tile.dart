@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_radius.dart';
+import '../../../../../core/theme/app_shadows.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/app_network_image.dart';
@@ -19,15 +20,13 @@ class ThreadMediaTile extends StatelessWidget {
     final typography = context.typography;
     final mine = message.senderIsMe;
     final label = switch (message.type) {
-      MessageType.image => message.mediaLabel ?? 'Photo',
-      MessageType.video => message.mediaLabel ?? 'Vidéo',
-      MessageType.document => message.fileName ?? 'Document',
-      MessageType.voice =>
-        message.durationSeconds == null
-            ? 'Note vocale'
-            : 'Note vocale · ${message.durationSeconds}s',
-      _ => message.mediaLabel ?? 'Média',
+      MessageType.image => 'Photo',
+      MessageType.video => 'Vidéo indisponible',
+      MessageType.document => 'Document',
+      MessageType.voice => 'Audio',
+      _ => 'Média',
     };
+    const radius = AppRadius.lgRadius;
 
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
@@ -41,14 +40,20 @@ class ThreadMediaTile extends StatelessWidget {
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
-            Material(
-              color: colors.surface,
-              borderRadius: AppRadius.lgRadius,
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                key: ValueKey('thread-media-${message.id}'),
-                onTap: onTap,
-                child: _preview(context, label),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                boxShadow: AppShadows.sm,
+              ),
+              child: Material(
+                color: colors.surface,
+                borderRadius: radius,
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  key: ValueKey('thread-media-${message.id}'),
+                  onTap: onTap,
+                  child: _preview(context, label),
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -77,9 +82,9 @@ class ThreadMediaTile extends StatelessWidget {
         label: label,
         button: true,
         child: SizedBox(
-          width: MediaQuery.sizeOf(context).width * 0.58,
+          width: MediaQuery.sizeOf(context).width * 0.62,
           child: AspectRatio(
-              aspectRatio: 4 / 3,
+            aspectRatio: 4 / 5,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -113,27 +118,21 @@ class ThreadMediaTile extends StatelessWidget {
     return Semantics(
       label: label,
       button: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.border,
-          borderRadius: AppRadius.lgRadius,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: colors.primary),
-              const SizedBox(width: AppSpacing.sm),
-              Flexible(
-                child: Text(
-                  label,
-                  style: typography.bodyMedium,
-                  overflow: TextOverflow.ellipsis,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: colors.primary),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: Text(
+                label,
+                style: typography.bodyMedium,
+                overflow: TextOverflow.ellipsis,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

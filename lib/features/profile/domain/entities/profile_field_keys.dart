@@ -7,7 +7,18 @@ class ProfileFieldKeys {
   static const photo = 'photo';
   static const confession = 'confession';
   static const whyMarriage = 'whyMarriage';
+  static const maritalStatus = 'maritalStatus';
+  static const hobbies = 'hobbies';
 
-  static const all = [gender, birthDate, country, photo, confession, whyMarriage];
+  static const all = [
+    gender,
+    birthDate,
+    country,
+    photo,
+    confession,
+    whyMarriage,
+    maritalStatus,
+    hobbies,
+  ];
   static final total = all.length;
 }

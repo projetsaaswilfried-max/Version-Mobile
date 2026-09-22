@@ -363,6 +363,172 @@ Succès et erreurs transientes passent par `AppToast` (plus de SnackBar Material
 pour ce feedback). Messages techniques adoucis via `userFacingMessage`.
 Toute déconnexion (hub, suspendu, abo expiré) passe par `AppConfirmDialog`.
 
+### D28 - Champs "complétude §7" étendus : situation matrimoniale + passions
+*2026-09-21 · réf. note vocale porteur projet*
+
+Le porteur du projet a confirmé la liste des infos nécessaires pour
+apparaître dans Découvrir : onboarding rempli (identité, pourquoi le
+mariage, situation matrimoniale, passions), photo + **vérification admin**.
+Deux champs manquaient jusqu'ici à cette notion de « profil complet » :
+situation matrimoniale (`marital_status`) et passions (`hobbies`).
+
+**Où le verrou doit vivre (précision 2026-09-22) :** pas un filtre
+client-side parallèle à `VERIFIED` sur la liste Découvrir — ça masquait
+tous les profils existants faute de `hobbies` renseignées, y compris ceux
+déjà VERIFIED (régression constatée). Le PRD dit « Découvrir = utilisateurs
+vérifiés » : le bon endroit est la **soumission de vérification
+elle-même**, avant que l'admin ne valide. `isDiscoverEligible.isComplete`
+(`discover_profile_model.dart`) reste donc inchangé (6 champs d'origine,
+inconnu de `marital_status`/`hobbies`).
+
+- **Onboarding :** nouvelle étape « Centres d'intérêt », **skippable**
+  (même pattern que la photo : bouton « Passer » + `AppConfirmDialog`
+  d'avertissement). Situation matrimoniale déjà collectée (étape Foi),
+  inchangée.
+- **Soumission de vérification** (`fetchVerification`/`canSubmit` dans
+  `supabase_profile_account_datasource.dart`) : requiert désormais
+  `marital_status` et `hobbies` non vides en plus des champs existants
+  (photo, genre, date de naissance, pays, confession, pourquoi le
+  mariage). Liste statique de `_RequirementsCard`
+  (`verification_page.dart`) mise à jour en conséquence. Un profil ne peut
+  donc plus jamais devenir `VERIFIED` sans ces deux infos.
+- **Complétion de profil** (`ProfileFieldKeys`/`ProfileCompleteness`,
+  Hub + nouveau bandeau sur Découvrir) : ajoutés aussi ici, pour que le %
+  affiché à l'utilisateur (avant qu'il ne soumette sa vérification)
+  reflète bien tout ce qui sera exigé. `ProfileFieldKeys.total` passe de 6
+  à 8. Navigation du bandeau via `missingProfileFieldDestination` (nouveau
+  fichier partagé Hub/Découvrir) : essentiels manquants → onboarding,
+  sinon passions seules manquantes → « Plus d'infos », sinon → Mon Profil
+  (focus photo si besoin).
+
+### D29 - Premium sans tolérance gratuite pour invitation/message + sheet ciblé
+*2026-09-22 · réf. correction porteur projet, contredit PRD §7 (tableau gating)*
+
+Le porteur du projet a corrigé le PRD : **envoyer une invitation** et
+**écrire dans une conversation déjà acceptée** exigent désormais un
+abonnement Premium actif, **sans aucune tolérance gratuite**. L'ancienne
+règle "FREE : 3 invitations gratuites/mois" (PRD §7) n'existe plus — elle
+s'alignait déjà sur "conversation acceptée : 0 tolérance", les deux sont
+maintenant identiques.
+
+- **Quota supprimé** : `canSendFreeInvitation` remplacé par
+  `isPremiumActive({subscriptionStatus, isStaff})`
+  (`discover_premium_gate.dart`). Toute la chaîne de comptage mensuel
+  supprimée (usecase `CountMonthlyDiscoverInvitations`, provider, méthodes
+  repository/datasource, colonnes `discoverCalendarMonthStartIso` /
+  `discoverMonthlyInvitationStatuses` — sans autre usage, confirmé par
+  grep).
+- **Conversation acceptée** : `ThreadComposerMode` gagne un cas
+  `premiumRequired` (`thread_composer_mode.dart`, nouveau paramètre
+  `isPremiumActive`) — le composer est remplacé par un bandeau "Passe
+  Premium pour écrire ici" (tappable) quand le FREE tente d'écrire dans une
+  conversation `ACCEPTED`. Abonnement chargé dans
+  `ConversationThreadController.load()` via `profileGateRepositoryProvider`
+  (même pattern que `open_account_person_sheet.dart`) ; `send()` refuse
+  aussi en défense en profondeur.
+- **Nouveau composant `PremiumFeatureSheet`** (`lib/features/premium/presentation/widgets/`) :
+  sheet léger (icône + titre + message + un seul CTA vers les offres),
+  distinct du sheet complet `DiscoverPremiumSheet` ("Découvre tout
+  Agapeo", liste des plans). Le sheet complet reste réservé à l'offre
+  spontanée périodique (`_maybeOfferPremiumSheet`) ; le nouveau sheet
+  ciblé s'affiche sur une action précise bloquée : recherche, filtres
+  avancés (`DiscoverToolbar.onSearchLocked`/`onFiltersLocked`,
+  remplace l'ancien callback unique `onLockedTap`), invitation, écrire
+  dans une conversation acceptée.
+- Hors scope (confirmé par le porteur) : "qui s'intéresse à moi" (Interested
+  page + fiche compte) reste sur le sheet complet, pas de changement.
+
+### D30 - Filtres Découvrir : âge, pays, situation, confession
+*2026-09-22 · réf. retours visuels (sheets dating apps) + liste inscription*
+
+Le sheet Filtres de Découvrir n'est plus un formulaire texte (ville /
+dénomination / profession). V1 utile :
+
+- **Âge** : `RangeSlider` 18-80 (bornes par défaut = pas de filtre).
+- **Pays** : même liste fermée que l'inscription (`kOnboardingCountries`),
+  via `AppCountryPicker` (recherche + sheet, pas de dropdown natif).
+- **Situation matrimoniale** : chips multi-sélection, mêmes 4 valeurs DB
+  que l'onboarding (`SINGLE_NO_CHILDREN`, `SINGLE_WITH_CHILDREN`,
+  `DIVORCED`, `WIDOWED`).
+- **Confession** : chips multi-sélection, liste fermée `churchDenominations`
+  (D10). Plus de saisie libre.
+
+Le filtrage est appliqué **côté serveur** (PostgREST `eq` / `inFilter` /
+`birth_date` min-max) pour ne pas se limiter aux ~60 candidats déjà
+chargés, avec le même matching en défense côté client.
+
+Ville et profession sortent du sheet (la recherche nom/ville reste sur
+la page Recherche). Hors scope : distance / géoloc (pas de swipe, pas
+de geo dans le PRD mobile actuel).
+
+### D31 - Liste des confessions corrigée sur celle du web (constat capture)
+*2026-09-22 · réf. capture d'écran web, corrige D10*
+
+La liste `churchDenominations` (D10) avait été inventée sans vérifier le
+web réel — 8 valeurs (Catholique, Protestante, Évangélique, Pentecôtiste,
+Baptiste, Orthodoxe, Adventiste, Autre). Une capture du filtre confession
+du web (liste confirmée complète par le porteur, pas de scroll caché)
+montre 14 valeurs différentes, orthographe différente sur plusieurs
+(« Protestant(e) » pas « Protestante », etc.) : Évangélique, Catholique,
+Pentecôtiste, Chrétien(ne), Protestant(e), Baptiste, Église de réveil,
+Assemblée de Dieu, Méthodiste, Christianisme Céleste, Apostolique,
+Adventiste, Charismatique, Kimbanguiste. « Orthodoxe » et « Autre »
+n'existent pas côté web.
+
+Liste mobile remplacée à l'identique (mêmes valeurs, même orthographe,
+même ordre) dans `church_denominations.dart` — critique pour le score de
+compatibilité PRD §7 qui compare la confession par **égalité stricte de
+chaîne** : toute valeur absente d'un des deux clients est un profil que
+l'autre ne peut jamais matcher correctement dessus, ni même sélectionner.
+
+### D32 - Ville et profession réintégrées au sheet Filtres, corrige D30
+*2026-09-22 · réf. retour porteur projet*
+
+D30 avait sorti ville et profession du sheet Filtres Découvrir (repliées
+sur la recherche texte nom/ville de la page Recherche). Le porteur du
+projet veut les deux comme filtres à part entière dans le sheet, comme
+avant.
+
+- `DiscoverQuery` gagne `city`/`profession` (texte libre, `ilike` côté
+  serveur via `_sanitizeSearch` — même garde-fou anti-injection que la
+  recherche nom/ville existante).
+- `DiscoverProfile` gagne `profession` (absent du domaine jusqu'ici — la
+  colonne `profession` était déjà sélectionnée côté datasource mais
+  jamais mappée). Utilisé pour le matching de défense côté client
+  (`filter_discover_profiles.dart`), même pattern que `city`.
+- Sheet : deux `AppTextField` (Ville, Profession) entre le sélecteur pays
+  et les chips Situation matrimoniale.
+
+### D33 - Filtre situation matrimoniale : `marital_status` absent des tiers de fallback SELECT
+*2026-09-22 · réf. bug remonté par le porteur (filtre "Célibataire sans enfant" → toujours vide)*
+
+Fausse piste initiale : `marital_status` est un vrai ENUM Postgres
+(`marital_status_type`, confirmé via `information_schema.columns`) alors que
+`church_denomination` est du `text` simple, ce qui a fait suspecter
+`.inFilter()` (→ `in.(...)`) comme non fiable sur les ENUM côté PostgREST.
+Remplacé par `.eq()`/`.or()` — **n'a pas corrigé le bug** (confirmé par
+retest du porteur), la piste ENUM était donc incorrecte ou insuffisante ;
+`.inFilter()` restauré.
+
+Vraie cause : `_selects` (`supabase_discover_datasource.dart`), la liste des
+6 tiers de fallback SELECT utilisés quand une colonne manque en base,
+n'incluait `marital_status` que dans les tiers 0 à 3 — absent des tiers 4 et
+5. `church_denomination`, lui, est présent dans les 6 tiers. Le fallback est
+mis en cache (`DiscoverSelectCache`) dès qu'un tier réussit : si l'app était
+tombée sur le tier 4 ou 5 (colonne manquante ailleurs, ex. `qualities`,
+`testimony`, `accepted_marital`), toutes les lignes renvoyées avaient
+`marital_status = null`. Le filtre de défense côté client
+(`filter_discover_profiles.dart`) exclut explicitement tout profil dont la
+valeur normalisée est vide — ce qui éliminait 100 % des résultats malgré un
+filtre serveur fonctionnel, alors que la confession (toujours présente)
+n'était jamais affectée. Corrigé en ajoutant `marital_status` aux tiers 4 et
+5.
+
+À garder en tête : toute colonne utilisée en filtre client (défense) doit
+être présente dans **tous** les tiers de `_selects`, pas seulement les
+premiers — sinon le fallback SELECT peut silencieusement casser un filtre
+sans jamais renvoyer d'erreur.
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 
@@ -440,6 +606,30 @@ Détermine si le pont push natif est à construire de zéro.
 URL de redirection (App Links / Universal Links) déjà configurées côté Supabase ?
 Identifiant de package déjà réservé ? Existe-t-il un projet Supabase de
 **staging**, ou tout est en prod ? Comptes de test disponibles ?
+
+### Q5 — Format d'enregistrement des notes vocales : illisibles sur iOS
+*2026-09-22 · réf. bug remonté par le porteur (lecture d'une note vocale échoue)*
+
+Repro confirmée : une note vocale existante (`message_attachments`, fichier
+`....webm`) se télécharge correctement (URL signée valide, téléchargement
+Dio OK) mais `just_audio` échoue à l'ouvrir sur iOS avec l'erreur native
+AVFoundation `-11828 Cannot Open`. **AVFoundation n'a pas de décodeur
+WebM/Opus** — limitation native de la plateforme, pas un bug de l'app.
+Android (ExoPlayer) lirait probablement ce même fichier sans problème,
+d'où l'illusion d'un souci d'URL alors que le téléchargement fonctionne.
+
+Le mobile n'enregistre pas encore de note vocale lui-même (« Note vocale »
+dans le sheet Joindre affiche toujours « Média : bientôt ») — tous les
+vocaux existants viennent donc probablement d'un enregistrement web
+(`MediaRecorder`, WebM/Opus par défaut dans la plupart des navigateurs).
+
+À trancher avec le porteur avant de corriger :
+- **Transcodage backend/web** (recommandé) : convertir les vocaux en
+  AAC/m4a à l'upload (ou à la volée), format lisible partout. Nécessite un
+  changement hors du repo mobile.
+- **Transcodage côté mobile** (FFmpeg, ex. `ffmpeg_kit_flutter`) :
+  possible mais alourdit l'app (~20-50 Mo) et ce paquet a des soucis de
+  licence/disponibilité récents sur pub.dev.
 
 ---
 

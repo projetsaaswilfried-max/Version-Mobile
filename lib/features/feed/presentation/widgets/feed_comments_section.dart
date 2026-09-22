@@ -112,38 +112,50 @@ class _CommentThreadView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final visible = visibleReplyCount(
       thread.replies.length,
       expanded: expanded,
     );
+    final hasReplies = thread.replies.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _CommentTile(comment: thread.parent, onReply: onReply),
+        _CommentTile(
+          comment: thread.parent,
+          onReply: onReply,
+          // Le lien "Voir X réponses" ne vit que sous le commentaire
+          // principal tant que replié - une fois déplié, le toggle passe
+          // en bas de la liste des réponses (pattern standard des réseaux
+          // sociaux), pas de doublon "Masquer les réponses" ici.
+          repliesAction: hasReplies && !expanded
+              ? _CommentActionLink(
+                  label: repliesToggleLabel(
+                    count: thread.replies.length,
+                    expanded: false,
+                  ),
+                  onTap: onToggleReplies,
+                )
+              : null,
+        ),
         for (var i = 0; i < visible; i++)
           Padding(
-            padding: const EdgeInsets.only(
-              left: AppSpacing.xxl,
-              top: AppSpacing.sm,
-            ),
-            child: _CommentTile(comment: thread.replies[i], onReply: onReply),
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: _ReplyTile(comment: thread.replies[i], onReply: onReply),
           ),
-        if (thread.replies.length > 2)
+        if (hasReplies && expanded)
           Padding(
-            padding: const EdgeInsets.only(left: AppSpacing.xxl),
-            child: TextButton(
-              onPressed: onToggleReplies,
-              style: TextButton.styleFrom(
-                minimumSize: const Size(AppSpacing.xxxl, AppSpacing.xxxl),
-                alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(
+              left: AppSpacing.sm + AppSpacing.lg + AppSpacing.xs,
+              top: AppSpacing.xs,
+            ),
+            child: _CommentActionLink(
+              label: repliesToggleLabel(
+                count: thread.replies.length,
+                expanded: true,
               ),
-              child: Text(
-                expanded
-                    ? 'Masquer les réponses'
-                    : thread.replies.length - visible == 1
-                    ? 'Voir 1 réponse'
-                    : 'Voir les ${thread.replies.length - visible} réponses',
-              ),
+              onTap: onToggleReplies,
+              color: colors.textSecondary,
             ),
           ),
       ],
@@ -151,8 +163,8 @@ class _CommentThreadView extends StatelessWidget {
   }
 }
 
-class _CommentTile extends StatelessWidget {
-  const _CommentTile({required this.comment, this.onReply});
+class _ReplyTile extends StatelessWidget {
+  const _ReplyTile({required this.comment, this.onReply});
 
   final PostComment comment;
   final ValueChanged<PostComment>? onReply;
@@ -160,10 +172,55 @@ class _CommentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            left: AppSpacing.sm,
+            right: AppSpacing.xs,
+            top: AppSpacing.xs,
+          ),
+          child: Icon(
+            Icons.subdirectory_arrow_right_rounded,
+            size: AppSpacing.lg,
+            color: colors.textSecondary,
+          ),
+        ),
+        Expanded(
+          child: _CommentTile(
+            comment: comment,
+            onReply: onReply,
+            compact: true,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CommentTile extends StatelessWidget {
+  const _CommentTile({
+    required this.comment,
+    this.onReply,
+    this.repliesAction,
+    this.compact = false,
+  });
+
+  final PostComment comment;
+  final ValueChanged<PostComment>? onReply;
+  final Widget? repliesAction;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
     final typography = context.typography;
     final name = comment.authorName.trim();
     final initial = name.isEmpty ? '?' : name[0].toUpperCase();
-    const avatarSize = AppSpacing.xl + AppSpacing.sm;
+    final avatarSize = compact
+        ? AppSpacing.xl
+        : AppSpacing.xl + AppSpacing.sm;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,23 +284,57 @@ class _CommentTile extends StatelessWidget {
                   ),
                 ),
               ),
-              if (onReply != null)
-                TextButton(
-                  onPressed: () => onReply!(comment),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(AppSpacing.xxxl, AppSpacing.xxxl),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xs,
-                    ),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    alignment: Alignment.centerLeft,
-                  ),
-                  child: const Text('Répondre'),
+              if (onReply != null || repliesAction != null)
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (onReply != null)
+                      _CommentActionLink(
+                        label: 'Répondre',
+                        onTap: () => onReply!(comment),
+                      ),
+                    if (onReply != null && repliesAction != null)
+                      Text(
+                        '-',
+                        style: typography.bodySmall.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    if (repliesAction != null) repliesAction!,
+                  ],
                 ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CommentActionLink extends StatelessWidget {
+  const _CommentActionLink({required this.label, required this.onTap, this.color});
+
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final tone = color ?? colors.textSecondary;
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: tone,
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs,
+          vertical: AppSpacing.xs,
+        ),
+        textStyle: context.typography.bodySmall,
+      ),
+      child: Text(label),
     );
   }
 }

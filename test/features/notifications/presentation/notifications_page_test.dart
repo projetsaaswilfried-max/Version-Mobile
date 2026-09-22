@@ -8,10 +8,12 @@ import 'package:agapeo/features/notifications/domain/entities/app_notification.d
 import 'package:agapeo/features/notifications/domain/notification_category.dart';
 import 'package:agapeo/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:agapeo/features/notifications/presentation/notifications_page.dart';
+import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/auth_test_fakes.dart';
 import '../../../helpers/messages_test_fakes.dart';
 
 class _FakeNotificationsRepository implements NotificationsRepository {
@@ -49,6 +51,9 @@ Future<(_FakeNotificationsRepository, ProviderContainer)> _pumpNotifications(
       overrides: [
         notificationsRepositoryProvider.overrideWithValue(repo),
         messagesRepositoryProvider.overrideWithValue(FakeMessagesRepository()),
+        profileGateRepositoryProvider.overrideWithValue(
+          FakeProfileGateRepository(),
+        ),
       ],
       child: Consumer(
         builder: (context, ref, _) {
@@ -196,35 +201,34 @@ void main() {
     expect(repo.markedRead, isEmpty);
   });
 
-  testWidgets(
-    'tapping a message notification opens the conversation thread',
-    (tester) async {
-      await _pumpNotifications(
-        tester,
-        items: [
-          AppNotification(
-            id: '1',
-            title: 'Agapeo vous a envoyé un message',
-            body: '',
-            createdAt: DateTime.now(),
-            isRead: false,
-            category: AppNotificationCategory.messages,
-            type: 'NEW_MESSAGE',
-            targetUrl: '/messages?conversation=f0b675ed-2196-441d-be40',
-          ),
-        ],
-      );
+  testWidgets('tapping a message notification opens the conversation thread', (
+    tester,
+  ) async {
+    await _pumpNotifications(
+      tester,
+      items: [
+        AppNotification(
+          id: '1',
+          title: 'Agapeo vous a envoyé un message',
+          body: '',
+          createdAt: DateTime.now(),
+          isRead: false,
+          category: AppNotificationCategory.messages,
+          type: 'NEW_MESSAGE',
+          targetUrl: '/messages?conversation=f0b675ed-2196-441d-be40',
+        ),
+      ],
+    );
 
-      await tester.tap(find.text('Agapeo vous a envoyé un message'));
-      await tester.pump();
-      await tester.pump();
+    await tester.tap(find.text('Agapeo vous a envoyé un message'));
+    await tester.pump();
+    await tester.pump();
 
-      final page = tester.widget<ConversationThreadPage>(
-        find.byType(ConversationThreadPage),
-      );
-      expect(page.conversationId, 'f0b675ed-2196-441d-be40');
-    },
-  );
+    final page = tester.widget<ConversationThreadPage>(
+      find.byType(ConversationThreadPage),
+    );
+    expect(page.conversationId, 'f0b675ed-2196-441d-be40');
+  });
 
   testWidgets(
     'tapping a PROFILE_VISIT notification switches to the Découvrir tab',

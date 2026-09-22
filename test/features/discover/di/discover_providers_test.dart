@@ -47,25 +47,6 @@ void main() {
     ]);
   });
 
-  test(
-    'countMonthlyDiscoverInvitationsProvider forwards to repository',
-    () async {
-      final repo = FakeDiscoverRepository()
-        ..monthlyInvitationCount = const Ok(3);
-      final container = ProviderContainer(
-        overrides: [discoverRepositoryProvider.overrideWithValue(repo)],
-      );
-      addTearDown(container.dispose);
-
-      final result = await container.read(
-        countMonthlyDiscoverInvitationsProvider,
-      )();
-
-      expect(result, isA<Ok<int>>());
-      expect((result as Ok<int>).value, 3);
-    },
-  );
-
   test('isDiscoverProfileLikedProvider forwards to repository', () async {
     final repo = FakeDiscoverRepository()..isLiked = const Ok(true);
     final container = ProviderContainer(

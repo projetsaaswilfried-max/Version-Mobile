@@ -105,6 +105,11 @@ Chemins centralisés dans `core/config/app_assets.dart` (jamais de string en
 dur). SVG dans `assets/icons/`, images dans `assets/images/`. Tinter un SVG :
 `AppSvg(AppAssets.icXxx, size: …, color: …)`.
 
+### Textes UI
+
+Jamais de tiret cadratin (`—`) dans les chaînes affichées à l'utilisateur —
+tiret normal (`-`) ou virgule à la place.
+
 ## Workflow Git
 
 - Une branche par changement — on ne travaille jamais directement sur `main`.

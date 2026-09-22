@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/di/providers.dart';
 import '../../../../core/error/result.dart';
+import '../../../discover/domain/premium/discover_premium_gate.dart';
+import '../../../profile/di/profile_providers.dart';
 import '../../di/messages_providers.dart';
+import '../../domain/composer/thread_composer_mode.dart';
 import '../../domain/entities/conversation_match.dart';
 import '../../domain/entities/conversation_summary.dart';
 import '../../domain/entities/message.dart';
@@ -55,12 +60,28 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
     if (!silent) {
       state = state.copyWith(isLoading: true, clearError: true);
     }
-    final convResult = await ref.read(getConversationProvider)(conversationId);
-    final messagesResult = await ref.read(getMessagesProvider)(conversationId);
-    final matchResult = await ref
+    // Les 4 lectures sont indépendantes : les lancer ensemble plutôt que
+    // les attendre une par une divise le temps de chargement par ~4.
+    final convFuture = ref.read(getConversationProvider)(conversationId);
+    final messagesFuture = ref.read(getMessagesProvider)(conversationId);
+    final matchFuture = ref
         .read(messagesRepositoryProvider)
         .fetchMatch(conversationId);
+    final gateFuture = ref.read(profileGateRepositoryProvider).fetchGate();
+    final convResult = await convFuture;
+    final messagesResult = await messagesFuture;
+    final matchResult = await matchFuture;
+    final gateResult = await gateFuture;
     if (!ref.mounted || generation != _loadGeneration) return;
+
+    final premiumActive = switch (gateResult) {
+      Ok(:final value) => isPremiumActive(
+        subscriptionStatus: value.subscriptionStatus.name.toUpperCase(),
+      ),
+      Err() =>
+        true, // Soft-fail : ne pas bloquer l'écriture sur une panne réseau.
+    };
+    state = state.copyWith(isPremiumActive: premiumActive);
 
     switch (convResult) {
       case Err<ConversationSummary?>(:final failure):
@@ -96,8 +117,19 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
               isLoading: false,
               clearError: true,
             );
+            unawaited(_markRead());
         }
     }
+  }
+
+  /// Marque la discussion comme lue à l'ouverture (`last_read_at`) - jamais
+  /// écrit ailleurs jusqu'ici, le badge non-lu ne retombait donc jamais.
+  Future<void> _markRead() async {
+    final result = await ref
+        .read(messagesRepositoryProvider)
+        .markConversationRead(conversationId);
+    if (!ref.mounted || result is! Ok<void>) return;
+    await ref.read(messagesControllerProvider.notifier).refresh();
   }
 
   /// Relit uniquement les messages, sans spinner plein écran.
@@ -107,14 +139,42 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
     if (!ref.mounted || generation != _loadGeneration) return;
     switch (messagesResult) {
       case Ok<List<Message>>(:final value):
-        state = state.copyWith(messages: value, clearError: true);
+        state = state.copyWith(
+          messages: _mergeMessages(state.messages, value),
+          clearError: true,
+        );
       case Err<List<Message>>():
         break;
     }
   }
 
+  /// Le realtime déclenche un refresh dès l'INSERT du message, avant que
+  /// l'upload/l'attachment/la signature d'URL d'une image ne soient
+  /// terminés côté serveur - le refetch peut donc arriver avec un
+  /// media_url encore vide et écraser la version déjà hydratée en
+  /// mémoire (photo qui n'affichait plus qu'un placeholder tant qu'on
+  /// ne rouvrait pas la conversation).
+  static List<Message> _mergeMessages(
+    List<Message> current,
+    List<Message> incoming,
+  ) {
+    final byId = {for (final m in current) m.id: m};
+    return [
+      for (final m in incoming)
+        if (byId[m.id] case final existing?
+            when (existing.mediaUrl?.isNotEmpty ?? false) &&
+                !(m.mediaUrl?.isNotEmpty ?? false))
+          existing
+        else
+          m,
+    ];
+  }
+
   Future<void> send(String text) async {
     if (state.sending) return;
+    // Défense en profondeur : le composer est déjà masqué côté UI
+    // (ThreadComposerMode.premiumRequired) quand ce n'est pas le cas.
+    if (state.composerMode == ThreadComposerMode.premiumRequired) return;
     state = state.copyWith(sending: true, clearError: true);
     final result = await ref.read(sendTextMessageProvider)(
       conversationId: conversationId,
@@ -129,6 +189,65 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
         );
       case Err<Message>(:final failure):
         state = state.copyWith(sending: false, errorMessage: failure.message);
+    }
+  }
+
+  Future<void> sendImage(String localPath) async {
+    if (state.sending) return;
+    // Défense en profondeur : le composer est déjà masqué côté UI
+    // (ThreadComposerMode.premiumRequired) quand ce n'est pas le cas.
+    if (state.composerMode == ThreadComposerMode.premiumRequired) return;
+    state = state.copyWith(sending: true, clearError: true);
+    final result = await ref.read(sendImageMessageProvider)(
+      conversationId: conversationId,
+      localPath: localPath,
+    );
+    if (!ref.mounted) return;
+    switch (result) {
+      case Ok<Message>(:final value):
+        state = state.copyWith(
+          messages: _upsertMessage(state.messages, value),
+          sending: false,
+        );
+      case Err<Message>(:final failure):
+        state = state.copyWith(sending: false, errorMessage: failure.message);
+    }
+  }
+
+  Future<void> sendVoice(
+    String localPath, {
+    required int durationSeconds,
+  }) async {
+    if (state.sending) return;
+    if (state.composerMode == ThreadComposerMode.premiumRequired) return;
+    state = state.copyWith(sending: true, clearError: true);
+    final result = await ref.read(sendVoiceMessageProvider)(
+      conversationId: conversationId,
+      localPath: localPath,
+      durationSeconds: durationSeconds,
+    );
+    if (!ref.mounted) return;
+    switch (result) {
+      case Ok<Message>(:final value):
+        state = state.copyWith(
+          messages: _upsertMessage(state.messages, value),
+          sending: false,
+        );
+      case Err<Message>(:final failure):
+        state = state.copyWith(sending: false, errorMessage: failure.message);
+    }
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    final result = await ref
+        .read(messagesRepositoryProvider)
+        .deleteMessage(messageId);
+    if (!ref.mounted) return;
+    switch (result) {
+      case Ok<void>():
+        await refreshMessages();
+      case Err<void>(:final failure):
+        state = state.copyWith(errorMessage: failure.message);
     }
   }
 
@@ -162,9 +281,18 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
     }
   }
 
-  Future<void> proposeMatch() => _mutateMatch(
-    () => ref.read(messagesRepositoryProvider).proposeMatch(conversationId),
-  );
+  Future<void> proposeMatch() async {
+    final recipientId = state.conversation?.peerId;
+    if (recipientId == null) {
+      state = state.copyWith(errorMessage: 'Membre introuvable.');
+      return;
+    }
+    await _mutateMatch(
+      () => ref
+          .read(messagesRepositoryProvider)
+          .proposeMatch(conversationId, recipientId: recipientId),
+    );
+  }
 
   Future<void> acceptMatch() => _mutateMatch(
     () => ref.read(messagesRepositoryProvider).acceptMatch(conversationId),

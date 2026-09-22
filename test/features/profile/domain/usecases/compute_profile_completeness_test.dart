@@ -16,6 +16,8 @@ void main() {
         hasPrimaryPhoto: true,
         hasFaithConfession: true,
         hasWhyMarriage: true,
+        hasMaritalStatus: true,
+        hasHobbies: true,
       ),
     );
     expect(r.isComplete, isTrue);
@@ -31,6 +33,8 @@ void main() {
         hasPrimaryPhoto: false,
         hasFaithConfession: false,
         hasWhyMarriage: true,
+        hasMaritalStatus: true,
+        hasHobbies: true,
       ),
     );
     expect(r.isComplete, isFalse);
@@ -42,6 +46,26 @@ void main() {
     ]);
   });
 
+  test('lists marital status and hobbies when missing', () {
+    final r = compute(
+      const ProfileFieldsSnapshot(
+        hasGender: true,
+        hasBirthDate: true,
+        hasCountry: true,
+        hasPrimaryPhoto: true,
+        hasFaithConfession: true,
+        hasWhyMarriage: true,
+        hasMaritalStatus: false,
+        hasHobbies: false,
+      ),
+    );
+    expect(r.isComplete, isFalse);
+    expect(r.missingKeys, [
+      ProfileFieldKeys.maritalStatus,
+      ProfileFieldKeys.hobbies,
+    ]);
+  });
+
   test('hydrateDraft fills locked essentials', () {
     final snapshot = ProfileFieldsSnapshot(
       hasGender: true,
@@ -50,6 +74,8 @@ void main() {
       hasPrimaryPhoto: false,
       hasFaithConfession: false,
       hasWhyMarriage: false,
+      hasMaritalStatus: false,
+      hasHobbies: false,
       genderDb: 'FEMALE',
       birthDate: DateTime(1992, 3, 4),
       country: 'France',
@@ -69,6 +95,8 @@ void main() {
       hasPrimaryPhoto: false,
       hasFaithConfession: false,
       hasWhyMarriage: false,
+      hasMaritalStatus: false,
+      hasHobbies: false,
       genderDb: 'OTHER',
       country: 'France',
     );

@@ -6,6 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_toast.dart';
+import '../../../core/error/result.dart';
+import '../../profile/di/profile_providers.dart';
+import '../../profile/domain/entities/profile_completeness.dart';
+import '../../profile/presentation/profile_completion_banner_builder.dart';
+import '../../profile/presentation/security/verification_page.dart';
+import '../../premium/presentation/widgets/premium_feature_sheet.dart';
 import '../domain/entities/discover_profile.dart';
 import '../domain/premium/discover_premium_gate.dart';
 import 'discover_controller.dart';
@@ -35,6 +41,7 @@ class DiscoverBody extends ConsumerStatefulWidget {
 class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
   final _scroll = ScrollController();
   var _sheetOfferedForLoad = false;
+  var _completionDismissed = false;
 
   @override
   void initState() {
@@ -70,14 +77,22 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
   }
 
   void _onVerifyProfile() {
-    AppToast.show(
+    Navigator.of(
       context,
-      'Vérification du profil : bientôt',
-      isError: false,
-    );
+    ).push(MaterialPageRoute<void>(builder: (_) => const VerificationPage()));
   }
 
-  void _onSearchOrFiltersLocked() => DiscoverPremiumSheet.show(context);
+  void _onSearchLocked() => PremiumFeatureSheet.show(
+    context,
+    title: 'Rechercher un profil',
+    message: 'Passe Premium pour rechercher un profil par nom ou par ville.',
+  );
+
+  void _onFiltersLocked() => PremiumFeatureSheet.show(
+    context,
+    title: 'Filtres avancés',
+    message: 'Passe Premium pour affiner Découvrir avec les filtres avancés.',
+  );
 
   void _onProfileTap(DiscoverProfile profile) {
     final state = ref.read(discoverControllerProvider);
@@ -160,9 +175,13 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
             .applyQuery(
               DiscoverQuery(
                 search: current.query.search,
+                country: filters.country,
                 city: filters.city,
-                denomination: filters.denomination,
                 profession: filters.profession,
+                denominations: filters.denominations,
+                maritalStatuses: filters.maritalStatuses,
+                ageMin: filters.ageMin,
+                ageMax: filters.ageMax,
               ),
             );
       },
@@ -175,6 +194,14 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(discoverControllerProvider);
+    final completeness = ref.watch(profileCompletenessProvider).asData?.value;
+    final photoVerificationStatus = switch (ref
+        .watch(profileFieldsProvider)
+        .asData
+        ?.value) {
+      Ok(:final value) => value.photoVerificationStatus,
+      _ => null,
+    };
     ref.listen(discoverControllerProvider, (previous, next) {
       final finishedLoad =
           previous != null &&
@@ -202,7 +229,8 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
                 DiscoverToolbar(
                   unlocked: state.canUseSearchFilters,
                   filtersActive: state.query.hasSheetFilters,
-                  onLockedTap: _onSearchOrFiltersLocked,
+                  onSearchLocked: _onSearchLocked,
+                  onFiltersLocked: _onFiltersLocked,
                   onSearchTap: _onSearchTap,
                   onFiltersTap: _onUnlockedFilters,
                 ),
@@ -216,13 +244,23 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
         child: CustomScrollView(
           controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(),
-          slivers: _contentSlivers(context, state),
+          slivers: _contentSlivers(
+            context,
+            state,
+            completeness,
+            photoVerificationStatus,
+          ),
         ),
       ),
     );
   }
 
-  List<Widget> _contentSlivers(BuildContext context, DiscoverState state) {
+  List<Widget> _contentSlivers(
+    BuildContext context,
+    DiscoverState state,
+    ProfileCompleteness? completeness,
+    String? photoVerificationStatus,
+  ) {
     if (state.isInitialLoading) {
       return const [SliverToBoxAdapter(child: DiscoverSkeleton())];
     }
@@ -246,9 +284,25 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
       ];
     }
 
+    final banner = _completionBannerSlivers(
+      completeness,
+      photoVerificationStatus,
+    );
+
+    if (state.isReloadingResults) {
+      return [
+        ...banner,
+        const SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+
     if (state.isEmpty) {
       final hasFilters = state.query.hasActiveConstraints;
       return [
+        ...banner,
         SliverFillRemaining(
           hasScrollBody: false,
           child: DiscoverEmptyState(
@@ -263,6 +317,7 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
     }
 
     return [
+      ...banner,
       ..._section(
         context,
         title: 'Recommandée pour vous',
@@ -278,6 +333,21 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
         ),
       SliverToBoxAdapter(child: SizedBox(height: widget.bottomPadding)),
     ];
+  }
+
+  List<Widget> _completionBannerSlivers(
+    ProfileCompleteness? completeness,
+    String? photoVerificationStatus,
+  ) {
+    if (_completionDismissed) return const [];
+    final banner = buildProfileCompletionBanner(
+      context: context,
+      completeness: completeness,
+      photoVerificationStatus: photoVerificationStatus,
+      onDismiss: () => setState(() => _completionDismissed = true),
+    );
+    if (banner == null) return const [];
+    return [SliverToBoxAdapter(child: banner)];
   }
 
   List<Widget> _section(
