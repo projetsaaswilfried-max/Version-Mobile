@@ -109,10 +109,32 @@ class RecapStep extends ConsumerWidget {
                 onTap: () => controller.goToStep(2),
               ),
               AppSettingsRow(
+                label: 'Présente-toi',
+                subtitle: draft.bio.trim().isEmpty
+                    ? 'Non renseigné'
+                    : draft.bio.trim(),
+                icon: Icons.short_text,
+                onTap: () => controller.goToStep(2),
+              ),
+              AppSettingsRow(
+                label: 'Taille',
+                subtitle: draft.heightCm == null
+                    ? 'Non renseigné'
+                    : '${draft.heightCm} cm',
+                icon: Icons.straighten_outlined,
+                onTap: () => controller.goToStep(2),
+              ),
+              AppSettingsRow(
                 label: 'Photo',
                 subtitle: photo == null ? 'Aucune' : 'Ajoutée',
                 icon: Icons.photo_outlined,
                 onTap: () => controller.goToStep(3),
+              ),
+              AppSettingsRow(
+                label: 'Selfie de vérification',
+                subtitle: draft.selfiePath == null ? 'Aucun' : 'Ajouté',
+                icon: Icons.face_retouching_natural_outlined,
+                onTap: () => controller.goToStep(4),
               ),
             ],
           ),

@@ -94,12 +94,6 @@ class DiscoverCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      if (profile.score > 0)
-                        Positioned(
-                          top: AppSpacing.md,
-                          left: AppSpacing.md,
-                          child: _ScorePill(score: profile.score),
-                        ),
                       Positioned(
                         top: AppSpacing.md,
                         right: AppSpacing.md,
@@ -231,45 +225,6 @@ class _PhotoMenuButton extends StatelessWidget {
               size: AppSpacing.xl,
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ScorePill extends StatelessWidget {
-  const _ScorePill({required this.score});
-
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final typography = context.typography;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.surface.withValues(alpha: 0.92),
-        borderRadius: AppRadius.pillRadius,
-        boxShadow: AppShadows.sm,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.favorite, size: AppSpacing.md, color: colors.primary),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              'Score $score',
-              style: typography.label.copyWith(
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ),
       ),
     );

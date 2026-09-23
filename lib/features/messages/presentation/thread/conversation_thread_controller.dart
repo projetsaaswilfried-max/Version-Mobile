@@ -23,6 +23,18 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
   /// Ignore late responses from an older [load] / [refreshMessages].
   var _loadGeneration = 0;
 
+  /// Filet de secours pour le destinataire (D34-like) : le realtime ne
+  /// déclenche qu'un seul refresh, sur l'INSERT de `messages`, qui arrive
+  /// avant que `message_attachments`/l'URL signée n'existent côté serveur.
+  /// Contrairement à l'expéditeur (qui reçoit sa propre réponse déjà
+  /// hydratée via sendImage/sendVoice), le destinataire n'a aucun autre
+  /// déclencheur - sans ce filet, sa photo reste bloquée sur le
+  /// placeholder tant qu'il ne rouvre pas la conversation.
+  Timer? _mediaRetryTimer;
+  var _mediaRetryCount = 0;
+  static const _maxMediaRetries = 4;
+  static const _mediaRetryDelay = Duration(milliseconds: 1500);
+
   @override
   ConversationThreadState build() {
     try {
@@ -51,6 +63,7 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
         });
       }
     } catch (_) {}
+    ref.onDispose(() => _mediaRetryTimer?.cancel());
     Future.microtask(load);
     return const ConversationThreadState(isLoading: true);
   }
@@ -117,6 +130,7 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
               isLoading: false,
               clearError: true,
             );
+            _scheduleMediaRetryIfNeeded(value, generation);
             unawaited(_markRead());
         }
     }
@@ -139,13 +153,30 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
     if (!ref.mounted || generation != _loadGeneration) return;
     switch (messagesResult) {
       case Ok<List<Message>>(:final value):
-        state = state.copyWith(
-          messages: _mergeMessages(state.messages, value),
-          clearError: true,
-        );
+        final merged = _mergeMessages(state.messages, value);
+        state = state.copyWith(messages: merged, clearError: true);
+        _scheduleMediaRetryIfNeeded(merged, generation);
       case Err<List<Message>>():
         break;
     }
+  }
+
+  static bool _isPendingMedia(Message m) =>
+      (m.type == MessageType.image || m.type == MessageType.voice) &&
+      (m.mediaUrl?.isEmpty ?? true);
+
+  void _scheduleMediaRetryIfNeeded(List<Message> messages, int generation) {
+    _mediaRetryTimer?.cancel();
+    if (!messages.any(_isPendingMedia) ||
+        _mediaRetryCount >= _maxMediaRetries) {
+      _mediaRetryCount = 0;
+      return;
+    }
+    _mediaRetryCount++;
+    _mediaRetryTimer = Timer(_mediaRetryDelay, () {
+      if (!ref.mounted || generation != _loadGeneration) return;
+      refreshMessages();
+    });
   }
 
   /// Le realtime déclenche un refresh dès l'INSERT du message, avant que
@@ -333,9 +364,18 @@ class ConversationThreadController extends Notifier<ConversationThreadState> {
     }
   }
 
+  /// Remplace le message existant plutôt que de l'ignorer : le realtime
+  /// peut déclencher un `refreshMessages()` sur notre propre INSERT avant
+  /// que l'upload/l'URL signée ne soit prête côté client, insérant un
+  /// placeholder pour cet id avant même que `send()`/`sendImage()` ne
+  /// reçoive sa propre réponse (déjà hydratée) - sans ce remplacement, la
+  /// version correcte était jetée silencieusement.
   static List<Message> _upsertMessage(List<Message> current, Message next) {
-    if (current.any((m) => m.id == next.id)) return current;
-    return [...current, next];
+    final index = current.indexWhere((m) => m.id == next.id);
+    if (index == -1) return [...current, next];
+    return [
+      for (var i = 0; i < current.length; i++) i == index ? next : current[i],
+    ];
   }
 }
 

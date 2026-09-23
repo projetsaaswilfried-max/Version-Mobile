@@ -41,7 +41,6 @@ const _detail = DiscoverProfileDetail(
 Future<void> _pumpSheet(
   WidgetTester tester, {
   required FakeDiscoverRepository repo,
-  int scoreHint = 0,
   String profileId = 'p1',
 }) async {
   await tester.pumpWidget(
@@ -62,12 +61,7 @@ Future<void> _pumpSheet(
       ],
       child: MaterialApp(
         theme: AppTheme.light,
-        home: Scaffold(
-          body: DiscoverProfileSheet(
-            profileId: profileId,
-            scoreHint: scoreHint,
-          ),
-        ),
+        home: Scaffold(body: DiscoverProfileSheet(profileId: profileId)),
       ),
     ),
   );
@@ -92,7 +86,6 @@ void main() {
     expect(find.text('Paris'), findsOneWidget);
     expect(find.text(' (28)'), findsOneWidget);
     expect(find.byTooltip('Fermer'), findsOneWidget);
-    expect(find.text('Score 42'), findsOneWidget);
     expect(find.text('Protestante'), findsOneWidget);
     expect(find.text('Pratique régulière'), findsOneWidget);
     expect(find.text('Pour construire une famille.'), findsOneWidget);
@@ -133,23 +126,6 @@ void main() {
 
     expect(find.text('Léa Martin'), findsOneWidget);
     expect(repo.recordViewIds, ['p1']);
-  });
-
-  testWidgets('scoreHint applies when detail score is 0', (tester) async {
-    final repo = FakeDiscoverRepository(
-      detail: const Ok(
-        DiscoverProfileDetail(id: 'p1', displayName: 'Léa Martin', score: 0),
-      ),
-    );
-    await _pumpSheet(tester, repo: repo, scoreHint: 17);
-    await tester.pump();
-
-    expect(find.text('Score 17'), findsOneWidget);
-    expect(find.text('Confession'), findsNothing);
-    expect(find.text('Engagement spirituel'), findsNothing);
-    expect(find.text('Pourquoi le mariage'), findsNothing);
-    expect(find.text('Valeurs'), findsNothing);
-    expect(find.text('Loisirs'), findsNothing);
   });
 
   testWidgets('Favori without canFavorite opens verify sheet', (tester) async {

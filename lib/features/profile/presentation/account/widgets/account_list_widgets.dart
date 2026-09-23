@@ -130,6 +130,7 @@ class TagField extends StatefulWidget {
     required this.tags,
     required this.max,
     required this.onChanged,
+    this.errorText,
   });
 
   final String label;
@@ -137,6 +138,7 @@ class TagField extends StatefulWidget {
   final List<String> tags;
   final int max;
   final ValueChanged<List<String>> onChanged;
+  final String? errorText;
 
   @override
   State<TagField> createState() => _TagFieldState();
@@ -194,6 +196,15 @@ class _TagFieldState extends State<TagField> {
             textInputAction: TextInputAction.done,
             onSubmitted: _add,
           ),
+        if (widget.errorText != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            widget.errorText!,
+            style: context.typography.bodySmall.copyWith(
+              color: context.colors.error,
+            ),
+          ),
+        ],
       ],
     );
   }

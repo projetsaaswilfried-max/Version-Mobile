@@ -11,8 +11,8 @@ import 'change_password_page.dart';
 import 'delete_account_page.dart';
 import 'export_data_page.dart';
 import 'legal_pages_page.dart';
+import 'add_profile_photo_page.dart';
 import 'photos_management_page.dart';
-import 'verification_page.dart';
 
 class AccountSecurityPage extends StatelessWidget {
   const AccountSecurityPage({super.key});
@@ -35,8 +35,11 @@ class AccountSecurityPage extends StatelessWidget {
                   label: 'Vérification',
                   icon: Icons.verified_outlined,
                   onTap: () => Navigator.of(context).push(
+                    // Photo puis selfie, toujours dans cet ordre (D34) -
+                    // même règle que le bandeau et Découvrir, y compris
+                    // depuis ce point d'entrée peu visible des réglages.
                     MaterialPageRoute<void>(
-                      builder: (_) => const VerificationPage(),
+                      builder: (_) => const AddProfilePhotoPage(),
                     ),
                   ),
                 ),

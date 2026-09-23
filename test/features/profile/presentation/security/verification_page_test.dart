@@ -102,6 +102,6 @@ void main() {
     );
 
     expect(find.text('Soumettre un selfie'), findsOneWidget);
-    expect(find.text('Selfie en direct'), findsOneWidget);
+    expect(find.text('Confirme que c\'est bien toi'), findsOneWidget);
   });
 }

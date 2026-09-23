@@ -12,14 +12,9 @@ import '../../domain/entities/discover_profile_detail.dart';
 
 /// Contenu scrollable de la fiche Découvrir - layout Datify (PRD §6).
 class DiscoverProfileContent extends StatelessWidget {
-  const DiscoverProfileContent({
-    super.key,
-    required this.detail,
-    required this.score,
-  });
+  const DiscoverProfileContent({super.key, required this.detail});
 
   final DiscoverProfileDetail detail;
-  final int score;
 
   @override
   Widget build(BuildContext context) {
@@ -46,30 +41,19 @@ class DiscoverProfileContent extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Flexible(
-                      child: Text(detail.displayName, style: typography.headline),
-                    ),
-                    if (age != null && age.isNotEmpty)
-                      Text(
-                        ' ($age)',
-                        style: typography.headline.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    if (detail.isVerified) ...[
-                      const SizedBox(width: AppSpacing.xs),
-                      const AppVerifiedBadge(),
-                    ],
-                  ],
-                ),
+              Flexible(
+                child: Text(detail.displayName, style: typography.headline),
               ),
-              if (score > 0) ...[
-                const SizedBox(width: AppSpacing.sm),
-                _ScoreBadge(score: score),
+              if (age != null && age.isNotEmpty)
+                Text(
+                  ' ($age)',
+                  style: typography.headline.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              if (detail.isVerified) ...[
+                const SizedBox(width: AppSpacing.xs),
+                const AppVerifiedBadge(),
               ],
             ],
           ),
@@ -198,33 +182,6 @@ class DiscoverProfileContent extends StatelessWidget {
       chips.add(AppTagChip(label: engagement, outlined: true));
     }
     return chips;
-  }
-}
-
-class _ScoreBadge extends StatelessWidget {
-  const _ScoreBadge({required this.score});
-
-  final int score;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.primary.withValues(alpha: 0.12),
-        borderRadius: AppRadius.pillRadius,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        child: Text(
-          'Score $score',
-          style: context.typography.label.copyWith(color: colors.primary),
-        ),
-      ),
-    );
   }
 }
 

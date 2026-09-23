@@ -1,12 +1,13 @@
 import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:agapeo/features/profile/presentation/security/account_security_page.dart';
-import 'package:agapeo/features/profile/presentation/security/verification_page.dart';
+import 'package:agapeo/features/profile/presentation/security/add_profile_photo_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../helpers/profile_account_test_fakes.dart';
+import '../../../../helpers/profile_test_fakes.dart';
 
 void main() {
   testWidgets('security hub lists actions', (tester) async {
@@ -15,6 +16,9 @@ void main() {
         overrides: [
           profileAccountRepositoryProvider.overrideWithValue(
             FakeProfileAccountRepository(),
+          ),
+          myProfileRepositoryProvider.overrideWithValue(
+            FakeMyProfileRepository(),
           ),
         ],
         child: MaterialApp(
@@ -36,6 +40,6 @@ void main() {
 
     await tester.tap(find.text('Vérification'));
     await tester.pumpAndSettle();
-    expect(find.byType(VerificationPage), findsOneWidget);
+    expect(find.byType(AddProfilePhotoPage), findsOneWidget);
   });
 }

@@ -63,10 +63,7 @@ class _PublicProfilePageState extends ConsumerState<PublicProfilePage> {
       onSave: null,
       child: preview == null
           ? const SizedBox.shrink()
-          : DiscoverProfileContent(
-              detail: _toDetail(preview),
-              score: 0,
-            ),
+          : DiscoverProfileContent(detail: _toDetail(preview)),
     );
   }
 

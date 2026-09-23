@@ -16,6 +16,7 @@ class OnboardingDraft extends Equatable {
     this.whyMarriage = '',
     this.bio = '',
     this.hobbies = const [],
+    this.selfiePath,
   });
 
   static const maxFreePhotos = 1;
@@ -30,6 +31,7 @@ class OnboardingDraft extends Equatable {
   final String whyMarriage;
   final String bio;
   final List<String> hobbies;
+  final String? selfiePath;
 
   String? get profilePhotoPath => photoPaths.isEmpty ? null : photoPaths.first;
 
@@ -47,6 +49,8 @@ class OnboardingDraft extends Equatable {
     String? whyMarriage,
     String? bio,
     List<String>? hobbies,
+    String? selfiePath,
+    bool clearSelfie = false,
   }) {
     final List<String> nextPhotos;
     if (clearProfilePhoto) {
@@ -69,6 +73,7 @@ class OnboardingDraft extends Equatable {
       whyMarriage: whyMarriage ?? this.whyMarriage,
       bio: bio ?? this.bio,
       hobbies: hobbies ?? this.hobbies,
+      selfiePath: clearSelfie ? null : (selfiePath ?? this.selfiePath),
     );
   }
 
@@ -84,6 +89,7 @@ class OnboardingDraft extends Equatable {
     whyMarriage,
     bio,
     hobbies,
+    selfiePath,
   ];
 }
 
@@ -132,10 +138,24 @@ class OnboardingValidators {
         }
         return errors;
       case 2:
-        return {};
+        // Étape passions désormais obligatoire (D34) : plus de "Passer".
+        final errors = <String, String>{};
+        if (draft.hobbies.isEmpty) {
+          errors['hobbies'] = 'Ajoute au moins un centre d\'intérêt.';
+        }
+        return errors;
       case 3:
         return {};
       case 4:
+        // Étape selfie : jamais atteinte si la photo a été passée
+        // (skipPhoto() termine directement) - obligatoire sinon, les deux
+        // étapes photo + selfie doivent toujours rester collées.
+        final errors = <String, String>{};
+        if (draft.selfiePath == null || draft.selfiePath!.trim().isEmpty) {
+          errors['selfiePath'] = 'Prends un selfie pour continuer.';
+        }
+        return errors;
+      case 5:
         return {};
       default:
         return {};

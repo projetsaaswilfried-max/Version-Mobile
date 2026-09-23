@@ -51,6 +51,7 @@ void _goToPhotoStep(ProviderContainer container) {
       faithConfession: 'Catholique',
       maritalStatus: OnboardingMaritalStatus.single,
       whyMarriage: 'Le mariage',
+      hobbies: ['Randonnée'],
     ),
   );
   expect(controller.next(), isTrue);
@@ -60,7 +61,12 @@ void _goToPhotoStep(ProviderContainer container) {
 
 void _goToRecapStep(ProviderContainer container) {
   _goToPhotoStep(container);
-  expect(container.read(onboardingFlowProvider.notifier).next(), isTrue);
+  final controller = container.read(onboardingFlowProvider.notifier);
+  expect(controller.next(), isTrue); // photo -> selfie
+  controller.updateDraft(
+    (d) => d.copyWith(selfiePath: '/tmp/onboarding-test-selfie.jpg'),
+  );
+  expect(controller.next(), isTrue); // selfie -> recap
 }
 
 void _goToFaithStep(ProviderContainer container) {
@@ -287,6 +293,9 @@ void main() {
         notificationsRepositoryProvider.overrideWithValue(
           FakeNotificationsRepository(),
         ),
+        profileAccountRepositoryProvider.overrideWithValue(
+          FakeProfileAccountRepository(),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -340,6 +349,9 @@ void main() {
         feedRepositoryProvider.overrideWithValue(FakeFeedRepository()),
         notificationsRepositoryProvider.overrideWithValue(
           FakeNotificationsRepository(),
+        ),
+        profileAccountRepositoryProvider.overrideWithValue(
+          FakeProfileAccountRepository(),
         ),
       ],
     );

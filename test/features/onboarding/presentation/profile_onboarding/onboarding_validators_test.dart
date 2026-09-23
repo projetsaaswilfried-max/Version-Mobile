@@ -50,8 +50,18 @@ void main() {
     );
   });
 
-  test('step 2 photo is optional for canGoNext', () {
-    expect(OnboardingValidators.canGoNext(2, const OnboardingDraft()), isTrue);
+  test('step 2 hobbies is required for canGoNext', () {
+    expect(
+      OnboardingValidators.canGoNext(2, const OnboardingDraft()),
+      isFalse,
+    );
+    expect(
+      OnboardingValidators.canGoNext(
+        2,
+        const OnboardingDraft(hobbies: ['Randonnée']),
+      ),
+      isTrue,
+    );
   });
 
   test('other gender is invalid on essentials', () {

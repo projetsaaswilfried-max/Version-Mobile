@@ -354,4 +354,148 @@ void main() {
       expect(afterRefresh.messages.single.mediaUrl, isNotEmpty);
     },
   );
+
+  test(
+    'sendImage remplace un placeholder déjà inséré par un refresh prématuré '
+    '(race realtime déclenchée avant notre propre réponse hydratée)',
+    () async {
+      final tempFile = await File(
+        '${Directory.systemTemp.path}/agapeo-test-${DateTime.now().microsecondsSinceEpoch}.jpg',
+      ).create();
+      addTearDown(() => tempFile.delete());
+
+      final repo = FakeMessagesRepository(
+        conversations: Ok([
+          const ConversationSummary(
+            id: 'c1',
+            peerName: 'Léa',
+            status: 'ACCEPTED',
+          ),
+        ]),
+        messages: const Ok([]),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          messagesRepositoryProvider.overrideWithValue(repo),
+          profileGateRepositoryProvider.overrideWithValue(
+            FakeProfileGateRepository(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(
+        conversationThreadControllerProvider('c1').notifier,
+      );
+      await notifier.load();
+
+      // Le realtime déclenche un refreshMessages() sur notre propre INSERT
+      // avant que sendImage() ne reçoive sa réponse hydratée : la ligne
+      // existe déjà côté serveur mais sans media_url (upload/URL signée pas
+      // encore prêts).
+      repo.messages = Ok([
+        Message(
+          id: 'fake-image-sent',
+          conversationId: 'c1',
+          type: MessageType.image,
+          createdAt: DateTime.now(),
+          senderIsMe: true,
+        ),
+      ]);
+      await notifier.refreshMessages();
+      final afterPrematureRefresh = container.read(
+        conversationThreadControllerProvider('c1'),
+      );
+      expect(afterPrematureRefresh.messages.single.mediaUrl, isNull);
+
+      // sendImage() reçoit maintenant sa propre réponse, déjà hydratée avec
+      // le mediaUrl - elle doit remplacer le placeholder, pas être ignorée.
+      await notifier.sendImage(tempFile.path);
+      final afterSend = container.read(
+        conversationThreadControllerProvider('c1'),
+      );
+      expect(afterSend.messages.single.mediaUrl, isNotEmpty);
+    },
+  );
+
+  test(
+    'destinataire : une photo encore vide au chargement se résout toute '
+    'seule via le retry, sans réponse locale hydratée à recevoir',
+    () async {
+      final repo = FakeMessagesRepository(
+        conversations: Ok([
+          const ConversationSummary(
+            id: 'c1',
+            peerName: 'Léa',
+            status: 'ACCEPTED',
+          ),
+        ]),
+        // Le destinataire charge le fil alors que l'INSERT est arrivé mais
+        // que message_attachments/l'URL signée ne sont pas encore prêts.
+        messages: Ok([
+          Message(
+            id: 'm1',
+            conversationId: 'c1',
+            type: MessageType.image,
+            createdAt: DateTime.now(),
+            senderIsMe: false,
+          ),
+        ]),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          messagesRepositoryProvider.overrideWithValue(repo),
+          profileGateRepositoryProvider.overrideWithValue(
+            FakeProfileGateRepository(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // build() planifie déjà load() en microtask - ne pas l'appeler une
+      // deuxième fois ici (course entre deux générations qui ferait
+      // résoudre cet await avant que l'autre n'ait fini de poser l'état).
+      // autoDispose : container.read seul ne garde pas le provider vivant
+      // le temps que load() (planifié en microtask par build()) se
+      // termine - un listener actif est nécessaire.
+      container.listen(
+        conversationThreadControllerProvider('c1'),
+        (_, _) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(
+        container
+            .read(conversationThreadControllerProvider('c1'))
+            .messages
+            .single
+            .mediaUrl,
+        isNull,
+      );
+
+      // Le seul déclencheur realtime (INSERT messages) est déjà consommé -
+      // rien d'autre ne rafraîchirait jamais sans le filet de secours.
+      repo.messages = Ok([
+        Message(
+          id: 'm1',
+          conversationId: 'c1',
+          type: MessageType.image,
+          createdAt: DateTime.now(),
+          senderIsMe: false,
+          mediaUrl: 'https://picsum.photos/seed/fake/800/1200',
+        ),
+      ]);
+      // Le retry attend ~1.5s avant de rafraîchir de lui-même.
+      await Future<void>.delayed(const Duration(milliseconds: 1800));
+
+      expect(
+        container
+            .read(conversationThreadControllerProvider('c1'))
+            .messages
+            .single
+            .mediaUrl,
+        isNotEmpty,
+      );
+    },
+  );
 }

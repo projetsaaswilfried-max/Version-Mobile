@@ -75,6 +75,9 @@ class _VerificationPageState extends ConsumerState<VerificationPage> {
     setState(() => _saving = false);
     switch (result) {
       case Ok<void>():
+        // Sans ça, le bandeau Découvrir/Hub reste sur son ancien statut
+        // (non soumis) tant que l'app n'est pas relancée.
+        ref.invalidate(profileFieldsProvider);
         await popAfterAccountSave(context, ref, message: 'Demande envoyée.');
       case Err<void>(:final failure):
         setState(() => _saveError = failure.message);
@@ -129,10 +132,13 @@ class _VerificationPageState extends ConsumerState<VerificationPage> {
                   _InfoCard(
                     icon: Icons.camera_alt_outlined,
                     color: context.colors.primary,
-                    title: 'Selfie en direct',
+                    title: 'Confirme que c\'est bien toi',
                     body:
-                        'Le selfie se prend en direct à la caméra, pas '
-                        'depuis la galerie.',
+                        'Un selfie en direct, comparé à tes photos par '
+                        'notre équipe - c\'est ce qui protège tout le monde '
+                        'des faux profils sur Agapeo. Il n\'est jamais '
+                        'visible par les autres membres, uniquement par '
+                        'notre équipe de modération.',
                   ),
                 ],
                 const SizedBox(height: AppSpacing.lg),

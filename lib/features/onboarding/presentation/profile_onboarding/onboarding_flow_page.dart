@@ -15,6 +15,7 @@ import 'steps/faith_why_step.dart';
 import 'steps/hobbies_step.dart';
 import 'steps/profile_photo_step.dart';
 import 'steps/recap_step.dart';
+import 'steps/selfie_verification_step.dart';
 
 /// Onboarding profil : 3 étapes métier + récap, chrome sombre façon Behance.
 class OnboardingFlowPage extends ConsumerStatefulWidget {
@@ -40,14 +41,16 @@ class _OnboardingFlowPageState extends ConsumerState<OnboardingFlowPage> {
     'Ta foi',
     'Tes passions',
     'Ta photo',
+    'Vérifie ton identité',
     'Récapitulatif',
   ];
 
   static const _subtitles = [
     'Genre, âge et pays : verrouillés après validation.',
     'Confession, situation et pourquoi tu cherches le mariage.',
-    'Tes centres d\'intérêt.',
+    'Tes centres d\'intérêt, ta présentation et ta taille.',
     'Ajoute ta photo de profil.',
+    'Un selfie pour confirmer que c\'est bien toi.',
     'Vérifie avant de valider ton profil.',
   ];
 
@@ -81,22 +84,6 @@ class _OnboardingFlowPageState extends ConsumerState<OnboardingFlowPage> {
     );
     if (confirmed == true && mounted) {
       await controller.skipPhoto();
-    }
-  }
-
-  Future<void> _confirmSkipHobbies(OnboardingFlowController controller) async {
-    const warning =
-        'Sans centre d\'intérêt, ton profil ne sera pas visible dans '
-        'Découvrir. Tu pourras en ajouter plus tard.';
-    final confirmed = await AppConfirmDialog.show(
-      context,
-      title: 'Continuer sans centre d\'intérêt ?',
-      message: warning,
-      confirmLabel: 'Continuer sans centre d\'intérêt',
-      icon: Icons.interests_outlined,
-    );
-    if (confirmed == true && mounted) {
-      controller.skipHobbies();
     }
   }
 
@@ -247,6 +234,7 @@ class _OnboardingFlowPageState extends ConsumerState<OnboardingFlowPage> {
                             FaithWhyStep(),
                             HobbiesStep(),
                             ProfilePhotoStep(),
+                            SelfieVerificationStep(),
                             RecapStep(),
                           ],
                         ),
@@ -266,7 +254,9 @@ class _OnboardingFlowPageState extends ConsumerState<OnboardingFlowPage> {
                                 label: 'Terminer',
                                 isLoading: busy,
                                 onPressed:
-                                    busy || state.draft.profilePhotoPath == null
+                                    busy ||
+                                        state.draft.profilePhotoPath == null ||
+                                        state.draft.selfiePath == null
                                     ? null
                                     : controller.submit,
                               ),
@@ -291,16 +281,6 @@ class _OnboardingFlowPageState extends ConsumerState<OnboardingFlowPage> {
                                   onPressed: busy
                                       ? null
                                       : () => _confirmSkipPhoto(controller),
-                                ),
-                              ],
-                              if (state.isHobbiesStep) ...[
-                                const SizedBox(height: AppSpacing.xs),
-                                AppButton(
-                                  label: 'Passer',
-                                  variant: AppButtonVariant.text,
-                                  onPressed: busy
-                                      ? null
-                                      : () => _confirmSkipHobbies(controller),
                                 ),
                               ],
                             ],

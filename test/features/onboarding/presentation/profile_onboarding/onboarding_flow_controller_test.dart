@@ -4,8 +4,11 @@ import 'package:agapeo/features/onboarding/domain/entities/onboarding_draft.dart
 import 'package:agapeo/features/onboarding/domain/entities/onboarding_submit_payload.dart';
 import 'package:agapeo/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:agapeo/features/onboarding/presentation/profile_onboarding/onboarding_flow_controller.dart';
+import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../../helpers/profile_account_test_fakes.dart';
 
 class _OkRepo implements OnboardingRepository {
   @override
@@ -29,11 +32,17 @@ void main() {
       maritalStatus: OnboardingMaritalStatus.single,
       whyMarriage: 'Alliance',
       photoPaths: const ['/tmp/a.jpg'],
+      selfiePath: '/tmp/selfie.jpg',
     );
 
     setUp(() {
       container = ProviderContainer(
-        overrides: [onboardingRepositoryProvider.overrideWithValue(_OkRepo())],
+        overrides: [
+          onboardingRepositoryProvider.overrideWithValue(_OkRepo()),
+          profileAccountRepositoryProvider.overrideWithValue(
+            FakeProfileAccountRepository(),
+          ),
+        ],
       );
     });
 

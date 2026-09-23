@@ -18,6 +18,7 @@ import 'package:agapeo/features/profile/presentation/my_profile/my_profile_page.
 import 'package:agapeo/features/profile/presentation/privacy/privacy_page.dart';
 import 'package:agapeo/features/profile/presentation/public_profile/public_profile_page.dart';
 import 'package:agapeo/features/profile/presentation/security/account_security_page.dart';
+import 'package:agapeo/features/profile/presentation/security/add_profile_photo_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -161,7 +162,7 @@ void main() {
         fields: FakeProfileFieldsRepository(
           result: Ok(
             fakeProfileFieldsSnapshot(
-              hasPrimaryPhoto: false,
+              hasPrimaryPhoto: true,
               hasFaithConfession: false,
             ),
           ),
@@ -174,6 +175,30 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(MyProfilePage), findsOneWidget);
       expect(find.byType(OnboardingFlowPage), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'banner opens the dedicated photo page when photo is missing',
+    (tester) async {
+      await pumpTab(
+        tester,
+        fields: FakeProfileFieldsRepository(
+          result: Ok(
+            fakeProfileFieldsSnapshot(
+              hasPrimaryPhoto: false,
+              hasFaithConfession: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Complète ton profil'), findsOneWidget);
+      await tester.tap(find.text('Complète ton profil'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AddProfilePhotoPage), findsOneWidget);
+      expect(find.byType(MyProfilePage), findsNothing);
     },
   );
 

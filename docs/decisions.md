@@ -529,6 +529,133 @@ n'était jamais affectée. Corrigé en ajoutant `marital_status` aux tiers 4 et
 premiers — sinon le fallback SELECT peut silencieusement casser un filtre
 sans jamais renvoyer d'erreur.
 
+### D34 - Bio + taille à l'onboarding, photo+selfie collées, bandeau Découvrir sans pourcentage
+*2026-09-23 · retours du porteur post-release sur le manque de friction avant vérification*
+
+Trois manquements distincts, corrigés ensemble :
+
+1. **Bio et taille manquantes à l'onboarding.** `OnboardingDraft.bio`/
+   `heightCm` existaient déjà dans le modèle mais aucune étape ne les
+   collectait. Ajoutés à l'étape "Tes passions" (`HobbiesStep`) : champ
+   "Présente-toi" (label choisi pour ne pas entrer en collision avec le
+   titre de l'étape 1, déjà "Parle-nous de toi") et "Taille (cm)".
+2. **Photo de profil et selfie de vérification ne doivent jamais être
+   dissociées.** Avant, la vérification (`VerificationPage`) était un flux
+   totalement séparé, jamais proposé pendant l'onboarding - un membre
+   pouvait terminer sans jamais être invité à vérifier son identité.
+   Nouvelle étape obligatoire (sans "Passer") entre "Ta photo" et le
+   récapitulatif, uniquement atteinte si une photo a été ajoutée (skipper
+   la photo termine toujours directement, comme avant - aucune vérification
+   n'a de sens sans photo). `submitVerification()` part dans le même geste
+   que "Terminer", jamais comme étape à faire plus tard.
+3. **Le bandeau de complétion Découvrir affichait un pourcentage** - le
+   porteur ne veut plus de logique de progression abstraite mais un message
+   concret sur la conséquence réelle. `ProfileCompletionBanner` perd son
+   anneau/pourcentage ; le message varie maintenant selon l'état réel du
+   `photoVerificationStatus` : non soumis, refusé (avec possibilité de
+   resoumettre), en attente de validation, ou rien si déjà vérifié. Taper
+   sur "non soumis"/"refusé" ouvre la photo de profil puis enchaîne
+   automatiquement sur la vérification selfie - même règle de collage qu'au
+   point 2.
+
+*Correction 2026-09-23 (même jour) :* le point 3 affichait "non soumis" au
+lieu de "refusé" sur un vrai profil rejeté. Cause confirmée par SQL direct :
+`profiles.photo_verification_status` n'est pas synchronisé au rejet (reste
+bloqué à `UNVERIFIED`) ; seule la dernière ligne de `verification_requests`
+(`status`, `rejection_reason`) reflète la vraie décision. Le bandeau et
+`VerificationInfo`/`VerificationPage` lisent maintenant `verification_requests`
+en priorité, `photo_verification_status` ne sert plus que de repli tant
+qu'aucune demande n'a été soumise.
+
+*Deuxième correction 2026-09-23 :* le fix ci-dessus ne suffisait pas - la
+requête `verification_requests` échouait toujours silencieusement
+(`PostgrestException` avalée), retombant sur le repli. Cause confirmée par
+SQL direct : la colonne de liaison s'appelle **`user_id`**, pas
+`profile_id` (`profile_id` n'existe pas sur cette table - erreur Postgres
+`42703`). Corrigé aux 3 points d'usage (lecture statut/motif dans les deux
+datasources, et les 2 inserts de `submitVerification`) - ce dernier
+insérait donc lui aussi une mauvaise colonne depuis le début, jamais
+détecté en test car aucune couverture directe sur ces datasources
+Supabase.
+
+*Troisième correction 2026-09-23 :* même une fois le bon statut lu, le
+bandeau ouvrait "Mon Profil" puis, au retour, redirigeait
+automatiquement vers `VerificationPage` en se basant sur le statut
+global - même si l'utilisateur n'avait rien fait dans l'intervalle
+(juste ouvert puis fermé la page). Comportement jugé imprévisible par
+le porteur : "l'utilisateur sera perdu". Remplacé par
+`ProfilePhotoVerificationPage`, un flux autonome et dédié (à part de
+"Mon Profil") qui envoie photo + selfie ensemble dans un seul geste
+explicite ("Envoyer") - plus jamais de redirection automatique basée
+sur un état global relu après coup.
+
+*Quatrième correction 2026-09-23 :* le porteur a précisé que photo et
+selfie ne doivent PAS être sur le même écran (contrairement à ce que la
+correction précédente proposait) - deux étapes séparées, la seconde étant
+`VerificationPage` (déjà existante), pas un nouvel écran. `AddProfilePhotoPage`
+remplace `ProfilePhotoVerificationPage` : photo seule, puis enchaîne sur
+`VerificationPage` pour le selfie. Textes alignés sur le web (copies
+fournies par le porteur) : "Tes photos" + explication sur l'étape,
+"Confirme que c'est bien toi" pour le selfie, "Ton profil est complet"
+pour le bandeau non-soumis. La photo étant déjà garantie par
+`ProfileCompleteness.isComplete`, les bandeaux "non soumis"/"refusé"
+ouvrent `VerificationPage` directement ; celle-ci propose un bouton
+"Changer ma photo de profil" vers `AddProfilePhotoPage` pour qui veut la
+refaire avant de resoumettre.
+
+*Cinquième correction 2026-09-23 :* toujours pas ça - le porteur a précisé
+que le web revient **systématiquement** à l'étape photo de l'onboarding
+avant le selfie, y compris pour une resoumission après refus (la photo
+elle-même peut être la cause du refus, ex. "ce n'était pas sa vraie
+photo"). Retiré le bouton "Changer ma photo de profil" de
+`VerificationPage` (source de confusion, cf. capture du porteur) ; les
+bandeaux "non soumis" et "refusé" ouvrent maintenant `AddProfilePhotoPage`
+en premier dans tous les cas, qui enchaîne ensuite sur `VerificationPage`
+- jamais d'accès direct au selfie qui saute la photo.
+`AddProfilePhotoPage` affiche la photo déjà enregistrée si elle existe
+(remplaçable), et si rien n'est changé, ne fait que passer à l'étape
+suivante sans réenregistrer inutilement.
+
+*Sixième correction 2026-09-23 :* deux autres points d'entrée sautaient
+encore l'étape photo. Le sheet de vérification de Découvrir (tap sur une
+fiche non vérifiée depuis la liste principale ou la recherche dédiée)
+poussait `VerificationPage` directement - corrigé pour pousser
+`AddProfilePhotoPage` en premier, même règle. Idem pour l'entrée
+« Compte & Sécurité → Vérification » : le porteur a jugé la cohérence
+plus sûre que l'exception (« on sait jamais » qu'un utilisateur y accède
+sans être passé par le bandeau), donc ce menu pousse aussi
+`AddProfilePhotoPage` en premier désormais, plutôt que de rester un accès
+direct à `VerificationPage`.
+
+*Septième correction 2026-09-23 :* le point 1 disait l'étape "Tes passions"
+skippable (comme la photo) - le porteur a tranché l'inverse : au moins un
+centre d'intérêt est désormais obligatoire pour continuer, plus de bouton
+"Passer" sur cette étape. `OnboardingValidators.errorsForStep` (case 2)
+exige `draft.hobbies.isNotEmpty` ; `skipHobbies()`/`skippedHobbies` retirés
+du contrôleur et du state (plus aucun autre point d'entrée ne les lisait).
+
+*Huitième correction 2026-09-23 :* le sous-titre par défaut du bandeau
+("Un profil complet obtient de meilleures suggestions et plus de
+réponses.") ne disait jamais explicitement la vraie conséquence - le
+profil reste invisible dans Découvrir tant qu'il n'est pas complet, et
+une étape de validation photo suit ensuite. Le porteur anticipe que ça
+reviendra en feedback sinon. Remplacé par un message qui nomme cette
+conséquence, dans `ProfileCompletionBanner` (valeur par défaut du
+widget, seul appelant : le bandeau `!completeness.isComplete`).
+
+*Neuvième correction 2026-09-23 :* même souci sur le bandeau "profil
+complet mais non soumis" (cas par défaut du switch, profil complet +
+statut jamais soumis). Le titre seul "Ton profil est complet" - si le
+sous-titre n'est pas lu - laisse croire que rien d'autre n'est requis,
+alors qu'il reste à soumettre photo + selfie pour la vérification. Le
+web scinde ça en deux phrases avec un tiret cadratin ("Ton profil est
+complet — soumets-le pour validation"), interdit dans nos strings UI
+(CLAUDE.md). Titre remplacé par "Soumets ton profil pour validation"
+(nomme directement l'action attendue) ; sous-titre précisé pour lister
+concrètement ce qui manque : "Ajoute ta photo et un selfie de
+vérification pour apparaître dans Découvrir et être contacté par les
+autres membres."
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 
@@ -599,6 +726,19 @@ Test web suggère une intégration directe client → SasPay. À confirmer, puis
 
 Existe-t-il déjà un émetteur FCM/APNs, ou seulement le Web Push VAPID actuel ?
 Détermine si le pont push natif est à construire de zéro.
+
+*Réponse du porteur (2026-09-23) :* non, ça n'existe pas encore - à
+construire de zéro côté backend. FCM confirmé comme cible (Android au
+minimum ; APNs pour iOS reste à câbler séparément, potentiellement via
+FCM qui relaie vers APNs). Reste à construire côté Supabase : la table
+`push_tokens` (natifs, distincte de `push_subscriptions` Web Push), et
+l'émetteur (Edge Function ou équivalent) qui lit les insertions dans
+`notifications`, résout les tokens du destinataire, et appelle l'API
+FCM. Côté mobile : rien n'est encore en place (pas de
+`firebase_core`/`firebase_messaging` dans `pubspec.yaml`, pas de
+`google-services.json`/`GoogleService-Info.plist`) - travail à
+prévoir une fois l'émetteur backend disponible pour tester
+l'enregistrement du token.
 
 ### Q4 — Deep links & accès dev
 *réf. PRD §4, §21 · addendum §1.2*

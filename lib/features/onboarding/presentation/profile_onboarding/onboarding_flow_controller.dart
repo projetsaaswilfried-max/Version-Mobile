@@ -61,7 +61,6 @@ class OnboardingFlowController extends Notifier<OnboardingFlowState> {
       fieldErrors: remaining,
       completedLocally: false,
       skippedPhoto: false,
-      skippedHobbies: false,
       clearSubmitError: true,
     );
   }
@@ -81,11 +80,6 @@ class OnboardingFlowController extends Notifier<OnboardingFlowState> {
       fieldErrors: const {},
     );
     return true;
-  }
-
-  void skipHobbies() {
-    state = state.copyWith(skippedHobbies: true);
-    next();
   }
 
   void goToStep(int step) {
@@ -119,18 +113,43 @@ class OnboardingFlowController extends Notifier<OnboardingFlowState> {
       state = state.copyWith(submitError: 'Ajoute une photo pour terminer.');
       return;
     }
+    if (state.draft.selfiePath == null || state.draft.selfiePath!.isEmpty) {
+      state = state.copyWith(
+        submitError: 'Prends un selfie de vérification pour terminer.',
+      );
+      return;
+    }
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
     final result = await ref.read(submitOnboardingProvider)(state.draft);
     if (_isDisposed()) return;
     switch (result) {
       case Ok():
-        _invalidateCompleteness();
-        state = state.copyWith(
-          isSubmitting: false,
-          completedLocally: true,
-          skippedPhoto: false,
-          fieldErrors: const {},
-        );
+        // Photo + selfie collés (demande du porteur) : la vérification part
+        // dans la foulée, jamais comme une étape séparée à faire plus tard.
+        final verifyResult = await ref
+            .read(profileAccountRepositoryProvider)
+            .submitVerification(selfiePath: state.draft.selfiePath!);
+        if (_isDisposed()) return;
+        switch (verifyResult) {
+          case Ok():
+            _invalidateCompleteness();
+            state = state.copyWith(
+              isSubmitting: false,
+              completedLocally: true,
+              skippedPhoto: false,
+              fieldErrors: const {},
+            );
+          case Err(:final failure):
+            developer.log(
+              'Onboarding submitVerification Err: '
+              '${failure.runtimeType} — ${failure.message}',
+              name: 'onboarding.flow',
+            );
+            state = state.copyWith(
+              isSubmitting: false,
+              submitError: failure.message,
+            );
+        }
       case Err(:final failure):
         developer.log(
           'Onboarding submit Err: ${failure.runtimeType} — ${failure.message}',
@@ -189,6 +208,22 @@ class OnboardingFlowController extends Notifier<OnboardingFlowState> {
   void addPhoto(String path) {
     // Onboarding: une seule photo - un nouveau choix remplace l'existante.
     updateDraft((d) => d.copyWith(photoPaths: [path]));
+  }
+
+  /// Selfie de vérification - toujours pris en direct à la caméra frontale,
+  /// jamais depuis la galerie (même règle que [VerificationPage]).
+  Future<void> pickSelfie() async {
+    final file = await _picker.pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.front,
+      imageQuality: 85,
+    );
+    if (file == null || _isDisposed()) return;
+    updateDraft((d) => d.copyWith(selfiePath: file.path));
+  }
+
+  void clearSelfie() {
+    updateDraft((d) => d.copyWith(clearSelfie: true));
   }
 
   void removePhotoAt(int index) {

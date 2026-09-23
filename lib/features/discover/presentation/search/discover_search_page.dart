@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
-import '../../../profile/presentation/security/verification_page.dart';
+import '../../../profile/presentation/security/add_profile_photo_page.dart';
 import '../../domain/entities/discover_profile.dart';
 import '../../domain/entities/discover_query.dart';
 import '../../domain/premium/discover_premium_gate.dart';
@@ -111,9 +111,11 @@ class _DiscoverSearchPageState extends ConsumerState<DiscoverSearchPage> {
   }
 
   void _onVerifyProfile() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const VerificationPage()));
+    // Photo puis selfie, toujours dans cet ordre (D34) - jamais un accès
+    // direct au selfie qui saute l'étape photo.
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AddProfilePhotoPage()),
+    );
   }
 
   void _onProfileTap(DiscoverProfile profile, DiscoverState state) {

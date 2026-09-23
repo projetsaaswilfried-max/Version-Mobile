@@ -10,7 +10,7 @@ import '../../../core/error/result.dart';
 import '../../profile/di/profile_providers.dart';
 import '../../profile/domain/entities/profile_completeness.dart';
 import '../../profile/presentation/profile_completion_banner_builder.dart';
-import '../../profile/presentation/security/verification_page.dart';
+import '../../profile/presentation/security/add_profile_photo_page.dart';
 import '../../premium/presentation/widgets/premium_feature_sheet.dart';
 import '../domain/entities/discover_profile.dart';
 import '../domain/premium/discover_premium_gate.dart';
@@ -77,9 +77,11 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
   }
 
   void _onVerifyProfile() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const VerificationPage()));
+    // Photo puis selfie, toujours dans cet ordre (D34) - jamais un accès
+    // direct au selfie qui saute l'étape photo.
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AddProfilePhotoPage()),
+    );
   }
 
   void _onSearchLocked() => PremiumFeatureSheet.show(

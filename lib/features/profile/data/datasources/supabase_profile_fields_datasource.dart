@@ -56,7 +56,29 @@ class SupabaseProfileFieldsDataSource implements ProfileFieldsRemoteDataSource {
       final profile = await profileFuture;
       final photo = await photoFuture;
 
+      // `profiles.photo_verification_status` n'est pas synchronisé au rejet
+      // (reste bloqué à UNVERIFIED, confirmé par SQL direct) - la dernière
+      // ligne de `verification_requests` fait foi tant qu'elle existe.
+      String? verificationRequestStatus;
+      try {
+        final request = await _client
+            .from('verification_requests')
+            .select('status')
+            .eq('user_id', userId)
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+        verificationRequestStatus = Json(
+          request ?? const {},
+        ).stringOrNull('status');
+      } on PostgrestException {
+        verificationRequestStatus = null;
+      }
+
       final json = Json(profile ?? const <String, dynamic>{});
+      final resolvedStatus =
+          verificationRequestStatus ??
+          json.stringOrNull('photo_verification_status');
       return (
         gender: json.stringOrNull('gender'),
         birthDate: json.stringOrNull('birth_date'),
@@ -68,9 +90,7 @@ class SupabaseProfileFieldsDataSource implements ProfileFieldsRemoteDataSource {
         hasPrimaryPhoto: photo != null,
         firstName: json.stringOrNull('first_name'),
         lastName: json.stringOrNull('last_name'),
-        photoVerificationStatus: json.stringOrNull(
-          'photo_verification_status',
-        ),
+        photoVerificationStatus: resolvedStatus,
         primaryPhotoUrl: _primaryPhotoUrl(photo),
       );
     } on AuthException catch (e) {

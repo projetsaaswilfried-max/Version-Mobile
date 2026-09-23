@@ -4,22 +4,28 @@ import '../../../../../core/theme/app_radius.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_theme.dart';
 
-/// Carte "complète ton profil" - anneau + CTA (D14 / D18).
+/// Carte "complète ton profil" - message clair + CTA (D14 / D18).
+///
+/// Un pourcentage de complétion affiché ici donnait l'impression que le
+/// profil progressait vers un objectif abstrait ; le porteur veut un
+/// message concret sur la conséquence réelle (visible ou non dans
+/// Découvrir), pas un chiffre.
 class ProfileCompletionBanner extends StatelessWidget {
   const ProfileCompletionBanner({
     super.key,
-    required this.percent,
     required this.onTap,
     this.onDismiss,
+    this.icon = Icons.info_outline,
     this.title = 'Complète ton profil',
     this.subtitle =
-        'Un profil complet obtient de meilleures suggestions et plus de '
-            'réponses.',
+        'Tant qu\'il n\'est pas complet, ton profil n\'apparaît pas dans '
+            'Découvrir - il faudra ensuite valider ta photo pour être '
+            'visible.',
   });
 
-  final int percent;
   final VoidCallback onTap;
   final VoidCallback? onDismiss;
+  final IconData icon;
   final String title;
   final String subtitle;
 
@@ -55,25 +61,12 @@ class ProfileCompletionBanner extends StatelessWidget {
                   SizedBox(
                     width: AppSpacing.xxxl,
                     height: AppSpacing.xxxl,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          value: percent / 100,
-                          strokeWidth: AppSpacing.xxs + 1,
-                          backgroundColor: colors.primary.withValues(
-                            alpha: 0.18,
-                          ),
-                          valueColor: AlwaysStoppedAnimation(colors.primary),
-                        ),
-                        Text(
-                          '$percent%',
-                          style: typography.bodySmall.copyWith(
-                            color: colors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.primary.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: colors.primary),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),

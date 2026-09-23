@@ -17,7 +17,6 @@ void openDiscoverProfileSheet(
   DiscoverProfileSheet.show(
     context,
     profileId: profile.id,
-    scoreHint: profile.score,
     canLike: canLikeDiscoverProfile(
       visitorVerified: state.visitorVerified,
       isStaff: state.visitorIsStaff,

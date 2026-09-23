@@ -451,24 +451,30 @@ class SupabaseProfileAccountDataSource
           json.stringOrNull('marital_status') != null &&
           json.stringList('hobbies').isNotEmpty &&
           hasPhoto;
+      // `profiles.photo_verification_status` n'est pas synchronisé au rejet
+      // (reste bloqué à UNVERIFIED, confirmé par SQL direct) - la dernière
+      // ligne de `verification_requests` fait foi tant qu'elle existe.
       String? rejection;
+      String? requestStatus;
       try {
         final request = await _client
             .from('verification_requests')
             .select('status, rejection_reason')
-            .eq('profile_id', userId)
+            .eq('user_id', userId)
             .order('created_at', ascending: false)
             .limit(1)
             .maybeSingle();
-        rejection = Json(request ?? const {}).stringOrNull('rejection_reason');
+        final requestJson = Json(request ?? const {});
+        rejection = requestJson.stringOrNull('rejection_reason');
+        requestStatus = requestJson.stringOrNull('status');
       } on PostgrestException {
         rejection = null;
+        requestStatus = null;
       }
       return VerificationInfo(
-        status: json.string(
-          'photo_verification_status',
-          fallback: 'UNVERIFIED',
-        ),
+        status:
+            requestStatus ??
+            json.string('photo_verification_status', fallback: 'UNVERIFIED'),
         isComplete: complete,
         rejectionReason: rejection,
         email: _client.auth.currentUser?.email ?? '',
@@ -504,14 +510,14 @@ class SupabaseProfileAccountDataSource
           .eq('moderation_status', 'DRAFT');
       try {
         await _client.from('verification_requests').insert({
-          'profile_id': userId,
+          'user_id': userId,
           'status': 'PENDING',
           'selfie_storage_path': objectPath,
         });
       } on PostgrestException catch (e) {
         if (!_looksLikeMissingColumn(e)) rethrow;
         await _client.from('verification_requests').insert({
-          'profile_id': userId,
+          'user_id': userId,
           'status': 'PENDING',
         });
       }

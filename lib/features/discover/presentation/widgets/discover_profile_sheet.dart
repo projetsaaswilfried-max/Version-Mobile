@@ -23,7 +23,6 @@ class DiscoverProfileSheet extends ConsumerStatefulWidget {
   const DiscoverProfileSheet({
     super.key,
     required this.profileId,
-    this.scoreHint = 0,
     this.canLike = false,
     this.canFavorite = false,
     this.canInvite = false,
@@ -34,7 +33,6 @@ class DiscoverProfileSheet extends ConsumerStatefulWidget {
   });
 
   final String profileId;
-  final int scoreHint;
   final bool canLike;
   final bool canFavorite;
   final bool canInvite;
@@ -46,7 +44,6 @@ class DiscoverProfileSheet extends ConsumerStatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required String profileId,
-    int scoreHint = 0,
     bool canLike = false,
     bool canFavorite = false,
     bool canInvite = false,
@@ -70,7 +67,6 @@ class DiscoverProfileSheet extends ConsumerStatefulWidget {
           height: maxHeight,
           child: DiscoverProfileSheet(
             profileId: profileId,
-            scoreHint: scoreHint,
             canLike: canLike,
             canFavorite: canFavorite,
             canInvite: canInvite,
@@ -157,13 +153,6 @@ class _DiscoverProfileSheetState extends ConsumerState<DiscoverProfileSheet> {
     if (result case Err(:final failure)) {
       debugPrint('record_profile_view: ${failure.message}');
     }
-  }
-
-  int get _displayedScore {
-    final detail = _detail;
-    if (detail == null) return widget.scoreHint;
-    if (detail.score == 0) return widget.scoreHint;
-    return detail.score;
   }
 
   void _soon(String message) => AppToast.show(context, message);
@@ -373,7 +362,7 @@ class _DiscoverProfileSheetState extends ConsumerState<DiscoverProfileSheet> {
     if (detail == null) {
       return DiscoverErrorState(message: 'Profil introuvable.', onRetry: _load);
     }
-    return DiscoverProfileContent(detail: detail, score: _displayedScore);
+    return DiscoverProfileContent(detail: detail);
   }
 }
 
