@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/widgets/widgets.dart';
+import '../../../../interests/di/interests_providers.dart';
 import '../../../../profile/domain/entities/more_info_details.dart';
-import '../../../../profile/presentation/account/widgets/account_list_widgets.dart';
 import '../onboarding_flow_controller.dart';
 
 /// Étape obligatoire (D34) : au moins un centre d'intérêt est requis pour
@@ -47,6 +47,7 @@ class _HobbiesStepState extends ConsumerState<HobbiesStep> {
     final controller = ref.read(onboardingFlowProvider.notifier);
     final typography = context.typography;
     final colors = context.colors;
+    final interestsAsync = ref.watch(interestsListProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -63,15 +64,26 @@ class _HobbiesStepState extends ConsumerState<HobbiesStep> {
             style: typography.bodyMedium.copyWith(color: colors.textSecondary),
           ),
           const SizedBox(height: AppSpacing.lg),
-          TagField(
-            label: 'Centres d\'intérêt',
-            hint: 'ex. randonnée, cuisine, lecture…',
-            tags: draft.hobbies,
-            max: MoreInfoDetails.maxPassions,
-            onChanged: (tags) =>
-                controller.updateDraft((d) => d.copyWith(hobbies: tags)),
-            errorText: state.fieldErrors['hobbies'],
-          ),
+          switch (interestsAsync) {
+            AsyncData(:final value) => AppMultiSelectChips(
+              label: 'Centres d\'intérêt',
+              hint: 'choisis-en au moins un',
+              items: [
+                for (final interest in value)
+                  AppOptionItem(id: interest.name, label: interest.name),
+              ],
+              selected: draft.hobbies,
+              max: MoreInfoDetails.maxPassions,
+              onChanged: (tags) =>
+                  controller.updateDraft((d) => d.copyWith(hobbies: tags)),
+              errorText: state.fieldErrors['hobbies'],
+            ),
+            AsyncError() => Text(
+              'Impossible de charger les centres d\'intérêt.',
+              style: typography.bodySmall.copyWith(color: colors.error),
+            ),
+            _ => const Center(child: CircularProgressIndicator()),
+          },
           const SizedBox(height: AppSpacing.xl),
           AppTextField(
             label: 'Présente-toi',

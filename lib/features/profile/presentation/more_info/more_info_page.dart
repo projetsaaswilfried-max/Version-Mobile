@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../interests/di/interests_providers.dart';
 import '../../domain/entities/more_info_details.dart';
 import '../account/account_save_feedback.dart';
 import '../account/widgets/account_editor_scaffold.dart';
@@ -59,6 +61,7 @@ class _MoreInfoPageState extends ConsumerState<MoreInfoPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(moreInfoControllerProvider);
     final notifier = ref.read(moreInfoControllerProvider.notifier);
+    final interestsAsync = ref.watch(interestsListProvider);
     _seed();
     final details = state.details;
 
@@ -90,14 +93,30 @@ class _MoreInfoPageState extends ConsumerState<MoreInfoPage> {
                   ),
                 if (details.passionsAvailable) ...[
                   const SizedBox(height: AppSpacing.lg),
-                  TagField(
-                    label: 'Passions',
-                    hint: 'hors matching',
-                    tags: details.passions,
-                    max: MoreInfoDetails.maxPassions,
-                    onChanged: (tags) =>
-                        notifier.update((d) => d.copyWith(passions: tags)),
-                  ),
+                  switch (interestsAsync) {
+                    AsyncData(:final value) => AppMultiSelectChips(
+                      label: 'Passions',
+                      hint: 'hors matching',
+                      items: [
+                        for (final interest in value)
+                          AppOptionItem(
+                            id: interest.name,
+                            label: interest.name,
+                          ),
+                      ],
+                      selected: details.passions,
+                      max: MoreInfoDetails.maxPassions,
+                      onChanged: (tags) =>
+                          notifier.update((d) => d.copyWith(passions: tags)),
+                    ),
+                    AsyncError() => Text(
+                      'Impossible de charger les passions.',
+                      style: context.typography.bodySmall.copyWith(
+                        color: context.colors.error,
+                      ),
+                    ),
+                    _ => const Center(child: CircularProgressIndicator()),
+                  },
                 ],
                 if (details.valuesAvailable) ...[
                   const SizedBox(height: AppSpacing.lg),
