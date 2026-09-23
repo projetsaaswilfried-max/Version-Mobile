@@ -5,4 +5,6 @@ abstract class MyProfileRepository {
   Future<Result<MyProfile>> fetchMine();
 
   Future<Result<void>> save(MyProfile profile, {required bool savePhotos});
+
+  Future<Result<void>> deletePhoto(String photoId);
 }

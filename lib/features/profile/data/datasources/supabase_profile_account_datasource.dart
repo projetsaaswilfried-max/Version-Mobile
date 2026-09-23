@@ -13,6 +13,7 @@ import '../../domain/entities/my_profile_photo.dart';
 import '../../domain/entities/privacy_settings.dart';
 import '../../domain/entities/public_profile_preview.dart';
 import '../../domain/entities/verification_info.dart';
+import '../../domain/mapping/resolve_verification_status.dart';
 import '../account_relation_probe.dart';
 import '../blocked_profiles_rpc.dart';
 import 'profile_account_remote_datasource.dart';
@@ -22,6 +23,9 @@ class SupabaseProfileAccountDataSource
   SupabaseProfileAccountDataSource(this._client);
 
   static const _photosBucket = 'avatars';
+  // Bucket dédié et privé - jamais 'avatars' (public), le selfie n'est
+  // jamais destiné à être vu par d'autres membres.
+  static const _selfiesBucket = 'verification-selfies';
   static const _faithRequired = ['church_denomination', 'why_marriage'];
   static const _faithOptional = [
     'spiritual_engagement',
@@ -473,8 +477,14 @@ class SupabaseProfileAccountDataSource
       }
       return VerificationInfo(
         status:
-            requestStatus ??
-            json.string('photo_verification_status', fallback: 'UNVERIFIED'),
+            resolveVerificationStatus(
+              requestStatus: requestStatus,
+              profileStatus: json.string(
+                'photo_verification_status',
+                fallback: 'UNVERIFIED',
+              ),
+            ) ??
+            'UNVERIFIED',
         isComplete: complete,
         rejectionReason: rejection,
         email: _client.auth.currentUser?.email ?? '',
@@ -501,13 +511,31 @@ class SupabaseProfileAccountDataSource
         );
       }
       final userId = _requireUserId();
-      final objectPath = '$userId/selfie.jpg';
-      await _uploadJpeg(objectPath, selfiePath);
-      await _client
-          .from('profile_photos')
-          .update({'moderation_status': 'PENDING'})
-          .eq('profile_id', userId)
-          .eq('moderation_status', 'DRAFT');
+      // Chemin unique par soumission - pas de policy storage UPDATE sur
+      // verification-selfies (uniquement SELECT/INSERT, confirmé par SQL),
+      // réutiliser toujours le même chemin ferait échouer l'upsert d'une
+      // resoumission avec "new row violates row-level security policy".
+      final objectPath =
+          '$userId/selfie_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await _uploadJpeg(objectPath, selfiePath, bucket: _selfiesBucket);
+      // protect_photo_moderation_status() autorise désormais explicitement
+      // cette transition précise (DRAFT -> PENDING, par le propriétaire de
+      // la photo) - toute autre modification de moderation_status reste
+      // réservée aux admins/modérateurs (Q6, docs/decisions.md). En
+      // try/catch : si jamais bloqué (photo pas en DRAFT, trigger pas
+      // encore déployé, etc.), la soumission continue quand même -
+      // verification_requests ci-dessous reste la source de vérité lue par
+      // l'app pour afficher le statut.
+      try {
+        await _client
+            .from('profile_photos')
+            .update({'moderation_status': 'PENDING'})
+            .eq('profile_id', userId)
+            .eq('moderation_status', 'DRAFT');
+      } on PostgrestException {
+        // le dashboard admin ne verra pas cette photo tant que le backend
+        // n'a pas confirmé le déploiement du trigger mis à jour.
+      }
       try {
         await _client.from('verification_requests').insert({
           'user_id': userId,
@@ -651,8 +679,19 @@ class SupabaseProfileAccountDataSource
       final userId = _requireUserId();
       final existing = await _client
           .from('profile_photos')
-          .select('id')
+          .select('id, moderation_status')
           .eq('profile_id', userId);
+      // Un seul lot à la fois dans la file de revue (PRD interne §6) -
+      // l'ajout est bloqué tant qu'une photo précédente n'est pas traitée.
+      final hasPending = existing.any(
+        (row) => row['moderation_status'] == 'PENDING',
+      );
+      if (hasPending) {
+        throw const ValidationException(
+          'Une photo est déjà en cours d\'examen - attends la décision de '
+          'notre équipe avant d\'en ajouter une nouvelle.',
+        );
+      }
       final premium = await _isPremium(userId);
       final max = premium ? 10 : 2;
       if (existing.length >= max) {
@@ -666,14 +705,28 @@ class SupabaseProfileAccountDataSource
       final objectPath = '$userId/slot_$slot.jpg';
       await _uploadJpeg(objectPath, photoPath);
       final url = _client.storage.from(_photosBucket).getPublicUrl(objectPath);
+      // Selfie propre à cette photo (profile_photos.selfie_storage_path) -
+      // jamais réutilisé, jamais modifiable après coup (un trigger bloque
+      // toute UPDATE de cette colonne) : il doit être écrit dans le même
+      // INSERT que la photo, pas via un appel séparé à
+      // verification_requests (PRD interne §6/§7 - cet ajout est examiné
+      // individuellement sur /admin/photos, indépendamment de toute
+      // demande de vérification de profil).
+      final selfieObjectPath =
+          '$userId/${DateTime.now().millisecondsSinceEpoch}-selfie.jpg';
+      await _uploadJpeg(
+        selfieObjectPath,
+        selfiePath,
+        bucket: _selfiesBucket,
+      );
       await _client.from('profile_photos').insert({
         'profile_id': userId,
         'storage_path': objectPath,
         'url': url,
         'is_primary': existing.isEmpty,
         'moderation_status': 'PENDING',
+        'selfie_storage_path': selfieObjectPath,
       });
-      await submitVerification(selfiePath: selfiePath, forceNew: true);
     });
   }
 
@@ -695,6 +748,14 @@ class SupabaseProfileAccountDataSource
     } on ValidationException {
       rethrow;
     } on UnauthorizedException {
+      rethrow;
+    } on ServerException {
+      // Déjà mappé par un _guard() imbriqué (ex. addVerifiedPhoto ->
+      // submitVerification, qui a son propre _guard()) - relancer tel
+      // quel, sinon mapUnknownSupabase() fait e.toString() sur l'objet
+      // et affiche "Instance of 'ServerException'" au lieu du vrai message.
+      rethrow;
+    } on NetworkException {
       rethrow;
     } catch (e) {
       throw mapUnknownSupabase(e);
@@ -959,7 +1020,7 @@ class SupabaseProfileAccountDataSource
   Future<List<MyProfilePhoto>> _fetchPhotos(String userId) async {
     final rows = await _client
         .from('profile_photos')
-        .select('id, storage_path, url, is_primary')
+        .select('id, storage_path, url, is_primary, moderation_status')
         .eq('profile_id', userId);
     final photos = <MyProfilePhoto>[];
     final rest = <MyProfilePhoto>[];
@@ -969,6 +1030,7 @@ class SupabaseProfileAccountDataSource
       final photo = MyProfilePhoto(
         id: json.stringOrNull('id') ?? map['id']?.toString(),
         publicUrl: _photoUrl(map),
+        moderationStatus: json.stringOrNull('moderation_status'),
       );
       if (json.boolValue('is_primary')) {
         photos.add(photo);
@@ -979,13 +1041,17 @@ class SupabaseProfileAccountDataSource
     return [...photos, ...rest];
   }
 
-  Future<void> _uploadJpeg(String objectPath, String localPath) async {
+  Future<void> _uploadJpeg(
+    String objectPath,
+    String localPath, {
+    String bucket = _photosBucket,
+  }) async {
     final file = File(localPath);
     if (!file.existsSync()) {
       throw const ValidationException('Fichier photo introuvable.');
     }
     await _client.storage
-        .from(_photosBucket)
+        .from(bucket)
         .upload(
           objectPath,
           file,

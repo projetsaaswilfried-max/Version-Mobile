@@ -12,6 +12,7 @@ class FakeMyProfileRemoteDataSource implements MyProfileRemoteDataSource {
   Exception? toThrow;
   bool? lastSavePhotos;
   MyProfile? lastSaved;
+  String? lastDeletedPhotoId;
 
   @override
   Future<MyProfileRaw> fetchRaw() async {
@@ -24,6 +25,12 @@ class FakeMyProfileRemoteDataSource implements MyProfileRemoteDataSource {
     if (toThrow != null) throw toThrow!;
     lastSaved = profile;
     lastSavePhotos = savePhotos;
+  }
+
+  @override
+  Future<void> deletePhoto(String photoId) async {
+    if (toThrow != null) throw toThrow!;
+    lastDeletedPhotoId = photoId;
   }
 }
 
@@ -86,5 +93,17 @@ void main() {
     remote.toThrow = const NetworkException('offline');
     final result = await repo.fetchMine();
     expect((result as Err<MyProfile>).failure, isA<NetworkFailure>());
+  });
+
+  test('forwards deletePhoto to remote', () async {
+    final result = await repo.deletePhoto('p1');
+    expect(result, const Ok<void>(null));
+    expect(remote.lastDeletedPhotoId, 'p1');
+  });
+
+  test('maps deletePhoto failure to Err', () async {
+    remote.toThrow = const ServerException('boom');
+    final result = await repo.deletePhoto('p1');
+    expect((result as Err<void>).failure, isA<ServerFailure>());
   });
 }

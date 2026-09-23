@@ -26,6 +26,17 @@ void main() {
       isA<NetworkException>(),
     );
   });
+
+  test('passes an already-mapped exception through, keeps its message', () {
+    // Un _guard()/try-catch imbriqué (ex. une méthode de datasource qui en
+    // appelle une autre déjà gardée) peut faire remonter une exception déjà
+    // mappée jusqu'ici - sans ça, e.toString() donnait
+    // "Instance of 'ServerException'" au lieu du vrai message.
+    const inner = ServerException('Photo de vérification floue.');
+    final mapped = mapUnknownSupabase(inner);
+    expect(mapped, isA<ServerException>());
+    expect((mapped as ServerException).message, 'Photo de vérification floue.');
+  });
 }
 
 class SocketExceptionMessage {

@@ -6,14 +6,24 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 
 class DiscoverVerifySheet extends StatelessWidget {
-  const DiscoverVerifySheet({super.key, this.onDismiss, this.onVerify});
+  const DiscoverVerifySheet({
+    super.key,
+    this.onDismiss,
+    this.onVerify,
+    this.isPending = false,
+  });
 
   final VoidCallback? onDismiss;
   final VoidCallback? onVerify;
 
+  /// Vérification déjà soumise, en attente de revue - il n'y a rien à faire
+  /// de plus, renvoyer vers l'étape photo serait trompeur.
+  final bool isPending;
+
   static Future<void> show(
     BuildContext context, {
     VoidCallback? onVerify,
+    bool isPending = false,
   }) {
     final colors = context.colors;
     return showModalBottomSheet<void>(
@@ -27,10 +37,13 @@ class DiscoverVerifySheet extends StatelessWidget {
       builder: (ctx) {
         return DiscoverVerifySheet(
           onDismiss: () => Navigator.of(ctx).pop(),
-          onVerify: () {
-            Navigator.of(ctx).pop();
-            onVerify?.call();
-          },
+          onVerify: isPending
+              ? null
+              : () {
+                  Navigator.of(ctx).pop();
+                  onVerify?.call();
+                },
+          isPending: isPending,
         );
       },
     );
@@ -56,7 +69,10 @@ class DiscoverVerifySheet extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('Valide ton profil', style: typography.headline),
+                  child: Text(
+                    isPending ? 'Vérification en cours' : 'Valide ton profil',
+                    style: typography.headline,
+                  ),
                 ),
                 IconButton(
                   tooltip: 'Fermer',
@@ -67,18 +83,20 @@ class DiscoverVerifySheet extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              "Pour aimer un profil, valide d'abord ton identité.",
+              isPending
+                  ? "Ton identité est en cours d'examen par notre équipe. "
+                        'Reviens dès que c\'est validé pour aimer un profil.'
+                  : "Pour aimer un profil, valide d'abord ton identité.",
               style: typography.bodyMedium.copyWith(
                 color: colors.textSecondary,
                 height: 1.35,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            AppButton(
-              label: 'Vérifier mon profil',
-              onPressed: onVerify,
-            ),
-            const SizedBox(height: AppSpacing.sm),
+            if (!isPending) ...[
+              AppButton(label: 'Vérifier mon profil', onPressed: onVerify),
+              const SizedBox(height: AppSpacing.sm),
+            ],
             AppButton(
               label: 'Fermer',
               variant: AppButtonVariant.secondary,

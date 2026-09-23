@@ -69,6 +69,54 @@ Future<void> _pumpSheet(
 }
 
 void main() {
+  testWidgets(
+    'pull-to-refresh reflects a new verification status (profileFieldsProvider)',
+    (tester) async {
+      var status = 'PENDING';
+      final repo = FakeDiscoverRepository();
+      tester.view.physicalSize = const Size(400, 3200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            discoverRepositoryProvider.overrideWithValue(repo),
+            profileCompletenessProvider.overrideWith(
+              (ref) async =>
+                  const ProfileCompleteness(isComplete: true, missingKeys: []),
+            ),
+            profileFieldsProvider.overrideWith(
+              (ref) async => Ok(
+                fakeProfileFieldsSnapshot(
+                  hasPrimaryPhoto: true,
+                  photoVerificationStatus: status,
+                ),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const Scaffold(body: DiscoverBody()),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Vérification en cours'), findsOneWidget);
+
+      status = 'VERIFIED';
+      final refreshIndicator = tester.widget<RefreshIndicator>(
+        find.byType(RefreshIndicator),
+      );
+      await refreshIndicator.onRefresh();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vérification en cours'), findsNothing);
+    },
+  );
+
   testWidgets('loading then success records view and shows profile', (
     tester,
   ) async {
@@ -229,6 +277,70 @@ void main() {
       await tester.pumpAndSettle();
     }
   }
+
+  testWidgets(
+    'PENDING tap card opens verify sheet without the photo CTA',
+    (tester) async {
+      // Vérification déjà soumise (selfie envoyé), en attente de revue -
+      // le sheet ne doit pas renvoyer vers l'étape photo, il n'y a rien à
+      // refaire tant que l'équipe n'a pas statué.
+      tester.view.physicalSize = const Size(400, 3200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repo = FakeDiscoverRepository(
+        visitor: const Ok(
+          VisitorContext(
+            id: 'visitor-1',
+            gender: 'MALE',
+            isVerified: false,
+            subscriptionStatus: 'FREE',
+            traits: CompatibilityTraits(),
+          ),
+        ),
+        candidates: Ok([fakeDiscoverProfile('a')]),
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            discoverRepositoryProvider.overrideWithValue(repo),
+            profileCompletenessProvider.overrideWith(
+              (ref) async =>
+                  const ProfileCompleteness(isComplete: true, missingKeys: []),
+            ),
+            profileFieldsProvider.overrideWith(
+              (ref) async => Ok(
+                fakeProfileFieldsSnapshot(photoVerificationStatus: 'PENDING'),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const Scaffold(body: DiscoverBody()),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      if (find.text('Découvre tout Agapeo').evaluate().isNotEmpty) {
+        Navigator.of(tester.element(find.text('Découvre tout Agapeo'))).pop();
+        await tester.pumpAndSettle();
+      }
+
+      await tester.tap(find.byKey(const ValueKey('discover-card-a')));
+      await tester.pumpAndSettle();
+
+      // "Vérification en cours" apparaît aussi dans le bandeau de
+      // complétion en haut de Découvrir (même statut PENDING) - on vérifie
+      // le corps du sheet, propre à celui-ci.
+      expect(
+        find.textContaining("en cours d'examen par notre équipe"),
+        findsOneWidget,
+      );
+      expect(find.text('Vérifier mon profil'), findsNothing);
+      expect(repo.fetchDetailIds, isEmpty);
+    },
+  );
 
   testWidgets('unverified tap card opens verify sheet', (tester) async {
     final repo = FakeDiscoverRepository(

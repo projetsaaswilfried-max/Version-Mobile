@@ -43,4 +43,9 @@ abstract class MyProfileRemoteDataSource {
   Future<MyProfileRaw> fetchRaw();
 
   Future<void> save(MyProfile profile, {required bool savePhotos});
+
+  /// Supprime une photo déjà envoyée (profil vérifié - `MyProfileController`
+  /// bloque `removePhotoAt` dans ce cas, ce chemin sert directement le
+  /// serveur). Réassigne une photo principale si celle supprimée l'était.
+  Future<void> deletePhoto(String photoId);
 }

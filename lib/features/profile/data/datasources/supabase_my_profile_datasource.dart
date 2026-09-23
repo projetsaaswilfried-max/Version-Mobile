@@ -137,7 +137,7 @@ class SupabaseMyProfileDataSource implements MyProfileRemoteDataSource {
   Future<List<MyProfilePhoto>> _fetchPhotos(String userId) async {
     final rows = await _client
         .from('profile_photos')
-        .select('id, storage_path, url, is_primary')
+        .select('id, storage_path, url, is_primary, moderation_status')
         .eq('profile_id', userId);
     final photos = <MyProfilePhoto>[];
     final rest = <MyProfilePhoto>[];
@@ -147,6 +147,7 @@ class SupabaseMyProfileDataSource implements MyProfileRemoteDataSource {
       final photo = MyProfilePhoto(
         id: json.stringOrNull('id') ?? map['id']?.toString(),
         publicUrl: _photoUrl(map),
+        moderationStatus: json.stringOrNull('moderation_status'),
       );
       if (json.boolValue('is_primary')) {
         photos.add(photo);
@@ -277,6 +278,43 @@ class SupabaseMyProfileDataSource implements MyProfileRemoteDataSource {
           'ACTIVE';
     } on PostgrestException {
       return false;
+    }
+  }
+
+  @override
+  Future<void> deletePhoto(String photoId) async {
+    final userId = _requireUserId();
+    final row = await _client
+        .from('profile_photos')
+        .select('id, storage_path, is_primary')
+        .eq('id', photoId)
+        .eq('profile_id', userId)
+        .maybeSingle();
+    if (row == null) return;
+    final json = Json(row);
+    final wasPrimary = json.boolValue('is_primary');
+    final storagePath = json.stringOrNull('storage_path');
+    await _client.from('profile_photos').delete().eq('id', photoId);
+    if (storagePath != null && storagePath.isNotEmpty) {
+      try {
+        await _client.storage.from(_photosBucket).remove([storagePath]);
+      } on StorageException {
+        // Le fichier a peut-être déjà disparu - la ligne DB supprimée est
+        // ce qui compte pour l'utilisateur.
+      }
+    }
+    if (!wasPrimary) return;
+    final remaining = await _client
+        .from('profile_photos')
+        .select('id')
+        .eq('profile_id', userId)
+        .limit(1)
+        .maybeSingle();
+    if (remaining != null) {
+      await _client
+          .from('profile_photos')
+          .update({'is_primary': true})
+          .eq('id', remaining['id']);
     }
   }
 

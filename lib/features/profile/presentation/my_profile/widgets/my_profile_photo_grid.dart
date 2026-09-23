@@ -17,6 +17,7 @@ class MyProfilePhotoGrid extends StatelessWidget {
     required this.onRemoveAt,
     this.maxSlots = 2,
     this.emphasizeEmpty = false,
+    this.showRemoveButtons,
   });
 
   final int maxSlots;
@@ -24,6 +25,12 @@ class MyProfilePhotoGrid extends StatelessWidget {
   final bool readOnly;
   final VoidCallback onAdd;
   final ValueChanged<int> onRemoveAt;
+
+  /// Découplé de [readOnly] : un appelant peut vouloir cacher la tuile "+"
+  /// inline (l'ajout passe par un autre flux, ex. selfie obligatoire) tout
+  /// en gardant la suppression possible. `null` retombe sur `!readOnly`
+  /// (comportement historique).
+  final bool? showRemoveButtons;
 
   /// Cadre d'ajout plus visible quand la photo manque pour la complétion.
   final bool emphasizeEmpty;
@@ -33,6 +40,7 @@ class MyProfilePhotoGrid extends StatelessWidget {
     final colors = context.colors;
     final typography = context.typography;
     final canAdd = !readOnly && photos.length < maxSlots;
+    final canRemove = showRemoveButtons ?? !readOnly;
     final closeIcon = AppSpacing.lg + AppSpacing.xxs;
     final showHeroEmpty = canAdd && photos.isEmpty && emphasizeEmpty;
 
@@ -108,7 +116,15 @@ class MyProfilePhotoGrid extends StatelessWidget {
                   borderRadius: AppRadius.lgRadius,
                   child: _PhotoFill(photo: photos[i]),
                 ),
-                if (!readOnly)
+                if (_ModerationBadge.labelFor(photos[i].moderationStatus)
+                    case final label?)
+                  Positioned(
+                    left: AppSpacing.xs,
+                    bottom: AppSpacing.xs,
+                    right: AppSpacing.xs,
+                    child: _ModerationBadge(label: label),
+                  ),
+                if (canRemove)
                   Positioned(
                     top: 0,
                     right: 0,
@@ -172,5 +188,55 @@ class _PhotoFill extends StatelessWidget {
       return AppNetworkImage(url: url);
     }
     return const AppAvatarPlaceholder(borderRadius: AppRadius.lgRadius);
+  }
+}
+
+/// Seuls PENDING/REJECTED sont affichés - APPROVED (déjà visible par les
+/// autres membres) et DRAFT (pas encore soumise, rien à signaler) n'ont
+/// pas besoin d'un badge.
+class _ModerationBadge extends StatelessWidget {
+  const _ModerationBadge({required this.label});
+
+  final String label;
+
+  static String? labelFor(String? moderationStatus) {
+    switch (moderationStatus?.toUpperCase()) {
+      case 'PENDING':
+        return 'En attente';
+      case 'REJECTED':
+        return 'Refusée';
+      default:
+        return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final typography = context.typography;
+    final isRejected = label == 'Refusée';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: (isRejected ? colors.error : colors.textPrimary).withValues(
+          alpha: 0.85,
+        ),
+        borderRadius: AppRadius.smRadius,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs,
+          vertical: AppSpacing.xxs,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            style: typography.label.copyWith(color: colors.onScrim),
+          ),
+        ),
+      ),
+    );
   }
 }

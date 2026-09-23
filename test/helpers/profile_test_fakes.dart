@@ -1,6 +1,7 @@
 import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/features/profile/domain/entities/my_profile.dart';
+import 'package:agapeo/features/profile/domain/entities/my_profile_photo.dart';
 import 'package:agapeo/features/profile/domain/entities/profile_fields_snapshot.dart';
 import 'package:agapeo/features/profile/domain/repositories/my_profile_repository.dart';
 import 'package:agapeo/features/profile/domain/repositories/profile_fields_repository.dart';
@@ -54,14 +55,18 @@ class FakeMyProfileRepository implements MyProfileRepository {
   FakeMyProfileRepository({
     this.fetchResult = const Err(ServerFailure('unset')),
     this.saveResult = const Ok(null),
+    this.deletePhotoResult = const Ok(null),
   });
 
   Result<MyProfile> fetchResult;
   Result<void> saveResult;
+  Result<void> deletePhotoResult;
   int fetchCalls = 0;
   int saveCalls = 0;
+  int deletePhotoCalls = 0;
   bool? lastSavePhotos;
   MyProfile? lastSavedProfile;
+  String? lastDeletedPhotoId;
 
   @override
   Future<Result<MyProfile>> fetchMine() async {
@@ -79,6 +84,13 @@ class FakeMyProfileRepository implements MyProfileRepository {
     lastSavedProfile = profile;
     return saveResult;
   }
+
+  @override
+  Future<Result<void>> deletePhoto(String photoId) async {
+    deletePhotoCalls++;
+    lastDeletedPhotoId = photoId;
+    return deletePhotoResult;
+  }
 }
 
 MyProfile fakeMyProfile({
@@ -91,6 +103,7 @@ MyProfile fakeMyProfile({
   String denomination = 'Évangélique',
   String whyMarriage = 'Alliance',
   String? maritalStatusDb = 'SINGLE_NO_CHILDREN',
+  List<MyProfilePhoto> photos = const [],
 }) {
   return MyProfile(
     firstName: firstName,
@@ -107,5 +120,6 @@ MyProfile fakeMyProfile({
     denomination: denomination,
     whyMarriage: whyMarriage,
     maritalStatusDb: maritalStatusDb,
+    photos: photos,
   );
 }

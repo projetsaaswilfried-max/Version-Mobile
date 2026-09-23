@@ -16,6 +16,7 @@ import '../../domain/mapping/marital_status_label.dart';
 import '../../domain/photo_quota.dart';
 import '../faith/faith_page.dart';
 import '../hub/profile_hub_controller.dart';
+import '../security/photos_management_page.dart';
 import 'my_profile_controller.dart';
 import 'widgets/my_profile_photo_grid.dart';
 
@@ -246,6 +247,18 @@ class _MyProfileFormState extends ConsumerState<_MyProfileForm> {
                 onAdd: () => _openSourceSheet(context, notifier),
                 onRemoveAt: notifier.removePhotoAt,
               ),
+              if (profile.isVerified) ...[
+                const SizedBox(height: AppSpacing.sm),
+                AppButton(
+                  label: 'Gérer mes photos',
+                  variant: AppButtonVariant.text,
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PhotosManagementPage(),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.xl),
               Text(
                 'Non modifiables après validation',

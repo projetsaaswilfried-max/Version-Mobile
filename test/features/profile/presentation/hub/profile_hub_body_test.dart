@@ -105,6 +105,37 @@ void main() {
     }
   });
 
+  testWidgets(
+    'pull-to-refresh reflects a new verification status (profileFieldsProvider)',
+    (tester) async {
+      final fields = FakeProfileFieldsRepository(
+        result: Ok(
+          fakeProfileFieldsSnapshot(
+            hasPrimaryPhoto: true,
+            photoVerificationStatus: 'PENDING',
+          ),
+        ),
+      );
+      await pumpTab(tester, fields: fields);
+
+      expect(find.text('Vérification en cours'), findsOneWidget);
+
+      fields.result = Ok(
+        fakeProfileFieldsSnapshot(
+          hasPrimaryPhoto: true,
+          photoVerificationStatus: 'VERIFIED',
+        ),
+      );
+      final refreshIndicator = tester.widget<RefreshIndicator>(
+        find.byType(RefreshIndicator),
+      );
+      await refreshIndicator.onRefresh();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vérification en cours'), findsNothing);
+    },
+  );
+
   testWidgets('opens Mes Publications', (tester) async {
     await pumpTab(tester);
     await tapSection(tester, 'Mes Publications');

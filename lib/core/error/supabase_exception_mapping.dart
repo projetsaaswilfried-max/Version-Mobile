@@ -80,6 +80,18 @@ Exception mapStorageException(
 }
 
 Exception mapUnknownSupabase(Object e) {
+  // Déjà mappé par un _guard()/try-catch imbriqué (ex. une méthode de
+  // datasource qui en appelle une autre, elle-même déjà gardée) - relancer
+  // tel quel, sinon le fallback ci-dessous fait e.toString() sur l'objet
+  // et affiche "Instance of 'ServerException'" au lieu du vrai message.
+  if (e is ServerException ||
+      e is NetworkException ||
+      e is ValidationException ||
+      e is UnauthorizedException ||
+      e is EmailNotConfirmedException ||
+      e is CacheException) {
+    return e as Exception;
+  }
   final msg = e.toString();
   developer.log(
     'Unknown Supabase error: $msg',

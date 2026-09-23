@@ -251,7 +251,7 @@ class _OnboardingFlowPageState extends ConsumerState<OnboardingFlowPage> {
                           children: [
                             if (state.isRecapStep) ...[
                               AppButton(
-                                label: 'Terminer',
+                                label: 'Soumettre',
                                 isLoading: busy,
                                 onPressed:
                                     busy ||

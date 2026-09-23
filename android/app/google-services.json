@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "275473259460",
+    "project_id": "agapeo-98ecb",
+    "storage_bucket": "agapeo-98ecb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:275473259460:android:729e1b639d7084830de291",
+        "android_client_info": {
+          "package_name": "love.agapeo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCv_Ort5ZCkDU4hKfSv9-CTFC5intVMyWg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

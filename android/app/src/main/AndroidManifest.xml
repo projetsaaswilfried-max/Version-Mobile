@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="agapeo"
         android:name="${applicationName}"
@@ -55,6 +56,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Icône des notifications push (statut/tray) - doit être une
+             silhouette blanche/transparente, jamais l'icône couleur de
+             l'app (contrainte Android depuis Lollipop). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notif" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/supabase_exception_mapping.dart';
 import '../../../../core/parsing/json.dart';
+import '../../domain/mapping/resolve_verification_status.dart';
 import 'profile_fields_remote_datasource.dart';
 
 class SupabaseProfileFieldsDataSource implements ProfileFieldsRemoteDataSource {
@@ -76,9 +77,10 @@ class SupabaseProfileFieldsDataSource implements ProfileFieldsRemoteDataSource {
       }
 
       final json = Json(profile ?? const <String, dynamic>{});
-      final resolvedStatus =
-          verificationRequestStatus ??
-          json.stringOrNull('photo_verification_status');
+      final resolvedStatus = resolveVerificationStatus(
+        requestStatus: verificationRequestStatus,
+        profileStatus: json.stringOrNull('photo_verification_status'),
+      );
       return (
         gender: json.stringOrNull('gender'),
         birthDate: json.stringOrNull('birth_date'),

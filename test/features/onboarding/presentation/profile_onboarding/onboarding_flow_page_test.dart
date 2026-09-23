@@ -243,7 +243,7 @@ void main() {
     expect(find.text('Passer'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
     expect(find.text('Revenir plus tard'), findsNothing);
-    expect(find.text('Terminer'), findsNothing);
+    expect(find.text('Soumettre'), findsNothing);
 
     await tester.tap(find.text('Passer'));
     await tester.pumpAndSettle();
@@ -319,7 +319,7 @@ void main() {
         );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Terminer'));
+    await tester.tap(find.text('Soumettre'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
     // _onCompleted (postFrameCallback) programme lui-même AppToast.show
@@ -408,7 +408,7 @@ void main() {
     _goToRecapStep(container);
     await tester.pumpAndSettle();
 
-    expect(find.text('Terminer'), findsOneWidget);
+    expect(find.text('Soumettre'), findsOneWidget);
     expect(find.text('Passer'), findsNothing);
     expect(find.text('Revenir plus tard'), findsNothing);
   });

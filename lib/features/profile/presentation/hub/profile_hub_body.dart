@@ -62,8 +62,7 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
     final state = ref.watch(profileHubControllerProvider);
 
     return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(profileHubControllerProvider.notifier).refresh(),
+      onRefresh: _onRefresh,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -72,6 +71,18 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
         ],
       ),
     );
+  }
+
+  // profileFieldsProvider n'est pas autoDispose (cache session) - seul le
+  // hub lui-même est rechargé par un simple pull-to-refresh, laissant le
+  // bandeau de complétion affiché ici sur un statut de vérification
+  // obsolète (ex. "Vérification en cours" alors que déjà VERIFIED).
+  Future<void> _onRefresh() async {
+    ref.invalidate(profileFieldsProvider);
+    await Future.wait([
+      ref.read(profileHubControllerProvider.notifier).refresh(),
+      ref.read(profileFieldsProvider.future),
+    ]);
   }
 
   List<Widget> _slivers(

@@ -4,6 +4,7 @@ import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/domain/entities/auth_session.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:agapeo/features/profile/presentation/my_profile/my_profile_page.dart';
+import 'package:agapeo/features/profile/presentation/security/photos_management_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -140,6 +141,23 @@ void main() {
     );
 
     expect(find.bySemanticsLabel('Ajouter une photo'), findsNothing);
+  });
+
+  testWidgets('verified: "Gérer mes photos" opens PhotosManagementPage', (
+    tester,
+  ) async {
+    await pumpPage(
+      tester,
+      repo: FakeMyProfileRepository(
+        fetchResult: Ok(fakeMyProfile(isVerified: true)),
+      ),
+    );
+
+    expect(find.text('Gérer mes photos'), findsOneWidget);
+    await tester.tap(find.text('Gérer mes photos'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PhotosManagementPage), findsOneWidget);
   });
 
   testWidgets('save pops after success', (tester) async {

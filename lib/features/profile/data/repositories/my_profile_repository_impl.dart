@@ -32,6 +32,16 @@ class MyProfileRepositoryImpl implements MyProfileRepository {
     }
   }
 
+  @override
+  Future<Result<void>> deletePhoto(String photoId) async {
+    try {
+      await _remote.deletePhoto(photoId);
+      return const Ok(null);
+    } catch (error) {
+      return Err(mapDataException(error));
+    }
+  }
+
   MyProfile _map(MyProfileRaw raw) {
     return MyProfile(
       firstName: raw.firstName?.trim() ?? '',

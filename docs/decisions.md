@@ -656,6 +656,146 @@ concrètement ce qui manque : "Ajoute ta photo et un selfie de
 vérification pour apparaître dans Découvrir et être contacté par les
 autres membres."
 
+### D35 - Suppression de photo pour un membre vérifié
+*2026-09-23 · réf. bouton "supprimer" présent dans l'UI mais jamais câblé*
+
+"Gérer mes photos" affichait un bouton supprimer par photo, mais
+`onRemoveAt: (_) {}` était un stub vide - aucune méthode de suppression
+n'existait même côté repository/datasource pour un membre déjà vérifié
+(`MyProfileController.removePhotoAt` bloque volontairement si
+`isVerified`, ce mécanisme est réservé au profil non encore vérifié).
+
+Règle confirmée par le porteur : supprimer une photo secondaire (pas la
+principale) n'a aucune conséquence particulière. Supprimer **toutes**
+les photos fait naturellement revenir le profil à l'état "non soumis"
+(plus de photo principale → `ProfileCompleteness.isComplete` redevient
+faux → disparaît de Découvrir jusqu'à l'ajout d'une nouvelle photo) -
+comportement déjà couvert par la logique existante, aucune écriture DB
+supplémentaire nécessaire au-delà de la suppression de la ligne
+`profile_photos`.
+
+Ajouté `MyProfileRepository.deletePhoto()` : supprime le fichier
+storage + la ligne `profile_photos`, réassigne automatiquement une
+photo principale si celle supprimée l'était et qu'il en reste
+d'autres. `MyProfilePhotoGrid.readOnly` liait à tort la tuile "+" et
+les boutons de suppression au même flag - découplé via un nouveau
+paramètre `showRemoveButtons`, pour afficher la suppression sans
+réactiver l'ajout inline (qui doit toujours passer par le flux dédié
+avec selfie obligatoire pour un membre vérifié).
+
+### D36 - PRD interne "Vérification de profil & modération des photos" (doc porteur, 27/09/2026)
+
+Le porteur a partagé un document généré depuis le code/la base réels du
+web (pas une spec théorique) décrivant tout le cycle de vérification et
+modération des photos. Deux bugs confirmés et corrigés par rapport à ce
+qu'on avait construit en D35/pour `addVerifiedPhoto` :
+
+1. **Avertissement de suppression de photo** : la vraie condition est
+   "c'est la photo principale" (peu importe combien il en reste
+   d'autres), pas "c'est la dernière photo restante" - supprimer la
+   principale réinitialise `photo_verification_status` à `UNVERIFIED`
+   côté serveur même avec d'autres photos en stock. Condition et texte
+   corrigés, copie alignée mot pour mot sur celle du doc.
+2. **`addVerifiedPhoto()`** (ajout de photo par un membre déjà vérifié) :
+   - ne bloquait pas l'ajout si une photo précédente était encore
+     `PENDING` - un seul lot à la fois dans la file de revue admin,
+     corrigé.
+   - passait par `submitVerification()` (donc `verification_requests`)
+     pour le selfie du lot, alors que le doc précise que ce selfie doit
+     vivre sur `profile_photos.selfie_storage_path` (propre à chaque
+     photo, jamais réutilisé ni modifiable après coup - confirmé par un
+     trigger déjà lu cette session qui bloque toute `UPDATE` de cette
+     colonne). Cet ajout est examiné individuellement sur `/admin/photos`,
+     indépendamment de toute demande de vérification de profil - il ne
+     doit donc plus créer de ligne `verification_requests` du tout.
+     Restructuré en un seul `INSERT profile_photos` avec `storage_path`,
+     `selfie_storage_path` et `moderation_status: 'PENDING'` ensemble.
+
+Confirmé par ce même doc, sans action nécessaire : le contournement déjà
+en place (lire le statut depuis `verification_requests` plutôt que
+`profiles.photo_verification_status`, D34) résout de fait le "point
+bloquant" que le doc identifie côté mobile (colonne protégée,
+réservée au service_role) - à remonter au porteur/à l'équipe web, qui ne
+semblaient pas savoir que le mobile contourne déjà cette limite.
+
+**Reste ouvert** : le web capture le selfie tôt dans l'onboarding
+(étape 3/5) mais diffère la vraie soumission (`verification_requests` +
+`photo_verification_status → PENDING`) jusqu'au bouton final de la
+dernière étape. Le mobile soumet immédiatement après le selfie (D34,
+validé explicitement par le porteur plus tôt) - à confirmer si cette
+simplification reste voulue maintenant que la différence avec le web est
+connue, ou si l'ordre doit être aligné.
+
+*Correction 2026-09-23 (même jour) :* le point 1 (avertissement de
+suppression) supposait, comme le doc, que supprimer la photo principale
+réinitialise réellement `photo_verification_status` à `UNVERIFIED` côté
+serveur. **Testé et infirmé sur deux comptes neufs**, protocole complet
+(onboarding → approbation admin → suppression photo principale, aucune
+manip DB manuelle) :
+
+| Étape | `photo_verification_status` | `verification_requests` (dernière) | `nb_photos` |
+|---|---|---|---|
+| Après approbation admin | `VERIFIED` | `VERIFIED` | 1, `APPROVED` |
+| Après suppression photo principale | **`VERIFIED` (inchangé)** | **`VERIFIED` (inchangé)** | 0 |
+
+Résultat identique sur les deux comptes testés (18:10 et une exécution
+antérieure le même jour) : ni `profiles.photo_verification_status` ni
+`verification_requests` ne bougent à la suppression - le profil reste
+visiblement "VERIFIED" pour le mobile (et donc pour Découvrir/les autres
+membres, puisque ce sont ces mêmes colonnes qui pilotent la visibilité)
+alors qu'il n'a plus aucune photo. **Le trigger décrit au §5 du PRD
+interne n'existe pas ou ne se déclenche pas en pratique** - à remonter
+au porteur/backend avec ce tableau comme preuve reproductible. L'avertissement
+côté mobile (texte/condition) reste correct par rapport à ce que le
+produit *devrait* faire ; c'est la réalité serveur qui ne suit pas
+encore.
+
+*Correction 2026-09-23 (même jour, backend + mobile) :* le porteur a
+corrigé le trigger - `photo_verification_status` repasse bien à
+`UNVERIFIED` à la suppression de la photo principale (revérifié sur le
+même compte). Mais ça a révélé le vrai bug côté mobile : notre lecture
+privilégiait systématiquement `verification_requests` (qui, lui, ne
+reçoit jamais de nouvelle ligne à la suppression et reste `VERIFIED`
+indéfiniment) sur `profiles.photo_verification_status` - donc l'app
+continuait d'afficher "Vérifié" malgré le fix backend. Corrigé via
+`resolveVerificationStatus()` : PENDING/REJECTED de
+`verification_requests` l'emportent toujours (comme avant, `profiles`
+ne les synchronise pas fiablement), mais un VERIFIED de
+`verification_requests` n'est retenu que si `profiles` est d'accord -
+sinon `profiles` prime, puisque c'est lui le signal à jour pour cette
+transition précise. Sujet clos côté mobile.
+
+### D37 - Routage des 17 types de notification push
+
+*2026-09-23 · l'intégration FCM (D-push_notifications) fonctionne de bout
+en bout (device_tokens, campagne Firebase, insert SQL → Edge Function),
+mais le tap sur la notification ne routait que NEW_MESSAGE/conversation
+et PROFILE_VISIT - le porteur a fourni la liste complète des 17 types.*
+
+`_openNotificationTarget` (`notifications_page.dart`) route maintenant
+sur `type` en priorité (liste confirmée par le porteur), avec
+`target_url` en dernier recours pour les types non reconnus (préserve
+le comportement historique) :
+
+- Conversation (NEW_MESSAGE, CONVERSATION_INVITE, MATCH_REQUEST,
+  MATCH_ACCEPTED, CONVERSATION_ACCEPTED) → `ConversationThreadPage` via
+  l'id `conversation` de `target_url`.
+- Profil (NEW_FAVORITE, PROFILE_LIKE, PROFILE_VISIT) → fiche complète
+  via `actorId` (`DiscoverProfileSheet.show` direct, même gating que
+  `openDiscoverProfileSheet`).
+- NEW_RECOMMENDATION → onglet Découvrir.
+- SUPPORT_REPLY → `SupportListPage`.
+- PHOTO_APPROVED / PHOTO_REJECTED → `VerificationPage`.
+- PAYMENT_FAILED → `PremiumPlanPage`.
+
+**Limite connue** : POST_LIKE, POST_COMMENT, OFFICIAL_POST et
+NEW_RESOURCE retombent sur l'onglet Fil (pas de destination précise) -
+aucune route par id n'existe dans l'app mobile pour un post ou une
+ressource précis (`PostDetailPage` prend un `Post` complet, pas un id ;
+aucun usecase `getPostById`). Pas bloquant pour l'instant, mais à
+construire si on veut un deep-link précis vers la publication/ressource
+concernée plutôt que juste ouvrir le Fil.
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 
@@ -740,6 +880,23 @@ FCM. Côté mobile : rien n'est encore en place (pas de
 prévoir une fois l'émetteur backend disponible pour tester
 l'enregistrement du token.
 
+*Suite 2026-09-23 (même jour) :* le backend a construit le pont push natif
+- table `device_tokens` (pas `push_tokens` finalement ; colonnes `id,
+user_id, token, platform check in ('ios','android'), created_at,
+updated_at`, `token` UNIQUE globalement, RLS insert/select/delete "own"
+mais **pas d'UPDATE**, confirmé par SQL) et l'Edge Function qui lit les
+insertions dans `notifications`. Le porteur a ajouté Firebase côté mobile
+via `flutterfire configure`. Câblage client fait dans la foulée : feature
+`push_notifications` (`DeviceTokensRepository`, insert avec soft-success
+sur conflit d'unicité en l'absence d'UPDATE possible),
+`PushNotificationsListener` (token refresh, foreground sans bannière,
+tap → `NotificationsPage`), permission + premier enregistrement du token
+juste après connexion, suppression au logout. Config native ajoutée
+(`POST_NOTIFICATIONS` Android, `UIBackgroundModes`/`aps-environment` iOS)
+- reste à confirmer côté porteur que la capacité "Push Notifications" est
+activée dans Xcode et la clé APNs configurée côté Firebase console avant
+un premier test sur device réel.
+
 ### Q4 — Deep links & accès dev
 *réf. PRD §4, §21 · addendum §1.2*
 
@@ -770,6 +927,93 @@ vocaux existants viennent donc probablement d'un enregistrement web
 - **Transcodage côté mobile** (FFmpeg, ex. `ffmpeg_kit_flutter`) :
   possible mais alourdit l'app (~20-50 Mo) et ce paquet a des soucis de
   licence/disponibilité récents sur pub.dev.
+
+### Q6 — Transition profile_photos.moderation_status DRAFT → PENDING
+*2026-09-23 · réf. bug remonté par le porteur ("erreur en soumettant le selfie")*
+
+Repro confirmée par SQL (porteur) : `submitVerification()` faisait un
+`UPDATE profile_photos SET moderation_status = 'PENDING' WHERE
+moderation_status = 'DRAFT'` - bloqué inconditionnellement par le trigger
+`profile_photos_protect_moderation` (`protect_photo_moderation_status()`,
+`SECURITY DEFINER`) pour tout utilisateur non admin/modérateur. Sans
+`try/catch`, cette erreur arrêtait toute la fonction - `verification_requests`
+n'était donc jamais inséré non plus, la soumission du selfie échouait
+entièrement pour tout le monde. Retiré côté client (voir commit) ;
+`verification_requests` reste la seule table écrite par le client pour
+signaler une soumission.
+
+Donnée SQL (porteur, 2026-09-23) : 36 lignes `profile_photos` en `PENDING`
+créées très récemment, toutes avec `reviewed_at` null - cohérent avec le
+chemin `addVerifiedPhoto()` qui **insère** directement en `PENDING` (le
+trigger ne bloque que les `UPDATE`, jamais les `INSERT`) ; ce chemin reste
+donc fonctionnel, contrairement à `submitVerification()` sur une photo
+DRAFT préexistante (onboarding / `AddProfilePhotoPage`).
+
+**Reste ouvert** : comment `profile_photos.moderation_status` est censé
+passer de `DRAFT` à `PENDING` (ou directement à `APPROVED`/`REJECTED`)
+pour une photo déjà existante, maintenant que le client ne peut plus le
+faire lui-même. Hypothèses à trancher avec le porteur/backend :
+- un trigger `SECURITY DEFINER` sur l'insert de `verification_requests`
+  fait la transition automatiquement (à créer si absent - `req 1` de
+  cette session ne montre aucun trigger sur `verification_requests`) ;
+- la revue admin se fait directement sur `verification_requests.status`
+  sans jamais avoir besoin de lire `profile_photos.moderation_status`,
+  auquel cas rester en `DRAFT` après soumission n'est pas un problème
+  fonctionnel, juste un état "sale" sans conséquence.
+À vérifier avant de considérer le sujet clos - le web devrait avoir le
+même symptôme si un jour il retente cet appel (trigger a priori nouveau
+ou nouvellement strict, timing exact non confirmé).
+
+*Réponse du porteur (2026-09-23) :* confirmé - le web ne fait cette
+transition que via des fonctions admin (dashboard de modération), jamais
+depuis le client membre. C'est exactement pour ça que l'`UPDATE` côté
+mobile échouait systématiquement : aucun client membre, web ou mobile,
+n'est censé faire cette transition lui-même. Le retrait côté client
+(commit ci-dessus) était donc la bonne correction, pas un contournement
+temporaire - `profile_photos.moderation_status` reste en `DRAFT` après
+soumission jusqu'à la revue admin, c'est le comportement attendu.
+
+*Correction 2026-09-23 (même jour) :* en fait si, c'est un problème -
+le porteur a vérifié que rester en `DRAFT` empêche la photo d'apparaître
+sur le dashboard admin (qui filtre sur `moderation_status = 'PENDING'`).
+Le backend a donc mis à jour `protect_photo_moderation_status()` pour
+autoriser explicitement la transition `DRAFT -> PENDING` faite par le
+propriétaire de la photo (et uniquement celle-ci - toute autre
+transition reste réservée aux admins/modérateurs). L'`UPDATE` côté
+mobile a été remis (en `try/catch`, défensif) une fois ce changement
+backend confirmé.
+
+*Deuxième correction 2026-09-23 :* la transition `DRAFT -> PENDING`
+fonctionne (confirmé par SQL, nouvelle ligne `verification_requests`
+créée), mais l'admin ne voyait toujours pas le selfie - seulement la
+photo de profil. Cause : le selfie était uploadé dans le bucket
+`avatars` (public, celui des photos de profil) au lieu du bucket dédié
+et privé `verification-selfies`, qui existe déjà côté Supabase avec ses
+propres policies (`verification_selfies_write_own` : le premier segment
+du chemin doit être `auth.uid()`, cohérent avec notre chemin
+`$userId/selfie.jpg`). Corrigé : `_uploadJpeg()` accepte maintenant un
+bucket explicite, `submitVerification()` uploade vers
+`verification-selfies`.
+
+*Troisième correction 2026-09-23 :* toujours pas ça - `addVerifiedPhoto()`
+(ajout de photo par un membre déjà vérifié, "Gérer mes photos") échouait
+avec `new row violates row-level security policy`. D'abord masqué par un
+bug distinct : `addVerifiedPhoto()` appelle `submitVerification()` qui a
+son propre `_guard()` - une exception déjà mappée par ce `_guard()`
+imbriqué remontait jusqu'au `_guard()` externe, qui ne la reconnaissait
+pas et la faisait passer par `mapUnknownSupabase()` → `e.toString()` sur
+l'objet → `"Instance of 'ServerException'"` au lieu du vrai message
+(corrigé : `mapUnknownSupabase()` relance tel quel nos propres types
+d'exception déjà mappés, protection générale au-delà de ce seul cas).
+Une fois le vrai message visible : `verification-selfies` n'a qu'une
+policy storage **INSERT** (confirmé par SQL), pas d'UPDATE - le chemin
+fixe `$userId/selfie.jpg` avec `upsert: true` échouait dès la 2e
+soumission (l'upsert sur un objet existant nécessite une permission
+UPDATE inexistante). Corrigé côté mobile plutôt que d'attendre un
+changement backend : chemin suffixé par un timestamp
+(`selfie_<millis>.jpg`), unique à chaque soumission - jamais de
+conflit, cohérent avec `verification_requests` qui accumule déjà une
+ligne par soumission.
 
 ---
 

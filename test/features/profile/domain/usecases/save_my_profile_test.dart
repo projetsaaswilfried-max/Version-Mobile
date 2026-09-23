@@ -19,6 +19,10 @@ class _Repo implements MyProfileRepository {
     lastSavePhotos = savePhotos;
     return const Ok(null);
   }
+
+  @override
+  Future<Result<void>> deletePhoto(String photoId) async =>
+      throw UnimplementedError();
 }
 
 MyProfile profile({String bio = 'Hello', bool isVerified = false}) {

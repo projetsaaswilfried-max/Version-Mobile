@@ -160,6 +160,9 @@ class _UnconfiguredMyProfileRepository implements MyProfileRepository {
     MyProfile profile, {
     required bool savePhotos,
   }) async => const Err(_failure);
+
+  @override
+  Future<Result<void>> deletePhoto(String photoId) async => const Err(_failure);
 }
 
 class _UnconfiguredProfileFieldsRepository implements ProfileFieldsRepository {

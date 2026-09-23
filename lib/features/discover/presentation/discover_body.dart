@@ -84,6 +84,29 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
     );
   }
 
+  /// Vérification déjà soumise (selfie envoyé) et en attente de revue - le
+  /// sheet ne doit pas renvoyer vers l'étape photo, il n'y a rien à refaire.
+  bool _isVerificationPending() {
+    final status = switch (ref.read(profileFieldsProvider).asData?.value) {
+      Ok(:final value) => value.photoVerificationStatus,
+      _ => null,
+    };
+    return status?.toUpperCase() == 'PENDING';
+  }
+
+  // profileFieldsProvider n'est pas autoDispose (cache session) - un simple
+  // pull-to-refresh de la liste ne le rechargeait jamais, laissant le
+  // bandeau de complétion affiché sur un statut de vérification obsolète
+  // (ex. "Vérification en cours" alors que déjà VERIFIED côté serveur).
+  Future<void> _onRefresh() async {
+    _sheetOfferedForLoad = false;
+    ref.invalidate(profileFieldsProvider);
+    await Future.wait([
+      ref.read(discoverControllerProvider.notifier).refresh(),
+      ref.read(profileFieldsProvider.future),
+    ]);
+  }
+
   void _onSearchLocked() => PremiumFeatureSheet.show(
     context,
     title: 'Rechercher un profil',
@@ -105,7 +128,11 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
       isStaff: state.visitorIsStaff,
     );
     if (!canOpen) {
-      DiscoverVerifySheet.show(context, onVerify: _onVerifyProfile);
+      DiscoverVerifySheet.show(
+        context,
+        onVerify: _onVerifyProfile,
+        isPending: _isVerificationPending(),
+      );
       return;
     }
     openDiscoverProfileSheet(
@@ -123,7 +150,11 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
       isStaff: state.visitorIsStaff,
     );
     if (!canLike) {
-      DiscoverVerifySheet.show(context, onVerify: _onVerifyProfile);
+      DiscoverVerifySheet.show(
+        context,
+        onVerify: _onVerifyProfile,
+        isPending: _isVerificationPending(),
+      );
       return;
     }
     unawaited(_toggleLike(profile.id));
@@ -145,7 +176,11 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
       isStaff: state.visitorIsStaff,
     );
     if (!canFavorite) {
-      DiscoverVerifySheet.show(context, onVerify: _onVerifyProfile);
+      DiscoverVerifySheet.show(
+        context,
+        onVerify: _onVerifyProfile,
+        isPending: _isVerificationPending(),
+      );
       return;
     }
     unawaited(_toggleFavorite(profile.id));
@@ -239,10 +274,7 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
               ],
       ),
       body: RefreshIndicator(
-        onRefresh: () {
-          _sheetOfferedForLoad = false;
-          return ref.read(discoverControllerProvider.notifier).refresh();
-        },
+        onRefresh: _onRefresh,
         child: CustomScrollView(
           controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(),

@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,10 +17,29 @@ import 'features/onboarding/data/datasources/intro_local_datasource.dart';
 import 'features/onboarding/data/repositories/intro_store_impl.dart';
 import 'features/onboarding/di/onboarding_providers.dart';
 import 'features/onboarding/presentation/splash/splash_page.dart';
+import 'features/push_notifications/presentation/push_notifications_listener.dart';
+import 'firebase_options.dart';
+
+/// Isolate séparé (arrière-plan) - ne fait rien de plus qu'initialiser
+/// Firebase pour que le plugin puisse traiter le message sans planter.
+/// Pas de bannière locale (décision produit : premier plan sans popup,
+/// même logique en arrière-plan).
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppEnvironment.init();
+
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  } catch (_) {
+    // Config native absente (ex. build sans google-services.json) - ne
+    // doit jamais empêcher le reste de l'app de démarrer.
+  }
 
   final env = AppEnvironment.current;
   if (env.supabaseUrl.isNotEmpty && env.supabaseAnonKey.isNotEmpty) {
@@ -62,7 +83,9 @@ class AgapeoApp extends StatelessWidget {
       ],
       navigatorKey: rootNavigatorKey,
       builder: (context, child) {
-        return AuthDeepLinkListener(child: child ?? const SizedBox.shrink());
+        return PushNotificationsListener(
+          child: AuthDeepLinkListener(child: child ?? const SizedBox.shrink()),
+        );
       },
       home: const SplashPage(),
     );

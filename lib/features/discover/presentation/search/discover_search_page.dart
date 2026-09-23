@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/result.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
+import '../../../profile/di/profile_providers.dart';
 import '../../../profile/presentation/security/add_profile_photo_page.dart';
 import '../../domain/entities/discover_profile.dart';
 import '../../domain/entities/discover_query.dart';
@@ -116,6 +118,16 @@ class _DiscoverSearchPageState extends ConsumerState<DiscoverSearchPage> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const AddProfilePhotoPage()),
     );
+  }
+
+  /// Vérification déjà soumise (selfie envoyé) et en attente de revue - le
+  /// sheet ne doit pas renvoyer vers l'étape photo, il n'y a rien à refaire.
+  bool _isVerificationPending() {
+    final status = switch (ref.read(profileFieldsProvider).asData?.value) {
+      Ok(:final value) => value.photoVerificationStatus,
+      _ => null,
+    };
+    return status?.toUpperCase() == 'PENDING';
   }
 
   void _onProfileTap(DiscoverProfile profile, DiscoverState state) {
@@ -281,7 +293,11 @@ class _DiscoverSearchPageState extends ConsumerState<DiscoverSearchPage> {
       isStaff: state.visitorIsStaff,
     );
     if (!canOpen) {
-      DiscoverVerifySheet.show(context, onVerify: _onVerifyProfile);
+      DiscoverVerifySheet.show(
+        context,
+        onVerify: _onVerifyProfile,
+        isPending: _isVerificationPending(),
+      );
       return;
     }
     _onProfileTap(profile, state);

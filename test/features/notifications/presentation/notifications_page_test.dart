@@ -1,5 +1,7 @@
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
+import 'package:agapeo/features/discover/di/discover_providers.dart';
+import 'package:agapeo/features/discover/presentation/widgets/discover_profile_sheet.dart';
 import 'package:agapeo/features/home/presentation/home_shell_controller.dart';
 import 'package:agapeo/features/messages/di/messages_providers.dart';
 import 'package:agapeo/features/messages/presentation/thread/conversation_thread_page.dart';
@@ -8,13 +10,18 @@ import 'package:agapeo/features/notifications/domain/entities/app_notification.d
 import 'package:agapeo/features/notifications/domain/notification_category.dart';
 import 'package:agapeo/features/notifications/domain/repositories/notifications_repository.dart';
 import 'package:agapeo/features/notifications/presentation/notifications_page.dart';
+import 'package:agapeo/features/premium/presentation/premium_plan_page.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
+import 'package:agapeo/features/profile/presentation/security/verification_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/auth_test_fakes.dart';
+import '../../../helpers/discover_test_fakes.dart';
 import '../../../helpers/messages_test_fakes.dart';
+import '../../../helpers/profile_account_test_fakes.dart';
 
 class _FakeNotificationsRepository implements NotificationsRepository {
   _FakeNotificationsRepository({this.items = const []});
@@ -43,6 +50,7 @@ class _FakeNotificationsRepository implements NotificationsRepository {
 Future<(_FakeNotificationsRepository, ProviderContainer)> _pumpNotifications(
   WidgetTester tester, {
   List<AppNotification> items = const [],
+  List<Override> extraOverrides = const [],
 }) async {
   final repo = _FakeNotificationsRepository(items: items);
   late final ProviderContainer container;
@@ -54,6 +62,7 @@ Future<(_FakeNotificationsRepository, ProviderContainer)> _pumpNotifications(
         profileGateRepositoryProvider.overrideWithValue(
           FakeProfileGateRepository(),
         ),
+        ...extraOverrides,
       ],
       child: Consumer(
         builder: (context, ref, _) {
@@ -261,6 +270,95 @@ void main() {
       await tester.pump();
 
       expect(container.read(homeShellIndexProvider), 1);
+    },
+  );
+
+  testWidgets(
+    'tapping a PHOTO_APPROVED notification opens VerificationPage',
+    (tester) async {
+      await _pumpNotifications(
+        tester,
+        items: [
+          AppNotification(
+            id: '1',
+            title: 'Profil vérifié',
+            body: '',
+            createdAt: DateTime.now(),
+            isRead: false,
+            category: AppNotificationCategory.platform,
+            type: 'PHOTO_APPROVED',
+          ),
+        ],
+        extraOverrides: [
+          profileAccountRepositoryProvider.overrideWithValue(
+            FakeProfileAccountRepository(),
+          ),
+        ],
+      );
+
+      await tester.tap(find.text('Profil vérifié'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(VerificationPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping a PAYMENT_FAILED notification opens PremiumPlanPage',
+    (tester) async {
+      await _pumpNotifications(
+        tester,
+        items: [
+          AppNotification(
+            id: '1',
+            title: 'Paiement échoué',
+            body: '',
+            createdAt: DateTime.now(),
+            isRead: false,
+            category: AppNotificationCategory.platform,
+            type: 'PAYMENT_FAILED',
+          ),
+        ],
+      );
+
+      await tester.tap(find.text('Paiement échoué'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(PremiumPlanPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'tapping a PROFILE_LIKE notification with an actorId opens the profile sheet',
+    (tester) async {
+      await _pumpNotifications(
+        tester,
+        items: [
+          AppNotification(
+            id: '1',
+            title: 'Quelqu\'un a aimé ton profil',
+            body: '',
+            createdAt: DateTime.now(),
+            isRead: false,
+            category: AppNotificationCategory.profile,
+            type: 'PROFILE_LIKE',
+            actorId: 'p1',
+          ),
+        ],
+        extraOverrides: [
+          discoverRepositoryProvider.overrideWithValue(
+            FakeDiscoverRepository(),
+          ),
+        ],
+      );
+
+      await tester.tap(find.text('Quelqu\'un a aimé ton profil'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(DiscoverProfileSheet), findsOneWidget);
     },
   );
 
