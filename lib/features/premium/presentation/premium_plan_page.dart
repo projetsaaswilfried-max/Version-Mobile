@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_radius.dart';
@@ -9,11 +10,17 @@ import '../../auth/presentation/widgets/legal_link_text.dart';
 import '../../profile/di/profile_providers.dart';
 import '../../profile/domain/entities/member_gate_snapshot.dart';
 import '../../profile/domain/entities/subscription_status.dart';
+import '../di/premium_checkout_providers.dart';
 import '../domain/premium_plan.dart';
 
-class PremiumPlanPage extends ConsumerWidget {
+class PremiumPlanPage extends ConsumerStatefulWidget {
   const PremiumPlanPage({super.key});
 
+  @override
+  ConsumerState<PremiumPlanPage> createState() => _PremiumPlanPageState();
+}
+
+class _PremiumPlanPageState extends ConsumerState<PremiumPlanPage> {
   static const _benefits = [
     'Fiches complètes et likes illimités',
     'Filtres de recherche avancés (ville, dénomination...)',
@@ -21,8 +28,27 @@ class PremiumPlanPage extends ConsumerWidget {
     'Invitations illimitées',
   ];
 
+  String? _launchingCode;
+
+  Future<void> _startCheckout(String planCode) async {
+    setState(() => _launchingCode = planCode);
+    final result = await ref
+        .read(premiumCheckoutRepositoryProvider)
+        .startCheckout(plan: planCode);
+    if (!mounted) return;
+    setState(() => _launchingCode = null);
+    switch (result) {
+      case Ok<Uri>(:final value):
+        await launchUrl(value, mode: LaunchMode.externalApplication);
+      case Err<Uri>(:final failure):
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failure.message)),
+        );
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colors = context.colors;
     final typography = context.typography;
     final gate = ref.watch(memberGateProvider);
@@ -116,7 +142,13 @@ class PremiumPlanPage extends ConsumerWidget {
           Text('Choisis ta formule', style: typography.title),
           const SizedBox(height: AppSpacing.sm),
           for (final plan in premiumCatalog) ...[
-            _PlanCard(plan: plan),
+            _PlanCard(
+              plan: plan,
+              isLoading: _launchingCode == plan.code,
+              onTap: _launchingCode == null
+                  ? () => _startCheckout(plan.code)
+                  : null,
+            ),
             const SizedBox(height: AppSpacing.sm),
           ],
           const SizedBox(height: AppSpacing.md),
@@ -132,14 +164,16 @@ class PremiumPlanPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Le paiement depuis l\'app arrive bientôt',
+                    'Le paiement s\'effectue sur le site',
                     style: typography.bodyLarge.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'En attendant, tu peux souscrire directement sur le site.',
+                    'Choisis une formule ci-dessus pour continuer dans le '
+                    'navigateur - tu es reconnu automatiquement, pas besoin '
+                    'de te reconnecter.',
                     style: typography.bodyMedium,
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -176,82 +210,101 @@ class PremiumPlanPage extends ConsumerWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan});
+  const _PlanCard({required this.plan, required this.isLoading, this.onTap});
 
   final PremiumPlan plan;
+  final bool isLoading;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final typography = context.typography;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: plan.recommended
-            ? colors.primary.withValues(alpha: 0.06)
-            : colors.surface,
+    return Material(
+      color: plan.recommended
+          ? colors.primary.withValues(alpha: 0.06)
+          : colors.surface,
+      borderRadius: AppRadius.lgRadius,
+      child: InkWell(
         borderRadius: AppRadius.lgRadius,
-        border: Border.all(
-          color: plan.recommended
-              ? colors.primary
-              : colors.border,
-          width: plan.recommended ? 2 : 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.lgRadius,
+            border: Border.all(
+              color: plan.recommended ? colors.primary : colors.border,
+              width: plan.recommended ? 2 : 1,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        plan.label,
-                        style: typography.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (plan.recommended) ...[
-                        const SizedBox(width: AppSpacing.xs),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: colors.primary,
-                            borderRadius: AppRadius.pillRadius,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: 2,
+                      Row(
+                        children: [
+                          Text(
+                            plan.label,
+                            style: typography.bodyLarge.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
-                            child: Text(
-                              'Recommandé',
-                              style: typography.label.copyWith(
-                                color: colors.onScrim,
-                                fontWeight: FontWeight.w700,
+                          ),
+                          if (plan.recommended) ...[
+                            const SizedBox(width: AppSpacing.xs),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: colors.primary,
+                                borderRadius: AppRadius.pillRadius,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm,
+                                  vertical: 2,
+                                ),
+                                child: Text(
+                                  'Recommandé',
+                                  style: typography.label.copyWith(
+                                    color: colors.onScrim,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        plan.priceLabel,
+                        style: typography.bodyMedium.copyWith(
+                          color: colors.textSecondary,
                         ),
-                      ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text(
-                    plan.priceLabel,
-                    style: typography.bodyMedium.copyWith(
-                      color: colors.textSecondary,
+                ),
+                if (isLoading)
+                  SizedBox(
+                    width: AppSpacing.lg,
+                    height: AppSpacing.lg,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colors.primary,
                     ),
+                  )
+                else
+                  Icon(
+                    Icons.radio_button_off,
+                    color: plan.recommended
+                        ? colors.primary
+                        : colors.textSecondary,
                   ),
-                ],
-              ),
+              ],
             ),
-            Icon(
-              Icons.radio_button_off,
-              color: plan.recommended ? colors.primary : colors.textSecondary,
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,5 +1,10 @@
+import 'dart:async';
+
+import 'package:agapeo/core/error/failure.dart';
 import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
+import 'package:agapeo/features/premium/di/premium_checkout_providers.dart';
+import 'package:agapeo/features/premium/domain/repositories/premium_checkout_repository.dart';
 import 'package:agapeo/features/premium/presentation/premium_plan_page.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:agapeo/features/profile/domain/entities/member_gate_snapshot.dart';
@@ -8,9 +13,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _FakePremiumCheckoutRepository implements PremiumCheckoutRepository {
+  Result<Uri>? result;
+  String? lastPlan;
+  Completer<Result<Uri>>? _pending;
+
+  @override
+  Future<Result<Uri>> startCheckout({String? plan}) {
+    lastPlan = plan;
+    _pending = Completer<Result<Uri>>();
+    return _pending!.future;
+  }
+
+  void resolvePending() {
+    _pending?.complete(result ?? Ok(Uri.parse('https://agapeo.love')));
+  }
+}
+
 Future<void> pumpPlan(
   WidgetTester tester, {
   required SubscriptionStatus status,
+  PremiumCheckoutRepository? checkoutRepository,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -24,6 +47,10 @@ Future<void> pumpPlan(
             ),
           ),
         ),
+        if (checkoutRepository != null)
+          premiumCheckoutRepositoryProvider.overrideWithValue(
+            checkoutRepository,
+          ),
       ],
       child: MaterialApp(theme: AppTheme.light, home: const PremiumPlanPage()),
     ),
@@ -63,5 +90,43 @@ void main() {
       const Offset(0, -300),
     );
     expect(find.text('agapeo.love'), findsOneWidget);
+  });
+
+  testWidgets('tapping a plan starts checkout with its code and shows a '
+      'spinner while pending', (tester) async {
+    final repo = _FakePremiumCheckoutRepository();
+    await pumpPlan(
+      tester,
+      status: SubscriptionStatus.free,
+      checkoutRepository: repo,
+    );
+
+    await tester.tap(find.text('Mensuel'));
+    await tester.pump();
+
+    expect(repo.lastPlan, 'MONTHLY');
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    repo.resolvePending();
+    await tester.pump();
+  });
+
+  testWidgets('shows the failure message in a SnackBar on error', (
+    tester,
+  ) async {
+    final repo = _FakePremiumCheckoutRepository()
+      ..result = const Err(ServerFailure('Impossible de préparer le paiement.'));
+    await pumpPlan(
+      tester,
+      status: SubscriptionStatus.free,
+      checkoutRepository: repo,
+    );
+
+    await tester.tap(find.text('Mensuel'));
+    await tester.pump();
+    repo.resolvePending();
+    await tester.pump();
+
+    expect(find.text('Impossible de préparer le paiement.'), findsOneWidget);
   });
 }

@@ -861,6 +861,83 @@ Test web suggère une intégration directe client → SasPay. À confirmer, puis
 - Comment la ligne `transactions` est-elle rattachée au membre pour la
   réconciliation (le webhook SasPay ne contient pas l'identité) ?
 
+*Suite 2026-09-23 :* décision côté mobile — on abandonne l'hypothèse
+« intégration directe client → SasPay » évoquée dans l'addendum §3.2.
+Contrainte store (App Store en particulier, cf. discussion produit) : le
+mobile ne peut de toute façon pas piloter lui-même la collecte carte/mobile
+money, il doit renvoyer vers le paiement web existant (Chariow + SasPay,
+déjà en place côté web, cf. §11 PRD et §3.1 addendum). **Ça règle Q2 par
+construction** — plus de clé SasPay à embarquer, plus de SDK natif à choisir,
+la réconciliation `transactions` reste 100 % serveur, inchangée.
+
+Reste un point technique nouveau, à construire côté backend **avant** que le
+mobile puisse l'utiliser : reconnaître automatiquement le membre sur le web
+sans lui demander de se reconnecter (le mobile a déjà une session Supabase
+active, il ne faut pas la dupliquer côté web). Mécanisme proposé (pattern
+« lien magique » à usage unique, standard, aucun risque de sécurité
+supplémentaire si implémenté correctement) :
+
+1. **Nouvel endpoint backend authentifié** (Edge Function ou route API,
+   `Authorization: Bearer <access_token Supabase>` du membre) :
+   `POST /auth/web-handoff` → génère un token **opaque, aléatoire (≥ 32
+   octets), usage unique, TTL court (60-120 s)**, stocké serveur (table dédiée
+   `web_handoff_tokens(id, user_id, token, expires_at, used_at)` ou équivalent
+   Edge Function + KV) et lié au `user_id` courant. Réponse :
+   `{ "url": "https://agapeo.love/premium/checkout?handoff=<token>" }`
+   (le backend construit l'URL cible complète, pas le mobile — évite toute
+   divergence de route si le web change son chemin de checkout).
+2. **Côté web**, un middleware sur cette route lit `?handoff=`, valide le
+   token serveur (existe, non expiré, non déjà consommé), le **marque comme
+   utilisé immédiatement** (usage unique = pas de rejeu), ouvre une session
+   web normale pour ce membre (même mécanisme que la connexion classique),
+   puis redirige en interne vers la vraie page de paiement (Chariow/SasPay
+   selon le choix de formule) — le token disparaît de l'URL après échange.
+3. **Côté mobile**, ouverture dans un navigateur externe sécurisé
+   (`url_launcher` en `LaunchMode.externalApplication`, ou
+   `SFSafariViewController`/Custom Tabs si on veut garder l'utilisateur dans
+   le contexte app) — jamais une WebView embarquée basique.
+4. Retour app : le mobile n'a rien à récupérer du web (pas de deep link de
+   retour nécessaire) — il observe simplement `subscription_status` passer à
+   `ACTIVE` comme prévu en §3.1 de l'addendum (déjà le comportement décidé,
+   realtime ou poll après retour au premier plan).
+
+Ce endpoint (`POST /auth/web-handoff`) est un pré-requis backend : le mobile
+ne peut rien construire tant qu'il n'existe pas. À transmettre au porteur.
+
+*Suite 2026-09-24 :* le porteur a livré le endpoint - même mécanisme que
+proposé, réutilisant l'infra Supabase Auth existante (`magiclink`) plutôt
+qu'une table de jetons maison. Contrat réel, différent sur le nom/chemin de
+ce qui était esquissé plus haut :
+
+- Fonction Supabase `POST .../functions/v1/mobile-payment-handoff`,
+  `Authorization: Bearer <access_token session mobile>`, corps optionnel
+  `{ "plan": "WEEKLY" | "HALF_MONTH" | "MONTHLY" | "QUARTERLY" }`.
+- Réponse `200` : `{ "url": "https://agapeo.love/auth/confirm?token_hash=...&type=magiclink&next=..." }`
+  - à ouvrir telle quelle, sans modification.
+- `401` : pas de header ou token expiré → rafraîchir la session et
+  réessayer. `500` : erreur ponctuelle Supabase Auth → réessayer une fois,
+  puis repli sur le lien manuel `agapeo.love`.
+- Toujours dans un navigateur externe (jamais de WebView embarquée).
+
+Implémenté côté mobile : `lib/features/premium/` complété avec
+`domain/repositories/premium_checkout_repository.dart`,
+`data/datasources/supabase_premium_checkout_datasource.dart` (appel
+`_client.functions.invoke('mobile-payment-handoff', ...)`, mapping
+`FunctionsHttpException`/`FunctionsFetchException` vers les exceptions
+maison), `data/repositories/premium_checkout_repository_impl.dart`,
+`di/premium_checkout_providers.dart`. `PremiumPlanPage` : chaque
+`_PlanCard` déclenche `startCheckout(plan: plan.code)` et ouvre l'URL
+reçue via `launchUrl(..., mode: LaunchMode.externalApplication)` (spinner
+pendant l'appel, `SnackBar` sur échec). `PremiumPlan` a gagné un champ
+`code` (`WEEKLY`/`HALF_MONTH`/`MONTHLY`/`QUARTERLY`) pour porter la valeur
+attendue par la fonction.
+
+Reste en l'état, non modifié par ce ticket : `DiscoverPremiumSheet`
+(catalogue `discoverPremiumPlans` séparé, sans `code`) pousse toujours
+juste vers `PremiumPlanPage` sans présélectionner la formule tapée -
+fonctionnel (le membre retape sa formule sur `PremiumPlanPage`), simple
+perte de confort à corriger plus tard si besoin.
+
 ### Q3 — Émetteur push natif
 *réf. PRD §12, §21 · addendum §4*
 

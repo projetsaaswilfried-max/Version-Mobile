@@ -123,17 +123,22 @@ du statut, cron d'expiration quotidien — est serveur et sert les deux clients
 sans rien recoder. **Le mobile n'a qu'à observer `subscription_status` passer à
 `ACTIVE`** après paiement.
 
-### 3.2 Ce qui reste à trancher (voir decisions.md)
+### 3.2 Initiation du paiement : renvoi vers le checkout web (D — voir Q2)
 
-L'**initiation** du paiement. Test web suggère une intégration directe
-client → SasPay. Si confirmé :
-- **WebView** pour Chariow (page hébergée, carte bancaire) — simple redirection.
-- **Appel direct SasPay** pour le Mobile Money — prompt USSD poussé par
-  l'opérateur sur la SIM (identique web/mobile, l'app ne rend pas le USSD).
+Décidé (`decisions.md` Q2, suite 2026-09-23) : le mobile n'intègre **pas**
+SasPay/Chariow directement — il renvoie vers le checkout web existant, déjà
+fonctionnel pour les deux prestataires. Ça règle par construction les points
+auparavant ouverts (clé SasPay, SDK vs API, réconciliation `transactions`) :
+rien de tout ça ne touche le mobile.
 
-Points à confirmer avant d'implémenter : nature de la clé SasPay (publiable vs
-secrète), SDK natif vs API HTTP, et comment la ligne `transactions` est rattachée
-au membre pour la réconciliation (le webhook SasPay ne contient pas l'identité).
+Livré et câblé (`decisions.md` Q2, suite 2026-09-24) : fonction Supabase
+`mobile-payment-handoff` (lien magique `type=magiclink` via Supabase Auth,
+pas de table de jetons maison), consommée par `lib/features/premium/`
+(`PremiumCheckoutRepository` → `SupabasePremiumCheckoutDataSource` →
+`functions.invoke`). `PremiumPlanPage` ouvre l'URL reçue dans un navigateur
+externe (`url_launcher`, `LaunchMode.externalApplication`) et observe
+`subscription_status` passer à `ACTIVE` (§3.1) — aucun deep link de retour
+nécessaire.
 
 ---
 
