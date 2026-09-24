@@ -60,5 +60,18 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- Google Sign-In (natif, D38) - schéma dérivé du client OAuth iOS
+	     GoogleSignInConfig.iosClientId (reversed client id). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.58020321221-kalne97sckgk9dkar18af8iq1ka7qlfc</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

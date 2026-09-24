@@ -11,18 +11,27 @@ import 'package:agapeo/features/profile/domain/repositories/profile_gate_reposit
 class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({
     this.currentSession,
-    this.signInWithGoogleResult = const Ok(null),
+    Result<AuthSession>? signInWithGoogleResult,
+    Result<AuthSession>? signInWithAppleResult,
     this.updatePasswordResult,
-  });
+  }) : signInWithGoogleResult =
+           signInWithGoogleResult ??
+           const Ok(AuthSession(id: '1', email: 'a@b.co')),
+       signInWithAppleResult =
+           signInWithAppleResult ??
+           const Ok(AuthSession(id: '1', email: 'a@b.co'));
 
   @override
   AuthSession? currentSession;
 
   bool signInWithGoogleCalled = false;
   int signInWithGoogleCallCount = 0;
+  bool signInWithAppleCalled = false;
+  int signInWithAppleCallCount = 0;
   bool updatePasswordCalled = false;
 
-  final Result<void> signInWithGoogleResult;
+  final Result<AuthSession> signInWithGoogleResult;
+  final Result<AuthSession> signInWithAppleResult;
   final Result<AuthSession>? updatePasswordResult;
 
   @override
@@ -57,10 +66,17 @@ class FakeAuthRepository implements AuthRepository {
       throw UnimplementedError();
 
   @override
-  Future<Result<void>> signInWithGoogle() async {
+  Future<Result<AuthSession>> signInWithGoogle() async {
     signInWithGoogleCalled = true;
     signInWithGoogleCallCount++;
     return signInWithGoogleResult;
+  }
+
+  @override
+  Future<Result<AuthSession>> signInWithApple() async {
+    signInWithAppleCalled = true;
+    signInWithAppleCallCount++;
+    return signInWithAppleResult;
   }
 
   @override

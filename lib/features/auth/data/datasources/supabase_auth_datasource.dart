@@ -1,10 +1,16 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/config/deep_link_urls.dart';
+import '../../../../core/config/google_sign_in_config.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../domain/deep_link/auth_deep_link_router.dart';
 import '../../domain/entities/auth_deep_link_result.dart';
-import '../../domain/entities/auth_session.dart';
 import 'auth_remote_datasource.dart';
 
 class SupabaseAuthDataSource implements AuthRemoteDataSource {
@@ -12,8 +18,32 @@ class SupabaseAuthDataSource implements AuthRemoteDataSource {
 
   final SupabaseClient _client;
 
+  /// `initialize()` doit être appelé exactement une fois avant tout autre
+  /// appel à `GoogleSignIn.instance` - mémorisé pour rester idempotent
+  /// entre deux tentatives de connexion.
+  Future<void>? _googleSignInInit;
+
+  Future<void> _ensureGoogleSignInInitialized() {
+    return _googleSignInInit ??= GoogleSignIn.instance.initialize(
+      clientId: GoogleSignInConfig.iosClientId,
+      serverClientId: GoogleSignInConfig.webClientId,
+    );
+  }
+
   ({String id, String email}) _mapUser(User user) =>
       (id: user.id, email: user.email ?? '');
+
+  /// Nonce brut, envoyé à Supabase - Apple ne reçoit que son hash SHA-256
+  /// (voir [signInWithApple]), pour se prémunir des attaques par rejeu.
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
 
   @override
   ({String id, String email})? get currentUser {
@@ -114,16 +144,66 @@ class SupabaseAuthDataSource implements AuthRemoteDataSource {
   }
 
   @override
-  Future<void> signInWithGoogle() async {
+  Future<({String id, String email})> signInWithGoogle() async {
     try {
-      final launched = await _client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: DeepLinkUrls.callback,
-        authScreenLaunchMode: LaunchMode.externalApplication,
-      );
-      if (!launched) {
-        throw const UnauthorizedException('Connexion Google annulée.');
+      await _ensureGoogleSignInInitialized();
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
+      if (idToken == null) {
+        throw const UnauthorizedException(
+          'Connexion Google impossible (jeton manquant).',
+        );
       }
+      final res = await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+      final user = res.user;
+      if (user == null) {
+        throw const UnauthorizedException('Connexion Google impossible.');
+      }
+      return _mapUser(user);
+    } on GoogleSignInException catch (e) {
+      throw e.code == GoogleSignInExceptionCode.canceled
+          ? const UnauthorizedException('Connexion Google annulée.')
+          : const ServerException('Connexion Google impossible.');
+    } on AuthException catch (e) {
+      throw _mapAuthException(e);
+    }
+  }
+
+  @override
+  Future<({String id, String email})> signInWithApple() async {
+    try {
+      final rawNonce = _generateNonce();
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+      final idToken = credential.identityToken;
+      if (idToken == null) {
+        throw const UnauthorizedException(
+          'Connexion Apple impossible (jeton manquant).',
+        );
+      }
+      final res = await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+      final user = res.user;
+      if (user == null) {
+        throw const UnauthorizedException('Connexion Apple impossible.');
+      }
+      return _mapUser(user);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      throw e.code == AuthorizationErrorCode.canceled
+          ? const UnauthorizedException('Connexion Apple annulée.')
+          : const ServerException('Connexion Apple impossible.');
     } on AuthException catch (e) {
       throw _mapAuthException(e);
     }
@@ -151,19 +231,12 @@ class SupabaseAuthDataSource implements AuthRemoteDataSource {
 
   @override
   Future<AuthDeepLinkResult> handleAuthDeepLink(Uri uri) async {
-    final kind = AuthDeepLinkRouter.kind(uri);
-    if (kind == AuthDeepLinkKind.ignored) {
+    if (AuthDeepLinkRouter.kind(uri) == AuthDeepLinkKind.ignored) {
       return const AuthDeepLinkIgnored();
     }
     try {
-      final response = await _client.auth.getSessionFromUrl(uri);
-      final user = response.session.user;
-      if (kind == AuthDeepLinkKind.passwordReset) {
-        return const AuthDeepLinkPasswordRecovery();
-      }
-      return AuthDeepLinkOauthSession(
-        AuthSession(id: user.id, email: user.email ?? ''),
-      );
+      await _client.auth.getSessionFromUrl(uri);
+      return const AuthDeepLinkPasswordRecovery();
     } on AuthException catch (e) {
       throw _mapAuthException(e);
     }

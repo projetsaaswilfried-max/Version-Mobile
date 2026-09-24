@@ -8,15 +8,13 @@ import '../../../../core/error/result.dart';
 import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/navigation/root_navigator.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../../di/auth_providers.dart';
 import '../../domain/entities/auth_deep_link_result.dart';
 import '../reset_password/reset_password_page.dart';
 
-/// Listens for OAuth / password-reset deep links and navigates accordingly.
-/// Single source of truth for post-auth-deep-link navigation — no other
-/// listener (e.g. [GoogleSignInController]) should also navigate on the
-/// same event.
+/// Listens for the password-reset deep link and navigates accordingly.
+/// Google Sign-In is native (no browser, no deep link) — this is the only
+/// auth deep link left.
 class AuthDeepLinkListener extends ConsumerStatefulWidget {
   const AuthDeepLinkListener({super.key, required this.child});
 
@@ -64,8 +62,6 @@ class _AuthDeepLinkListenerState extends ConsumerState<AuthDeepLinkListener> {
     switch (result) {
       case Ok(:final value):
         switch (value) {
-          case AuthDeepLinkOauthSession(:final session):
-            await navigateAfterAuthWithNav(ref, nav, email: session.email);
           case AuthDeepLinkPasswordRecovery():
             final email =
                 ref.read(authRepositoryProvider).currentSession?.email ?? '';

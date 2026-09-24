@@ -49,10 +49,11 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Result<void>> requestPasswordReset({required String email}) =>
       throw UnimplementedError();
 
+  @override
+  Future<Result<AuthSession>> signInWithGoogle() => throw UnimplementedError();
 
   @override
-  Future<Result<void>> signInWithGoogle() =>
-      throw UnimplementedError();
+  Future<Result<AuthSession>> signInWithApple() => throw UnimplementedError();
 
   @override
   Future<Result<AuthSession>> updatePassword({required String password}) =>
@@ -86,14 +87,20 @@ void main() {
     );
 
     expect(find.text('Créer un compte'), findsWidgets);
-    expect(find.text('Rejoins Agapeo pour des rencontres sincères.'), findsOneWidget);
+    expect(
+      find.text('Rejoins Agapeo pour des rencontres sincères.'),
+      findsOneWidget,
+    );
     expect(find.byType(AppTextField), findsNWidgets(5));
     expect(find.text('Prénom'), findsOneWidget);
     expect(find.text('Nom (optionnel)'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
     expect(find.text('Mot de passe'), findsOneWidget);
     expect(find.text('Confirmer le mot de passe'), findsOneWidget);
-    expect(find.textContaining('conditions générales d\'utilisation'), findsOneWidget);
+    expect(
+      find.textContaining('conditions générales d\'utilisation'),
+      findsOneWidget,
+    );
     expect(find.textContaining('charte d\'éthique'), findsOneWidget);
     expect(find.text('CGU'), findsNothing);
     expect(find.byType(Checkbox), findsOneWidget);
@@ -101,40 +108,39 @@ void main() {
     expect(find.text('toi@email.com'), findsNothing);
   });
 
-  testWidgets(
-    'success without Supabase opens profile onboarding (not OTP)',
-    (tester) async {
-      expect(AppEnvironment.current.hasSupabase, isFalse);
+  testWidgets('success without Supabase opens profile onboarding (not OTP)', (
+    tester,
+  ) async {
+    expect(AppEnvironment.current.hasSupabase, isFalse);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const RegistrationPage(),
-          ),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWithValue(_FakeAuthRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const RegistrationPage(),
         ),
-      );
+      ),
+    );
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(RegistrationPage)),
-      );
-      final controller = container.read(registrationControllerProvider.notifier);
-      controller.setFirstName('Jean');
-      controller.setEmail('a@b.co');
-      controller.setPassword('Abcdefg1');
-      controller.setPasswordConfirm('Abcdefg1');
-      controller.setAcceptedTerms(true);
-      controller.setAcceptedCharter(true);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RegistrationPage)),
+    );
+    final controller = container.read(registrationControllerProvider.notifier);
+    controller.setFirstName('Jean');
+    controller.setEmail('a@b.co');
+    controller.setPassword('Abcdefg1');
+    controller.setPasswordConfirm('Abcdefg1');
+    controller.setAcceptedTerms(true);
+    controller.setAcceptedCharter(true);
 
-      await controller.submit();
-      await tester.pumpAndSettle();
+    await controller.submit();
+    await tester.pumpAndSettle();
 
-      expect(find.byType(OnboardingFlowPage), findsOneWidget);
-      expect(find.byType(OtpPage), findsNothing);
-      expect(find.text('Parle-nous de toi'), findsOneWidget);
-    },
-  );
+    expect(find.byType(OnboardingFlowPage), findsOneWidget);
+    expect(find.byType(OtpPage), findsNothing);
+    expect(find.text('Parle-nous de toi'), findsOneWidget);
+  });
 }

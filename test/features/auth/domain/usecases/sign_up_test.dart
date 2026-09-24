@@ -19,8 +19,7 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Result<AuthSession>> signInWithPassword({
     required String email,
     required String password,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<Result<void>> signUp({
@@ -37,8 +36,7 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Result<AuthSession>> verifyEmailOtp({
     required String email,
     required String token,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
   Future<Result<void>> resendSignupEmail({required String email}) =>
@@ -48,10 +46,11 @@ class _FakeAuthRepository implements AuthRepository {
   Future<Result<void>> requestPasswordReset({required String email}) =>
       throw UnimplementedError();
 
+  @override
+  Future<Result<AuthSession>> signInWithGoogle() => throw UnimplementedError();
 
   @override
-  Future<Result<void>> signInWithGoogle() =>
-      throw UnimplementedError();
+  Future<Result<AuthSession>> signInWithApple() => throw UnimplementedError();
 
   @override
   Future<Result<AuthSession>> updatePassword({required String password}) =>
@@ -80,28 +79,30 @@ void main() {
     bool acceptedTerms = true,
     bool acceptedCharter = true,
     String passwordConfirm = validPassword,
-  }) =>
-      useCase(
-        email: 'a@b.co',
-        password: validPassword,
-        passwordConfirm: passwordConfirm,
-        firstName: 'Jean',
-        acceptedTerms: acceptedTerms,
-        acceptedCharter: acceptedCharter,
+  }) => useCase(
+    email: 'a@b.co',
+    password: validPassword,
+    passwordConfirm: passwordConfirm,
+    firstName: 'Jean',
+    acceptedTerms: acceptedTerms,
+    acceptedCharter: acceptedCharter,
+  );
+
+  test(
+    'rejects unchecked legal consent with acceptedTerms field error',
+    () async {
+      final result = await validCall(acceptedTerms: false);
+
+      expect(result, isA<Err<void>>());
+      final failure = (result as Err<void>).failure;
+      expect(failure, isA<ValidationFailure>());
+      expect(
+        (failure as ValidationFailure).fieldErrors?['acceptedTerms'],
+        isNotNull,
       );
-
-  test('rejects unchecked legal consent with acceptedTerms field error', () async {
-    final result = await validCall(acceptedTerms: false);
-
-    expect(result, isA<Err<void>>());
-    final failure = (result as Err<void>).failure;
-    expect(failure, isA<ValidationFailure>());
-    expect(
-      (failure as ValidationFailure).fieldErrors?['acceptedTerms'],
-      isNotNull,
-    );
-    expect(repo.signUpCalled, isFalse);
-  });
+      expect(repo.signUpCalled, isFalse);
+    },
+  );
 
   test('rejects unchecked charter with acceptedTerms field error', () async {
     final result = await validCall(acceptedCharter: false);

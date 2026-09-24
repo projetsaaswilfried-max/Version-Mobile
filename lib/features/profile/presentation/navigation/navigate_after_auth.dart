@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/error/result.dart';
 import '../../../../core/error/user_facing_message.dart';
-import '../../../../core/navigation/root_navigator.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../home/presentation/home_shell_page.dart';
 import '../../../onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
@@ -70,38 +69,6 @@ Future<void> navigateAfterAuth(
   }
 
   Navigator.of(context).pushAndRemoveUntil(
-    MaterialPageRoute(builder: (_) => page),
-    (route) => false,
-  );
-}
-
-/// Same as [navigateAfterAuth] but via [NavigatorState] (deep-link listener,
-/// where [BuildContext] toasts are unreliable). Uses [rootNavigatorKey]
-/// overlay context for Err toasts when [nav] has no overlay of its own.
-Future<void> navigateAfterAuthWithNav(
-  WidgetRef ref,
-  NavigatorState nav, {
-  required String email,
-}) async {
-  _prefetchProfileFields(ref);
-  _registerPushToken(ref);
-  final gate = await ref.read(profileGateRepositoryProvider).fetchGate();
-
-  final page = pageForGate(
-    gate,
-    ref.read(resolvePostLoginRouteProvider),
-    email: email,
-  );
-
-  if (gate case Err(:final failure)) {
-    final overlayContext =
-        nav.overlay?.context ?? rootNavigatorKey.currentState?.overlay?.context;
-    if (overlayContext != null && overlayContext.mounted) {
-      _showGateFailureToast(overlayContext, failure);
-    }
-  }
-
-  nav.pushAndRemoveUntil(
     MaterialPageRoute(builder: (_) => page),
     (route) => false,
   );

@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../login/login_page.dart';
 import '../registration/registration_page.dart';
+import '../widgets/apple_auth_button.dart';
 import '../widgets/google_auth_button.dart';
 import '../widgets/legal_link_text.dart';
 
@@ -127,7 +128,7 @@ class WelcomePage extends StatelessWidget {
                               horizontal: AppSpacing.md,
                             ),
                             child: Text(
-                              'ou continuer avec',
+                              'ou',
                               style: typography.bodySmall.copyWith(
                                 color: colors.textSecondary,
                               ),
@@ -137,6 +138,8 @@ class WelcomePage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.lg),
+                      const AppleAuthButton(),
+                      const SizedBox(height: AppSpacing.sm),
                       const GoogleAuthButton(),
                       const SizedBox(height: AppSpacing.xxl),
                       Row(

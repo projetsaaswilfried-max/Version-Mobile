@@ -796,6 +796,102 @@ aucun usecase `getPostById`). Pas bloquant pour l'instant, mais à
 construire si on veut un deep-link précis vers la publication/ressource
 concernée plutôt que juste ouvrir le Fil.
 
+### D38 - Connexion Google : natif (`google_sign_in`) au lieu du navigateur + deep link
+*2026-09-24*
+
+La connexion Google passait par `Supabase.auth.signInWithOAuth` - ouverture
+d'un navigateur externe, puis retour dans l'app via le deep link
+`https://www.agapeo.love/auth/callback` (Universal Links iOS / App Links
+Android), géré par `AuthDeepLinkListener`. **Décision : basculer sur le
+SDK natif `google_sign_in`** (`GoogleSignIn.instance.authenticate()` →
+`idToken` → `Supabase.auth.signInWithIdToken`) - plus de navigateur, plus
+de deep link pour Google, la session est obtenue directement dans l'app.
+
+Conséquence : `/auth/callback` n'a plus d'utilité (Google était son seul
+usage) - retiré de `AuthDeepLinkRouter`, `AuthDeepLinkResult`
+(`AuthDeepLinkOauthSession` supprimé), `AuthDeepLinkListener`,
+`DeepLinkUrls` et de l'intent-filter Android. `/auth/reset` (mot de passe
+oublié) reste le seul deep link auth. `GoogleSignInController` navigue
+maintenant lui-même sur succès (`navigateAfterAuth`), comme
+`LoginController` pour le mot de passe - il n'attend plus un retour du
+deep link listener.
+
+**Web Client ID** (celui déjà configuré côté Supabase, Authentication →
+Providers → Google, transmis par le porteur) : câblé dans
+`GoogleSignInConfig.webClientId`, utilisé comme `serverClientId` à
+l'initialisation - c'est lui qui permet à Supabase de vérifier l'`idToken`
+émis par le SDK natif.
+
+*Suite 2026-09-24 :* piège découvert en testant sur device réel - erreur
+« Connexion Google annulée » à chaque tentative, même en choisissant bien
+un compte. Cause : le projet Firebase du porteur (`agapeo-98ecb`, créé pour
+le FCM) et le projet Google Cloud qui porte le `webClientId` (déjà utilisé
+par Supabase, écran de consentement OAuth déjà en prod) sont **deux
+projets distincts, non liés** (créés avec des comptes Google différents).
+Ajouter les SHA-1 côté Firebase ne créait donc aucun client OAuth Android
+dans le *bon* projet (`google-services.json` gardait `oauth_client: []`
+même après ajout) - Credential Manager ne trouvait pas de client
+correspondant et Android rapporte ça comme une annulation plutôt qu'une
+vraie erreur de config, ce qui a fait perdre du temps au diagnostic.
+
+**Pas besoin de lier les deux projets.** Un client OAuth Android/iOS n'a
+pas besoin de passer par Firebase - il suffit de le créer directement dans
+Google Cloud Console (Identifiants → Créer des identifiants → ID client
+OAuth), **dans le projet qui porte déjà le `webClientId`**, indépendamment
+de Firebase :
+- **Android** : un client de type "Android" par SHA-1 (package
+  `love.agapeo.app`) - un pour le SHA-1 Play App Signing (App signing key
+  certificate, Play Console → Intégrité de l'application), un autre pour
+  le SHA-1 du keystore debug local.
+- **iOS** : un client de type "iOS" (Bundle ID `love.agapeo.app`) - un
+  seul suffit, pas de SHA-1 pour iOS. Client id transmis par le porteur,
+  câblé dans `GoogleSignInConfig.iosClientId` et passé à
+  `GoogleSignIn.instance.initialize(clientId: ...)` ; schéma d'URL dérivé
+  (reversed client id) ajouté dans `CFBundleURLTypes` de `Info.plist`.
+
+`google-services.json`/`GoogleService-Info.plist` (Firebase, FCM) restent
+inchangés - aucun rapport avec cette partie, `oauth_client: []` y reste
+vide et c'est normal puisqu'on ne passe plus par Firebase pour ce client.
+
+### D39 - Sign in with Apple natif (iOS uniquement)
+*2026-09-24 · suite directe de D38*
+
+Pas dans le PRD (`docs/decisions.md` notait « Auth activée : email +
+Google » avant cette entrée) - ajouté uniquement par contrainte App Store
+(règle de revue 4.8 : toute app proposant un login social tiers comme
+Google doit aussi proposer Sign in with Apple, avec une visibilité
+équivalente). **Décision : natif d'emblée**, même schéma que Google (D38)
+- `sign_in_with_apple` (`getAppleIDCredential`) → `identityToken` →
+`Supabase.auth.signInWithIdToken(provider: OAuthProvider.apple, ...)`.
+Contrairement à Google, Apple **exige** un nonce (anti-rejeu) : nonce brut
+généré côté app, sa version hachée SHA-256 (`crypto`) envoyée à Apple, le
+nonce brut envoyé à Supabase - pattern standard documenté par Supabase
+lui-même.
+
+**iOS uniquement** - `AppleAuthButton` rend `SizedBox.shrink()` sur
+Android (`Platform.isIOS`) : la règle 4.8 ne s'applique qu'à la revue
+Apple, et le repli web/deep-link du plugin sur Android aurait réintroduit
+exactement la complexité qu'on vient de retirer pour Google (D38) sans
+aucune obligation en face. Bouton placé au-dessus de Google sur
+Login/Registration/Welcome (mêmes trois écrans), noir/blanc conforme aux
+Human Interface Guidelines d'Apple.
+
+**Reste à faire côté config externe avant de tester sur device réel**
+(le code Dart est fait et testé) :
+- **Apple Developer Portal** : activer la capacité "Sign In with Apple"
+  sur l'App ID `love.agapeo.app` (accès pas encore confirmé côté
+  porteur/équipe au moment de cette entrée).
+- **Xcode** : capacité "Sign in with Apple" ajoutée au target Runner
+  (l'entitlement `com.apple.developer.applesignin` est déjà dans
+  `Runner.entitlements`, mais la capacité doit aussi être activée côté
+  Apple Developer Portal + profil de provisioning).
+- **Supabase** : activer le provider "Apple" (Authentication → Providers)
+  - jamais configuré jusqu'ici, à vérifier quels champs sont
+  effectivement requis pour la vérification d'un `idToken` natif (a
+  priori le Bundle ID dans "Client IDs" suffit pour ce flux, sans la
+  clé privée `.p8`/Key ID nécessaires uniquement pour le flow OAuth
+  serveur classique - à confirmer en testant).
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 

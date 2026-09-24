@@ -9,6 +9,7 @@ import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../forgot_password/forgot_password_page.dart';
 import '../otp/otp_page.dart';
 import '../registration/registration_page.dart';
+import '../widgets/apple_auth_button.dart';
 import '../widgets/google_auth_button.dart';
 import '../widgets/legal_link_text.dart';
 import 'login_controller.dart';
@@ -150,7 +151,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             horizontal: AppSpacing.md,
                           ),
                           child: Text(
-                            'ou continuer avec',
+                            'ou',
                             style: typography.bodySmall.copyWith(
                               color: colors.textSecondary,
                             ),
@@ -160,6 +161,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ],
                     ),
                     const SizedBox(height: AppSpacing.lg),
+                    const AppleAuthButton(),
+                    const SizedBox(height: AppSpacing.sm),
                     Center(
                       child: const GoogleAuthButton(),
                     ),

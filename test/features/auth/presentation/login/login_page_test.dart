@@ -54,7 +54,10 @@ class _UnconfirmedAuthRepository implements AuthRepository {
       throw UnimplementedError();
 
   @override
-  Future<Result<void>> signInWithGoogle() => throw UnimplementedError();
+  Future<Result<AuthSession>> signInWithGoogle() => throw UnimplementedError();
+
+  @override
+  Future<Result<AuthSession>> signInWithApple() => throw UnimplementedError();
 
   @override
   Future<Result<AuthSession>> updatePassword({required String password}) =>
@@ -77,7 +80,9 @@ void main() {
     );
   }
 
-  testWidgets('shows Datify-style login fields, CTA and Google', (tester) async {
+  testWidgets('shows Datify-style login fields, CTA and Google', (
+    tester,
+  ) async {
     await pumpLogin(tester);
 
     expect(find.text('Connexion'), findsOneWidget);
@@ -112,29 +117,26 @@ void main() {
     expect(find.byType(RegistrationPage), findsOneWidget);
   });
 
-  testWidgets(
-    'unconfirmed email auto-resends the code and redirects to OTP, '
-    'no button to press',
-    (tester) async {
-      final repo = _UnconfirmedAuthRepository();
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [authRepositoryProvider.overrideWithValue(repo)],
-          child: MaterialApp(theme: AppTheme.light, home: const LoginPage()),
-        ),
-      );
+  testWidgets('unconfirmed email auto-resends the code and redirects to OTP, '
+      'no button to press', (tester) async {
+    final repo = _UnconfirmedAuthRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryProvider.overrideWithValue(repo)],
+        child: MaterialApp(theme: AppTheme.light, home: const LoginPage()),
+      ),
+    );
 
-      await tester.enterText(find.byType(TextField).at(0), 'a@b.co');
-      await tester.enterText(find.byType(TextField).at(1), 'Abcdefg1');
-      await tester.ensureVisible(find.text('Se connecter'));
-      await tester.tap(find.text('Se connecter'));
-      // pumpAndSettle would time out on OtpPage's Pinput cursor animation.
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+    await tester.enterText(find.byType(TextField).at(0), 'a@b.co');
+    await tester.enterText(find.byType(TextField).at(1), 'Abcdefg1');
+    await tester.ensureVisible(find.text('Se connecter'));
+    await tester.tap(find.text('Se connecter'));
+    // pumpAndSettle would time out on OtpPage's Pinput cursor animation.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.byType(OtpPage), findsOneWidget);
-      expect(find.text('Confirmer mon compte'), findsNothing);
-      expect(repo.resendCalledFor, 'a@b.co');
-    },
-  );
+    expect(find.byType(OtpPage), findsOneWidget);
+    expect(find.text('Confirmer mon compte'), findsNothing);
+    expect(repo.resendCalledFor, 'a@b.co');
+  });
 }

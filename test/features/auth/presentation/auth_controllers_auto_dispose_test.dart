@@ -64,7 +64,10 @@ class _FakeAuthRepository implements AuthRepository {
       throw UnimplementedError();
 
   @override
-  Future<Result<void>> signInWithGoogle() => throw UnimplementedError();
+  Future<Result<AuthSession>> signInWithGoogle() => throw UnimplementedError();
+
+  @override
+  Future<Result<AuthSession>> signInWithApple() => throw UnimplementedError();
 
   @override
   Future<Result<AuthSession>> updatePassword({required String password}) =>

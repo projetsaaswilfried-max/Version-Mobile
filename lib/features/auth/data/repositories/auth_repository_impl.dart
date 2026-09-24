@@ -76,7 +76,12 @@ class AuthRepositoryImpl implements AuthRepository {
       _guard(() => _remote.requestPasswordReset(email: email));
 
   @override
-  Future<Result<void>> signInWithGoogle() => _guard(_remote.signInWithGoogle);
+  Future<Result<AuthSession>> signInWithGoogle() =>
+      _guard(() async => _toSession(await _remote.signInWithGoogle()));
+
+  @override
+  Future<Result<AuthSession>> signInWithApple() =>
+      _guard(() async => _toSession(await _remote.signInWithApple()));
 
   @override
   Future<Result<AuthSession>> updatePassword({required String password}) =>

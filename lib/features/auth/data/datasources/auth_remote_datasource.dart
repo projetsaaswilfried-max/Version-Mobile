@@ -26,7 +26,9 @@ abstract class AuthRemoteDataSource {
 
   Future<void> requestPasswordReset({required String email});
 
-  Future<void> signInWithGoogle();
+  Future<({String id, String email})> signInWithGoogle();
+
+  Future<({String id, String email})> signInWithApple();
 
   Future<({String id, String email})> updatePassword({required String password});
 

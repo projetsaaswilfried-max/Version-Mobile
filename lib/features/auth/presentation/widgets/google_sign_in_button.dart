@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/config/app_assets.dart';
-import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 
-/// Full-width labeled Google button.
+/// Full-width labeled Google button - même forme (pilule) que [AppButton].
 class GoogleSignInButton extends StatelessWidget {
   const GoogleSignInButton({super.key, required this.onPressed});
 
@@ -18,13 +17,10 @@ class GoogleSignInButton extends StatelessWidget {
     final typography = context.typography;
     return Material(
       color: colors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: AppRadius.mdRadius,
-        side: BorderSide(color: colors.border),
-      ),
+      shape: StadiumBorder(side: BorderSide(color: colors.border)),
       child: InkWell(
         onTap: onPressed,
-        borderRadius: AppRadius.mdRadius,
+        customBorder: const StadiumBorder(),
         child: SizedBox(
           width: double.infinity,
           height: AppSpacing.buttonHeight,

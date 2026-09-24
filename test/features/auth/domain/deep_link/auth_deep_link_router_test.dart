@@ -2,10 +2,13 @@ import 'package:agapeo/features/auth/domain/deep_link/auth_deep_link_router.dart
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('classifies oauth callback', () {
-    final uri = Uri.parse('https://www.agapeo.love/auth/callback?code=abc');
-    expect(AuthDeepLinkRouter.kind(uri), AuthDeepLinkKind.oauthCallback);
-  });
+  test(
+    'ignores the old oauth callback path (Google Sign-In is native now)',
+    () {
+      final uri = Uri.parse('https://www.agapeo.love/auth/callback?code=abc');
+      expect(AuthDeepLinkRouter.kind(uri), AuthDeepLinkKind.ignored);
+    },
+  );
 
   test('classifies password reset', () {
     final uri = Uri.parse('https://www.agapeo.love/auth/reset#access_token=x');

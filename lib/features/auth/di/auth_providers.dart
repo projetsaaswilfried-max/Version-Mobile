@@ -12,6 +12,7 @@ import '../domain/repositories/age_gate_store.dart';
 import '../domain/repositories/auth_repository.dart';
 import '../domain/usecases/request_password_reset.dart';
 import '../domain/usecases/resend_signup_email.dart';
+import '../domain/usecases/sign_in_with_apple.dart';
 import '../domain/usecases/sign_in_with_google.dart';
 import '../domain/usecases/sign_in_with_password.dart';
 import '../domain/usecases/sign_out.dart';
@@ -89,7 +90,10 @@ class _UnconfiguredAuthRepository implements AuthRepository {
       const Err(_failure);
 
   @override
-  Future<Result<void>> signInWithGoogle() async => const Err(_failure);
+  Future<Result<AuthSession>> signInWithGoogle() async => const Err(_failure);
+
+  @override
+  Future<Result<AuthSession>> signInWithApple() async => const Err(_failure);
 
   @override
   Future<Result<AuthSession>> updatePassword({
@@ -126,6 +130,10 @@ final requestPasswordResetProvider = Provider(
 
 final signInWithGoogleProvider = Provider(
   (ref) => SignInWithGoogle(ref.watch(authRepositoryProvider)),
+);
+
+final signInWithAppleProvider = Provider(
+  (ref) => SignInWithApple(ref.watch(authRepositoryProvider)),
 );
 
 final updatePasswordProvider = Provider(

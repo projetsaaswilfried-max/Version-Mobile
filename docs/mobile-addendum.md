@@ -49,17 +49,18 @@ ce stade, donc aucune raison de faire rejouer `signInWithPassword` en
 premier ; l'écran OTP a son propre « Renvoyer le code » (débouncé 60 s,
 rate-limit Supabase) si ce renvoi automatique échoue.
 
-### 1.2 Deep links — nécessaires malgré l'OTP
+### 1.2 Deep links — réinitialisation du mot de passe uniquement
 
-L'OTP évite le deep link pour la confirmation d'inscription seulement. Il reste
-**obligatoire** pour :
-- **Google OAuth** — le retour dans l'app après consentement Google passe par un
-  redirect ; sans deep link, l'app ne récupère pas la session.
-- **Réinitialisation du mot de passe** — même mécanique.
+L'OTP évite le deep link pour la confirmation d'inscription. **Google Sign-In
+est natif** (`google_sign_in` + `Supabase.auth.signInWithIdToken`, décision
+D38) - pas de navigateur, pas de redirect, donc plus besoin de deep link pour
+lui. Il ne reste **obligatoire** que pour la **réinitialisation du mot de
+passe** (`/auth/reset`).
 
-À configurer : App Links (Android) + Universal Links (iOS), et déclarer les URL
-de redirection côté Supabase (Auth → URL Configuration). Le manifeste PWA
-référence déjà un identifiant de package Play Store (§21) — le réutiliser.
+À configurer : App Links (Android) + Universal Links (iOS) pour ce seul
+chemin, et déclarer l'URL de redirection côté Supabase (Auth → URL
+Configuration). Le manifeste PWA référence déjà un identifiant de package
+Play Store (§21) — le réutiliser.
 
 ### 1.3 Routage post-connexion — à la charge du mobile
 

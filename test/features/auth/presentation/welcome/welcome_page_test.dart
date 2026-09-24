@@ -1,3 +1,5 @@
+import 'package:agapeo/core/error/failure.dart';
+import 'package:agapeo/core/error/result.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/features/auth/di/auth_providers.dart';
 import 'package:agapeo/features/auth/presentation/login/login_page.dart';
@@ -32,7 +34,7 @@ void main() {
     expect(find.text('Bienvenue'), findsOneWidget);
     expect(find.text('Créer un compte'), findsOneWidget);
     expect(find.text('Se connecter'), findsOneWidget);
-    expect(find.text('ou continuer avec'), findsOneWidget);
+    expect(find.text('ou'), findsOneWidget);
     expect(find.text('Continuer avec Google'), findsOneWidget);
     expect(
       find.text('Des rencontres sincères pour bâtir un foyer chrétien.'),
@@ -60,17 +62,26 @@ void main() {
     expect(find.byType(RegistrationPage), findsOneWidget);
   });
 
-  testWidgets('Google triggers OAuth launch without coming-soon snackbar', (
-    tester,
-  ) async {
-    final auth = FakeAuthRepository();
-    await pumpWelcome(tester, auth: auth);
+  testWidgets(
+    'Google calls the native sign-in and surfaces a failure without the '
+    'old coming-soon snackbar',
+    (tester) async {
+      // A success would trigger navigateAfterAuth (real profile/gate
+      // providers) — out of scope here, covered by the controller's own
+      // tests. An Err keeps this test focused on the button's wiring.
+      final auth = FakeAuthRepository(
+        signInWithGoogleResult: const Err(
+          UnauthorizedFailure('Connexion Google annulée.'),
+        ),
+      );
+      await pumpWelcome(tester, auth: auth);
 
-    await tester.ensureVisible(find.text('Continuer avec Google'));
-    await tester.tap(find.text('Continuer avec Google'));
-    await tester.pump();
+      await tester.ensureVisible(find.text('Continuer avec Google'));
+      await tester.tap(find.text('Continuer avec Google'));
+      await tester.pump();
 
-    expect(auth.signInWithGoogleCalled, isTrue);
-    expect(find.text('Connexion Google bientôt disponible.'), findsNothing);
-  });
+      expect(auth.signInWithGoogleCalled, isTrue);
+      expect(find.text('Connexion Google bientôt disponible.'), findsNothing);
+    },
+  );
 }

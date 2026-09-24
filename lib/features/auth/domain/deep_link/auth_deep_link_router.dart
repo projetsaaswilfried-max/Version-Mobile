@@ -1,5 +1,9 @@
 /// Pure path matching for auth deep links (testable without Supabase).
-enum AuthDeepLinkKind { oauthCallback, passwordReset, ignored }
+///
+/// Google Sign-In is native (no browser, no deep link) - `/auth/callback`
+/// was its OAuth redirect and no longer exists. Password reset is the only
+/// auth deep link left.
+enum AuthDeepLinkKind { passwordReset, ignored }
 
 class AuthDeepLinkRouter {
   const AuthDeepLinkRouter._();
@@ -14,7 +18,6 @@ class AuthDeepLinkRouter {
         : uri.path;
 
     return switch (path) {
-      '/auth/callback' => AuthDeepLinkKind.oauthCallback,
       '/auth/reset' => AuthDeepLinkKind.passwordReset,
       _ => AuthDeepLinkKind.ignored,
     };

@@ -55,7 +55,16 @@ class FakeSupabaseAuthDataSource implements AuthRemoteDataSource {
   Future<void> requestPasswordReset({required String email}) => _orThrow(null);
 
   @override
-  Future<void> signInWithGoogle() => _orThrow(null);
+  Future<({String id, String email})> signInWithGoogle() async {
+    if (toThrow != null) throw toThrow!;
+    return (id: 'u1', email: 'a@b.co');
+  }
+
+  @override
+  Future<({String id, String email})> signInWithApple() async {
+    if (toThrow != null) throw toThrow!;
+    return (id: 'u1', email: 'a@b.co');
+  }
 
   @override
   Future<({String id, String email})> updatePassword({

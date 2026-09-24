@@ -29,8 +29,13 @@ abstract class AuthRepository {
 
   Future<Result<void>> requestPasswordReset({required String email});
 
-  /// Launches the Google OAuth browser flow. Session arrives via deep link.
-  Future<Result<void>> signInWithGoogle();
+  /// Native Google Sign-In (no browser, no deep link) - the session is
+  /// established synchronously.
+  Future<Result<AuthSession>> signInWithGoogle();
+
+  /// Native Sign in with Apple (iOS only) - required alongside Google by
+  /// App Store review guideline 4.8.
+  Future<Result<AuthSession>> signInWithApple();
 
   Future<Result<AuthSession>> updatePassword({required String password});
 
