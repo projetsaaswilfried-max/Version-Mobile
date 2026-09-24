@@ -892,6 +892,37 @@ Human Interface Guidelines d'Apple.
   clé privée `.p8`/Key ID nécessaires uniquement pour le flow OAuth
   serveur classique - à confirmer en testant).
 
+### D40 - Tap sur un push : routage direct par type, plus de passage par la liste
+*2026-09-24*
+
+Un tap sur une notification push (arrière-plan/app fermée) ouvrait
+toujours `NotificationsPage`, quel que soit le type - le membre devait
+retrouver la ligne concernée lui-même. Le backend confirme que le payload
+`data` du push transporte les **mêmes données que la ligne
+`notifications`** (`targetUrl` confirmé en camelCase - vérifié sur les
+16 types et plusieurs dizaines de milliers de lignes ; `type`/`actorId`
+non confirmés explicitement au moment de coder, mais a priori présents
+puisque c'est la même donnée).
+
+**Décision :** extraire le switch par `type` de `_openNotificationTarget`
+(`notifications_page.dart`) dans une fonction partagée,
+`openNotificationTarget()` (`open_notification_target.dart`) - même
+logique, appelée à deux endroits :
+- tap sur une ligne de `NotificationsPage` (`AppNotification`, inchangé) ;
+- tap sur un push FCM (`PushNotificationsListener._openTarget`, nouveau) -
+  `onMessageOpenedApp` et `getInitialMessage`.
+
+Sans dépendance à un `BuildContext` (navigue via `rootNavigatorKey`, même
+pattern que `AuthDeepLinkListener`) - utilisable aussi bien depuis
+`NotificationsPage` que depuis le listener global. `PushNotificationsListener`
+lit `data['type']`, `data['targetUrl'] ?? data['target_url']`,
+`data['actorId'] ?? data['actor_id']` (les deux casses tentées faute de
+confirmation explicite sur `type`/`actorId`) - si absents, le `default`
+du switch retombe sur l'extraction d'id de conversation depuis
+`targetUrl` seul, sans jamais planter. **À vérifier sur device réel** :
+que `type`/`actorId` arrivent bien dans le payload (pas seulement
+`targetUrl`), sinon le routage se dégrade silencieusement vers ce repli.
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 

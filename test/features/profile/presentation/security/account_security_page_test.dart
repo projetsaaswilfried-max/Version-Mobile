@@ -33,8 +33,12 @@ void main() {
     expect(find.text('Changer le mot de passe'), findsOneWidget);
     expect(find.text('Export des données'), findsOneWidget);
     expect(find.text('Support'), findsOneWidget);
-    expect(find.text('Mon Plan'), findsOneWidget);
     expect(find.text('Mentions légales'), findsOneWidget);
+    expect(
+      find.text('Mon Plan'),
+      findsNothing,
+      reason: 'déplacé dans le menu Profil, sous Plus d\'infos',
+    );
     expect(find.text('Comptes bloqués'), findsOneWidget);
     expect(find.text('Supprimer mon compte'), findsOneWidget);
 

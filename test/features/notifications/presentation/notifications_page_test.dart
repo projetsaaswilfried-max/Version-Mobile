@@ -1,4 +1,5 @@
 import 'package:agapeo/core/error/result.dart';
+import 'package:agapeo/core/navigation/root_navigator.dart';
 import 'package:agapeo/core/theme/app_theme.dart';
 import 'package:agapeo/features/discover/di/discover_providers.dart';
 import 'package:agapeo/features/discover/presentation/widgets/discover_profile_sheet.dart';
@@ -68,6 +69,7 @@ Future<(_FakeNotificationsRepository, ProviderContainer)> _pumpNotifications(
         builder: (context, ref, _) {
           container = ProviderScope.containerOf(context);
           return MaterialApp(
+            navigatorKey: rootNavigatorKey,
             theme: AppTheme.light,
             home: Builder(
               builder: (context) => Scaffold(

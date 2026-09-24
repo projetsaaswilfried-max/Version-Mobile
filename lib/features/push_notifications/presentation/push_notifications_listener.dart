@@ -6,19 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/navigation/root_navigator.dart';
 import '../../notifications/presentation/notifications_controller.dart';
-import '../../notifications/presentation/notifications_page.dart';
+import '../../notifications/presentation/open_notification_target.dart';
 import '../di/push_notifications_providers.dart';
 
 /// Écoute les messages FCM pour toute la durée de vie de l'app - pas
 /// d'accès à un [BuildContext] widget, même pattern que
 /// [AuthDeepLinkListener] (rootNavigatorKey, pas de contexte requis).
 ///
-/// Décisions confirmées (2026-09-23) : pas de bannière au premier plan
-/// (juste rafraîchir la liste/le badge), le tap ouvre toujours la liste
-/// `NotificationsPage` (qui a déjà la logique de navigation par cible)
-/// plutôt qu'un deep-link direct depuis le payload push.
+/// Pas de bannière au premier plan (juste rafraîchir la liste/le badge).
+/// Le tap (arrière-plan/app fermée) route directement vers la cible via
+/// [openNotificationTarget], même logique que le tap sur une ligne de
+/// `NotificationsPage` - le payload push transporte les mêmes données
+/// (`type`/`targetUrl`/`actorId`) que la table `notifications`.
 class PushNotificationsListener extends ConsumerStatefulWidget {
   const PushNotificationsListener({super.key, required this.child});
 
@@ -48,10 +48,10 @@ class _PushNotificationsListenerState
         ref.invalidate(notificationsControllerProvider);
       });
       _openedAppSub = FirebaseMessaging.onMessageOpenedApp.listen(
-        (_) => _openNotifications(),
+        (message) => _openTarget(message.data),
       );
       FirebaseMessaging.instance.getInitialMessage().then((message) {
-        if (message != null) _openNotifications();
+        if (message != null) _openTarget(message.data);
       });
     } catch (_) {
       // Firebase non initialisé (tests, env sans config native) - jamais
@@ -89,10 +89,19 @@ class _PushNotificationsListenerState
         );
   }
 
-  void _openNotifications() {
-    final nav = rootNavigatorKey.currentState;
-    if (nav == null) return;
-    nav.push(MaterialPageRoute<void>(builder: (_) => const NotificationsPage()));
+  /// Le backend confirme que le payload push transporte les mêmes données
+  /// que la ligne `notifications` correspondante - `targetUrl` confirmé
+  /// (camelCase). `type`/`actorId` pas confirmés à l'écriture de ce code :
+  /// on tente les deux casses plausibles ; s'ils sont absents, le switch
+  /// par défaut de [openNotificationTarget] retombe sur `targetUrl` seul
+  /// (extraction de l'id de conversation), sans jamais planter.
+  void _openTarget(Map<String, dynamic> data) {
+    openNotificationTarget(
+      ref,
+      type: data['type'] as String?,
+      targetUrl: (data['targetUrl'] ?? data['target_url']) as String?,
+      actorId: (data['actorId'] ?? data['actor_id']) as String?,
+    );
   }
 
   @override

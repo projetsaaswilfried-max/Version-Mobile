@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../../core/theme/app_spacing.dart';
 import '../../../../../core/widgets/widgets.dart';
-import '../../../premium/presentation/premium_plan_page.dart';
 import '../../../support/presentation/support_list_page.dart';
 import '../account/widgets/account_list_widgets.dart';
 import 'blocked_accounts_page.dart';
@@ -82,17 +81,8 @@ class AccountSecurityPage extends StatelessWidget {
               ],
             ),
             AppSettingsGroup(
-              title: 'Abonnement & aide',
+              title: 'Aide',
               children: [
-                AccountSectionRow(
-                  label: 'Mon Plan',
-                  icon: Icons.workspace_premium_outlined,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const PremiumPlanPage(),
-                    ),
-                  ),
-                ),
                 AccountSectionRow(
                   label: 'Support',
                   icon: Icons.headset_mic_outlined,

@@ -24,6 +24,7 @@ class ProfileHubRow extends StatelessWidget {
       ProfileHubSection.profile => Icons.person_outline,
       ProfileHubSection.faith => Icons.menu_book_outlined,
       ProfileHubSection.moreInfo => Icons.tune,
+      ProfileHubSection.plan => Icons.workspace_premium_outlined,
       ProfileHubSection.posts => Icons.article_outlined,
       ProfileHubSection.favorites => Icons.favorite_outline,
       ProfileHubSection.interested => Icons.visibility_outlined,

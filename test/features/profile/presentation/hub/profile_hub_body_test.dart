@@ -8,6 +8,7 @@ import 'package:agapeo/features/feed/di/feed_providers.dart';
 import 'package:agapeo/features/feed/presentation/pages/my_posts_page.dart';
 import 'package:agapeo/features/home/presentation/tabs/profile_tab_page.dart';
 import 'package:agapeo/features/onboarding/presentation/profile_onboarding/onboarding_flow_page.dart';
+import 'package:agapeo/features/premium/presentation/premium_plan_page.dart';
 import 'package:agapeo/features/profile/di/profile_providers.dart';
 import 'package:agapeo/features/profile/domain/entities/profile_hub_section.dart';
 import 'package:agapeo/features/profile/presentation/faith/faith_page.dart';
@@ -86,7 +87,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('shows identity, verified badge and 8 sections', (tester) async {
+  testWidgets('shows identity, verified badge and 9 sections', (tester) async {
     await pumpTab(tester);
 
     expect(find.text('Léa Martin'), findsOneWidget);
@@ -164,6 +165,7 @@ void main() {
     expect(find.byType(FaithPage), findsOneWidget);
 
     await open('Plus d\'infos', MoreInfoPage);
+    await open('Mon Plan', PremiumPlanPage);
     await open('Mes Favoris', FavoritesPage);
     await open('Qui s\'intéresse à moi', InterestedPage);
     await open('Confidentialité', PrivacyPage);

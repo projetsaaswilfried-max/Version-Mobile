@@ -7,20 +7,11 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/format_relative_time.dart';
 import '../../../core/widgets/widgets.dart';
-import '../../discover/domain/premium/discover_premium_gate.dart';
-import '../../discover/presentation/discover_controller.dart';
-import '../../discover/presentation/widgets/discover_profile_sheet.dart';
-import '../../home/presentation/home_shell_controller.dart';
-import '../../home/presentation/home_tab.dart';
-import '../../messages/presentation/thread/conversation_thread_page.dart';
-import '../../premium/presentation/premium_plan_page.dart';
-import '../../profile/presentation/security/add_profile_photo_page.dart';
-import '../../profile/presentation/security/verification_page.dart';
-import '../../support/presentation/support_list_page.dart';
 import '../domain/entities/app_notification.dart';
 import '../domain/notification_category.dart';
 import '../domain/notification_day_section.dart';
 import 'notifications_controller.dart';
+import 'open_notification_target.dart';
 
 class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
@@ -77,7 +68,12 @@ class NotificationsPage extends ConsumerWidget {
                       items: state.visible,
                       onTap: (item) {
                         notifier.markRead(item.id);
-                        _openNotificationTarget(context, ref, item);
+                        openNotificationTarget(
+                          ref,
+                          type: item.type,
+                          targetUrl: item.targetUrl,
+                          actorId: item.actorId,
+                        );
                       },
                     ),
                   ),
@@ -96,128 +92,6 @@ class NotificationsPage extends ConsumerWidget {
       _ => 'Aucune notification dans cette catégorie.',
     };
   }
-}
-
-/// Route le tap sur une notification vers sa destination - sur `type`
-/// (fiable, liste confirmée par le porteur) plutôt que `target_url`
-/// (pensé pour le web, `/messages?conversation=...`, `/discover`).
-/// L'id de conversation reste extrait de `target_url` faute d'un champ
-/// dédié sur `AppNotification`.
-void _openNotificationTarget(
-  BuildContext context,
-  WidgetRef ref,
-  AppNotification item,
-) {
-  final navigator = Navigator.of(context, rootNavigator: true);
-  void toRoot() => navigator.popUntil((route) => route.isFirst);
-  void switchTab(HomeTab tab) {
-    toRoot();
-    ref.read(homeShellIndexProvider.notifier).select(tab.index);
-  }
-
-  void openConversationOr(HomeTab fallbackTab) {
-    final conversationId = _conversationIdFrom(item.targetUrl);
-    if (conversationId == null) {
-      switchTab(fallbackTab);
-      return;
-    }
-    toRoot();
-    navigator.push(
-      MaterialPageRoute<void>(
-        builder: (_) => ConversationThreadPage(conversationId: conversationId),
-      ),
-    );
-  }
-
-  void openProfileOr(HomeTab fallbackTab) {
-    final actorId = item.actorId;
-    if (actorId == null) {
-      switchTab(fallbackTab);
-      return;
-    }
-    toRoot();
-    final state = ref.read(discoverControllerProvider);
-    DiscoverProfileSheet.show(
-      context,
-      profileId: actorId,
-      canLike: canLikeDiscoverProfile(
-        visitorVerified: state.visitorVerified,
-        isStaff: state.visitorIsStaff,
-      ),
-      canFavorite: canFavoriteDiscoverProfile(
-        visitorVerified: state.visitorVerified,
-        isStaff: state.visitorIsStaff,
-      ),
-      canInvite: canInviteDiscoverProfile(
-        visitorVerified: state.visitorVerified,
-        isStaff: state.visitorIsStaff,
-      ),
-      visitorVerified: state.visitorVerified,
-      subscriptionStatus: state.subscriptionStatus,
-      visitorIsStaff: state.visitorIsStaff,
-      onVerifyProfile: () {
-        // Photo puis selfie, toujours dans cet ordre (D34).
-        navigator.push(
-          MaterialPageRoute<void>(builder: (_) => const AddProfilePhotoPage()),
-        );
-      },
-    );
-  }
-
-  switch (item.type) {
-    case 'NEW_MESSAGE':
-    case 'CONVERSATION_INVITE':
-    case 'MATCH_REQUEST':
-    case 'MATCH_ACCEPTED':
-    case 'CONVERSATION_ACCEPTED':
-      openConversationOr(HomeTab.messages);
-    case 'NEW_FAVORITE':
-    case 'PROFILE_LIKE':
-    case 'PROFILE_VISIT':
-      openProfileOr(HomeTab.discover);
-    case 'NEW_RECOMMENDATION':
-      switchTab(HomeTab.discover);
-    case 'POST_LIKE':
-    case 'POST_COMMENT':
-    case 'OFFICIAL_POST':
-    case 'NEW_RESOURCE':
-      // Pas encore de route par id (post/ressource) - on ouvre le fil, le
-      // membre peut y retrouver la publication concernée.
-      switchTab(HomeTab.feed);
-    case 'SUPPORT_REPLY':
-      toRoot();
-      navigator.push(
-        MaterialPageRoute<void>(builder: (_) => const SupportListPage()),
-      );
-    case 'PHOTO_APPROVED':
-    case 'PHOTO_REJECTED':
-      toRoot();
-      navigator.push(
-        MaterialPageRoute<void>(builder: (_) => const VerificationPage()),
-      );
-    case 'PAYMENT_FAILED':
-      toRoot();
-      navigator.push(
-        MaterialPageRoute<void>(builder: (_) => const PremiumPlanPage()),
-      );
-    default:
-      // Type non reconnu (ou ancien format) - dernier recours sur
-      // target_url si elle contient un id de conversation, sinon on ne
-      // devine rien (comportement historique).
-      final conversationId = _conversationIdFrom(item.targetUrl);
-      if (conversationId == null) return;
-      toRoot();
-      navigator.push(
-        MaterialPageRoute<void>(
-          builder: (_) => ConversationThreadPage(conversationId: conversationId),
-        ),
-      );
-  }
-}
-
-String? _conversationIdFrom(String? targetUrl) {
-  if (targetUrl == null) return null;
-  return Uri.tryParse(targetUrl)?.queryParameters['conversation'];
 }
 
 class _FilterBar extends StatelessWidget {

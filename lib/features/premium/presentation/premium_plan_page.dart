@@ -246,10 +246,14 @@ class _PlanCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            plan.label,
-                            style: typography.bodyLarge.copyWith(
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: Text(
+                              plan.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: typography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                           if (plan.recommended) ...[

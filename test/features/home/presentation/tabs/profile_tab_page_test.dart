@@ -16,6 +16,15 @@ import '../../../../helpers/profile_test_fakes.dart';
 
 void main() {
   testWidgets('opens Mes publications from the profile tab', (tester) async {
+    // Le surface par défaut du test (~800x600) est trop courte pour la
+    // liste de sections du hub (un sliver plus haut que ça la fait
+    // disparaître du tree, pas juste hors écran) - même taille que
+    // profile_hub_body_test.dart, qui pompe le même ProfileTabPage.
+    tester.view.physicalSize = const Size(390, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

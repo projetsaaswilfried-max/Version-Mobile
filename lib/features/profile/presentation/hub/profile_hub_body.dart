@@ -5,6 +5,7 @@ import '../../../../core/error/result.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../feed/presentation/pages/my_posts_page.dart';
+import '../../../premium/presentation/premium_plan_page.dart';
 import '../../di/profile_providers.dart';
 import '../../domain/entities/profile_hub_section.dart';
 import '../faith/faith_page.dart';
@@ -44,6 +45,7 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
     ProfileHubSection.profile,
     ProfileHubSection.faith,
     ProfileHubSection.moreInfo,
+    ProfileHubSection.plan,
   ];
 
   static const _activitySections = [
@@ -240,6 +242,7 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
       ProfileHubSection.profile => const MyProfilePage(),
       ProfileHubSection.faith => const FaithPage(),
       ProfileHubSection.moreInfo => const MoreInfoPage(),
+      ProfileHubSection.plan => const PremiumPlanPage(),
       ProfileHubSection.posts => const MyPostsPage(),
       ProfileHubSection.favorites => const FavoritesPage(),
       ProfileHubSection.interested => const InterestedPage(),

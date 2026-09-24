@@ -75,11 +75,12 @@ void main() {
     );
   });
 
-  test('exposes the 8 PRD section labels', () {
+  test('exposes the 9 section labels (8 PRD + Mon Plan)', () {
     expect(ProfileHubSection.values.map((s) => s.label).toList(), [
       'Mon Profil',
       'Ma Foi',
       'Plus d\'infos',
+      'Mon Plan',
       'Mes Publications',
       'Mes Favoris',
       'Qui s\'intéresse à moi',
