@@ -39,6 +39,29 @@ void main() {
     expect(threads.single.replies.map((c) => c.id), ['c2', 'c3']);
   });
 
+  test(
+    'a reply-to-a-reply always comes after its parent, even if the input '
+    'list has it earlier (e.g. equal/out-of-order created_at)',
+    () {
+      const root = PostComment(id: 'c1', body: 'Svp', authorName: 'Ruth');
+      const reply = PostComment(
+        id: 'c2',
+        body: 'Oui Mme Ruth...',
+        authorName: 'Équipe Agapeo',
+        parentId: 'c1',
+      );
+      const replyToReply = PostComment(
+        id: 'c3',
+        body: 'Merci',
+        authorName: 'Ruth',
+        parentId: 'c2',
+      );
+      // c3 arrives before its own parent c2 in the input list.
+      final threads = groupCommentThreads(const [root, replyToReply, reply]);
+      expect(threads.single.replies.map((c) => c.id), ['c2', 'c3']);
+    },
+  );
+
   test('replyTarget walks nested replies up to the root', () {
     const root = PostComment(id: 'c1', body: 'Amen', authorName: 'Léa');
     const reply = PostComment(

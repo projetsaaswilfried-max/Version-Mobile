@@ -14,10 +14,12 @@ class SupabaseInterestsDataSource {
 
   Future<List<Interest>> fetchAll() {
     return _guard(() async {
+      // `ascending: true` explicite - le défaut du package est `false`
+      // (Z→A), pas l'ordre alphabétique attendu pour un picker.
       final rows = await _client
           .from('interests')
           .select('id, name')
-          .order('name');
+          .order('name', ascending: true);
       return (rows as List)
           .map(
             (row) => Json(row as Map<String, dynamic>),

@@ -37,11 +37,13 @@ class SupabaseSupportDataSource {
   Future<List<SupportMessage>> fetchMessages(String ticketId) {
     return _guard(() async {
       final userId = _requireUserId();
+      // `ascending: true` explicite - le défaut du package est `false`,
+      // ce qui afficherait le fil à l'envers (plus récent en haut).
       final rows = await _client
           .from('support_messages')
           .select()
           .eq('ticket_id', ticketId)
-          .order('created_at');
+          .order('created_at', ascending: true);
       return [
         for (final row in rows)
           _message(Map<String, dynamic>.from(row), userId),

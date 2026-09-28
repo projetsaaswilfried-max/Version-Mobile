@@ -419,7 +419,13 @@ class SupabaseFeedDataSource implements FeedRemoteDataSource {
         .select(select)
         .eq('post_id', postId);
     try {
-      final rows = await query.order('created_at');
+      // `order()` par défaut sur `ascending: false` dans ce package
+      // (postgrest 2.9.1) - sans `ascending: true` explicite, les
+      // commentaires arrivaient du plus récent au plus ancien, donc une
+      // réponse plus récente à un fil pouvait passer avant une réponse
+      // plus ancienne du même fil (repéré sur un fil réel : "Merci" posté
+      // après la réponse d'Équipe Agapeo, mais affiché avant).
+      final rows = await query.order('created_at', ascending: true);
       _workingCommentSelect = select;
       final mapped = [for (final row in rows) Map<String, dynamic>.from(row)];
       return _withCommentAuthors(mapped.map(_hydrateCommentRow).toList());
