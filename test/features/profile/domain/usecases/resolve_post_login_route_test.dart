@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   const resolve = ResolvePostLoginRoute();
 
-  test('suspended wins over expired and incomplete onboarding', () {
+  test('suspended wins over incomplete onboarding', () {
     final dest = resolve(
       const MemberGateSnapshot(
         isSuspended: true,
@@ -18,20 +18,24 @@ void main() {
     expect(dest, PostLoginDestination.suspended);
   });
 
-  test('expired when not suspended', () {
-    expect(
-      resolve(
-        const MemberGateSnapshot(
-          isSuspended: false,
-          subscriptionStatus: SubscriptionStatus.expired,
-          onboardingCompleted: true,
+  test(
+    'EXPIRED does not lock the whole app (PRD §3: only Découvrir/'
+    'Messages/Support, gated individually) - routes like FREE',
+    () {
+      expect(
+        resolve(
+          const MemberGateSnapshot(
+            isSuspended: false,
+            subscriptionStatus: SubscriptionStatus.expired,
+            onboardingCompleted: true,
+          ),
         ),
-      ),
-      PostLoginDestination.expired,
-    );
-  });
+        PostLoginDestination.home,
+      );
+    },
+  );
 
-  test('onboarding when not suspended and not expired', () {
+  test('onboarding when not suspended and incomplete', () {
     expect(
       resolve(
         const MemberGateSnapshot(
@@ -57,7 +61,7 @@ void main() {
     );
   });
 
-  test('CANCELED is not EXPIRED wall', () {
+  test('CANCELED also routes home', () {
     expect(
       resolve(
         const MemberGateSnapshot(

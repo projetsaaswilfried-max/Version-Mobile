@@ -1,1 +1,1 @@
-enum PostLoginDestination { suspended, expired, onboarding, home }
+enum PostLoginDestination { suspended, onboarding, home }

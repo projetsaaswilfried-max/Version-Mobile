@@ -14,16 +14,20 @@ import '../../profile/presentation/security/verification_page.dart';
 import '../../support/presentation/support_list_page.dart';
 import 'notifications_page.dart';
 
-/// Route vers la destination d'une notification - sur `type` (fiable,
-/// liste confirmée par le porteur) plutôt que `targetUrl` (pensé pour le
-/// web, `/messages?conversation=...`), sauf pour extraire l'id de
-/// conversation, faute d'un champ dédié.
+/// Route vers la destination d'une notification.
 ///
-/// Utilisé à deux endroits avec les mêmes trois champs (le backend
-/// confirme que le payload push transporte exactement les mêmes données
-/// que la table `notifications`, donc la même route) :
-/// - tap sur une ligne de [NotificationsPage] (`AppNotification`) ;
-/// - tap sur un push FCM reçu app fermée/en fond (`RemoteMessage.data`).
+/// Utilisé à deux endroits, avec des données différentes selon la source
+/// (confirmé par le backend - le payload FCM ne contient que `targetUrl`,
+/// pas `type` ni un id d'acteur) :
+/// - tap sur une ligne de [NotificationsPage] (`AppNotification`) : route
+///   sur `type` (fiable, liste des 17 types confirmée par le porteur),
+///   `targetUrl`/`actorId` en complément (id de conversation, profil) ;
+/// - tap sur un push FCM reçu app fermée/en fond
+///   (`PushNotificationsListener`, `RemoteMessage.data`) : `type` et
+///   `actorId` sont toujours `null` ici, donc systématiquement le chemin
+///   `default` - qui route sur le **chemin** de `targetUrl` (relatif,
+///   ex. `/messages?conversation=...`, `/profile`, `/premium` - format
+///   confirmé par le backend, payload FCM HTTP v1).
 ///
 /// Pas de [BuildContext] requis : navigue via [rootNavigatorKey], comme
 /// [AuthDeepLinkListener] - utilisable aussi bien depuis un widget que

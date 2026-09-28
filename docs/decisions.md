@@ -923,6 +923,71 @@ du switch retombe sur l'extraction d'id de conversation depuis
 que `type`/`actorId` arrivent bien dans le payload (pas seulement
 `targetUrl`), sinon le routage se dégrade silencieusement vers ce repli.
 
+*Suite 2026-09-26 :* confirmé - le payload FCM réel (HTTP v1) est :
+```json
+{
+  "message": {
+    "token": "...",
+    "notification": { "title": "...", "body": "..." },
+    "data": { "targetUrl": "/messages?conversation=abc123" }
+  }
+}
+```
+`data` ne contient **que** `targetUrl` (chemin relatif, ex. `/messages?...`,
+`/profile`, `/premium`) - ni `type`, ni `actorId`. Le `default` de
+`openNotificationTarget` reste donc systématiquement le seul chemin
+emprunté pour un tap sur push ; à réécrire pour router sur le **chemin**
+de `targetUrl` plutôt que sur `type` pour ce cas précis (le routage par
+`type` reste correct pour le tap depuis la liste in-app, où `type` est
+bien présent).
+
+Bonus découvert au passage : aucun son sur iOS en arrière-plan/app fermée
+malgré le bloc `notification` présent - cause : FCM ne configure `aps.sound`
+sur iOS que si le payload contient explicitement un bloc `apns.payload.aps.sound`
+(le bloc `notification` seul ne couvre que `alert`, pas le son). Rien à
+changer côté mobile (`requestPermission()` demande déjà `sound: true` par
+défaut) - correction côté backend uniquement.
+
+Format complet demandé au porteur (backend va l'implémenter) :
+```json
+{
+  "message": {
+    "token": "...",
+    "notification": { "title": "...", "body": "..." },
+    "apns": { "payload": { "aps": { "sound": "default" } } },
+    "data": {
+      "type": "<un des 17 types>",
+      "targetUrl": "...",
+      "actorId": "<uuid, uniquement NEW_FAVORITE/PROFILE_LIKE/PROFILE_VISIT - absent sinon>"
+    }
+  }
+}
+```
+Une fois livré, remplacer le routage par chemin de `PushNotificationsListener`
+par une lecture directe de `type`/`actorId`, identique à la liste in-app.
+
+### D41 - `EXPIRED` ne bloque plus l'app entière à la connexion
+*2026-09-26 · retour porteur : « L'appli continue à marcher [...] c'est pas normal »*
+
+`resolve_post_login_route.dart` routait un abonnement `EXPIRED` vers un
+mur plein écran (`ExpiredSubscriptionPage`, aucun accès au reste de
+l'app hors "Voir les formules"/déconnexion), au même niveau de priorité
+que `is_suspended`. Relecture du PRD §3 (`Agapeo-Mobile-PRD.md` L82,
+L112, L301) : la règle réelle est plus étroite - **EXPIRED verrouille
+uniquement Découvrir, Messages et Support** (chacun avec sa propre page
+de blocage), pas l'app entière. Ces trois gates existaient déjà et
+étaient corrects (`DiscoverExpiredGate`, `MessagesExpiredGate`, le flag
+`_expired` de `SupportListPage`) - seul le mur post-connexion était en
+trop, hérité d'une lecture trop stricte de `mobile-addendum.md` §1.3
+(« EXPIRED verrouille davantage que FREE » interprété comme un blocage
+total plutôt que les 3 écrans cités par le PRD).
+
+**Correction :** `ResolvePostLoginRoute` ne distingue plus EXPIRED -
+route comme `FREE`/`ACTIVE` (suspendu → onboarding → accueil).
+`PostLoginDestination.expired` et `ExpiredSubscriptionPage` supprimés
+(plus aucun appelant). `mobile-addendum.md` §1.3 mis à jour pour éviter
+la même relecture excessive à l'avenir.
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 

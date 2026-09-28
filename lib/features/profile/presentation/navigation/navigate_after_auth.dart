@@ -16,7 +16,6 @@ import '../../di/profile_providers.dart';
 import '../../domain/entities/member_gate_snapshot.dart';
 import '../../domain/entities/post_login_destination.dart';
 import '../../domain/usecases/resolve_post_login_route.dart';
-import '../expired/expired_subscription_page.dart';
 import '../suspended/suspended_account_page.dart';
 
 /// Maps a resolved post-login destination to its page.
@@ -26,7 +25,6 @@ Widget pageForDestination(
 }) {
   return switch (destination) {
     PostLoginDestination.suspended => const SuspendedAccountPage(),
-    PostLoginDestination.expired => const ExpiredSubscriptionPage(),
     PostLoginDestination.onboarding => const OnboardingFlowPage(),
     PostLoginDestination.home => const HomeShellPage(),
   };
@@ -45,7 +43,9 @@ Widget pageForGate(
 }
 
 /// After a session is established, fetch the gate and navigate to the
-/// destination (suspended / expired / onboarding / home).
+/// destination (suspended / onboarding / home). An `EXPIRED` subscription
+/// does not block the whole app - only Découvrir/Messages/Support, each
+/// gated individually (PRD §3).
 ///
 /// On [Err]: toast + defensive [HomeShellPage].
 Future<void> navigateAfterAuth(

@@ -70,11 +70,18 @@ connexion réussie, lire et router dans cet ordre :
 
 1. `profile_restricted.is_suspended` → écran de suspension (session invalidée
    côté Auth de toute façon).
-2. `profile_restricted.subscription_status` → `EXPIRED` verrouille davantage que
-   `FREE` (voir matrice §3 du PRD).
-3. `profiles.onboarding_completed` → si faux, (ré)afficher l'assistant
+2. `profiles.onboarding_completed` → si faux, (ré)afficher l'assistant
    d'onboarding. Attention (§2, §5) : `onboarding_completed` **n'implique ni
    profil complet ni vérifié** — ne jamais en déduire l'un des deux.
+
+**`subscription_status = EXPIRED` ne fait PAS partie de ce routage** - ne
+verrouille pas l'app entière à la connexion. Le PRD §3 dit « verrouille
+davantage que `FREE` » au sens d'une page de blocage sur **Découvrir,
+Messages et Support** spécifiquement (chacun avec sa propre gate) - pas
+d'un mur post-connexion qui empêcherait d'ouvrir le reste de l'app (Profil,
+Compte...). Corrigé après retour porteur (`decisions.md` D41) - l'ancienne
+lecture de ce paragraphe avait fait dériver la position 2 d'origine
+(`ExpiredSubscriptionPage`, supprimée) au-delà de ce que le PRD demande.
 
 ---
 
