@@ -26,16 +26,8 @@ class GetDiscoverPage {
       case Err<VisitorContext>(:final failure):
         return Err(failure);
       case Ok<VisitorContext>(:final value):
-        if (value.isExpired) {
-          return Ok(
-            DiscoverPage(
-              recommended: const [],
-              others: const [],
-              visitor: value,
-              hasMoreCandidates: false,
-            ),
-          );
-        }
+        // EXPIRED se comporte comme FREE ici (D42) - toujours des candidats,
+        // pas de page vide.
         return _pageForVisitor(value);
     }
   }

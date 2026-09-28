@@ -149,26 +149,29 @@ void main() {
     expect(find.byType(DiscoverToolbar), findsOneWidget);
   });
 
-  testWidgets('expired wall hides toolbar', (tester) async {
-    await pumpDiscoverBody(
-      tester,
-      repo: FakeDiscoverRepository(
-        visitor: const Ok(
-          VisitorContext(
-            id: 'visitor-1',
-            gender: 'MALE',
-            isVerified: true,
-            subscriptionStatus: 'EXPIRED',
-            traits: CompatibilityTraits(),
+  testWidgets(
+    'EXPIRED keeps the toolbar and shows cards, like FREE (D42)',
+    (tester) async {
+      await pumpDiscoverBody(
+        tester,
+        repo: FakeDiscoverRepository(
+          visitor: const Ok(
+            VisitorContext(
+              id: 'visitor-1',
+              gender: 'MALE',
+              isVerified: true,
+              subscriptionStatus: 'EXPIRED',
+              traits: CompatibilityTraits(),
+            ),
           ),
+          candidates: Ok([fakeDiscoverProfile('a')]),
         ),
-        candidates: Ok([fakeDiscoverProfile('a')]),
-      ),
-    );
+      );
 
-    expect(find.byType(DiscoverToolbar), findsNothing);
-    expect(find.text('Abonnement expiré'), findsOneWidget);
-  });
+      expect(find.byType(DiscoverToolbar), findsOneWidget);
+      expect(find.text('Abonnement expiré'), findsNothing);
+    },
+  );
 
   testWidgets('error hides toolbar', (tester) async {
     await pumpDiscoverBody(

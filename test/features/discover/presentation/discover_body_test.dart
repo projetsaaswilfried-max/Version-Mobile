@@ -95,7 +95,7 @@ void main() {
     expect(find.text('Paris'), findsNothing);
   });
 
-  testWidgets('shows expired wall without cards', (tester) async {
+  testWidgets('EXPIRED shows cards like FREE, no wall (D42)', (tester) async {
     await pumpDiscover(
       tester,
       repo: FakeDiscoverRepository(
@@ -112,9 +112,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Abonnement expiré'), findsOneWidget);
-    expect(find.byType(DiscoverCard), findsNothing);
-    expect(find.text('Recommandée pour vous'), findsNothing);
+    expect(find.text('Abonnement expiré'), findsNothing);
+    expect(find.byType(DiscoverCard), findsOneWidget);
   });
 
   testWidgets('shows error and retries', (tester) async {

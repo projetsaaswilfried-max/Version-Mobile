@@ -93,16 +93,22 @@ class _FakeMessagesRepository implements MessagesRepository {
 }
 
 void main() {
-  test('EXPIRED returns empty inbox without fetching conversations', () async {
-    final repo = _FakeMessagesRepository()..subscription = const Ok('EXPIRED');
-    final result = await GetConversations(repo)();
+  test(
+    'EXPIRED fetches conversations like FREE (D42 - no inbox wall)',
+    () async {
+      final repo = _FakeMessagesRepository()
+        ..subscription = const Ok('EXPIRED')
+        ..conversations = Ok([
+          const ConversationSummary(id: 'a', peerName: 'A'),
+        ]);
+      final result = await GetConversations(repo)();
 
-    expect(repo.fetchConversationsCalls, 0);
-    expect(result, isA<Ok<MessagesInbox>>());
-    final inbox = (result as Ok<MessagesInbox>).value;
-    expect(inbox.expired, isTrue);
-    expect(inbox.conversations, isEmpty);
-  });
+      expect(repo.fetchConversationsCalls, 1);
+      expect(result, isA<Ok<MessagesInbox>>());
+      final inbox = (result as Ok<MessagesInbox>).value;
+      expect(inbox.conversations, hasLength(1));
+    },
+  );
 
   test('sorts by last activity descending', () async {
     final older = DateTime.utc(2026, 9, 1);
@@ -116,13 +122,12 @@ void main() {
 
     final result = await GetConversations(repo)();
     final inbox = (result as Ok<MessagesInbox>).value;
-    expect(inbox.expired, isFalse);
     expect(inbox.conversations.map((c) => c.id), ['new', 'old', 'none']);
   });
 
-  test('propagates visitor failure', () async {
+  test('propagates fetchConversations failure', () async {
     final repo = _FakeMessagesRepository()
-      ..subscription = const Err(NetworkFailure('offline'));
+      ..conversations = const Err(NetworkFailure('offline'));
 
     final result = await GetConversations(repo)();
     expect(result, isA<Err<MessagesInbox>>());

@@ -36,7 +36,4 @@ class SupportRepositoryImpl implements SupportRepository {
     required String ticketId,
     required String message,
   }) => _guard(() => _remote.sendMessage(ticketId: ticketId, message: message));
-
-  @override
-  Future<Result<bool>> isExpired() => _guard(_remote.isExpired);
 }

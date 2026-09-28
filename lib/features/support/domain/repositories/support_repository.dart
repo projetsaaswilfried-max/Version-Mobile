@@ -12,5 +12,4 @@ abstract class SupportRepository {
     required String ticketId,
     required String message,
   });
-  Future<Result<bool>> isExpired();
 }

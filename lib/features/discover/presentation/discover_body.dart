@@ -21,7 +21,6 @@ import '../domain/entities/discover_query.dart';
 import 'widgets/discover_card.dart';
 import 'widgets/discover_empty_state.dart';
 import 'widgets/discover_error_state.dart';
-import 'widgets/discover_expired_gate.dart';
 import 'widgets/discover_filters_sheet.dart';
 import 'widgets/discover_premium_sheet.dart';
 import 'search/discover_search_page.dart';
@@ -67,7 +66,7 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
   void _maybeOfferPremiumSheet(DiscoverState state) {
     if (_sheetOfferedForLoad) return;
     if (state.isInitialLoading || state.isRefreshing) return;
-    if (state.expired || state.errorMessage != null) return;
+    if (state.errorMessage != null) return;
     if (!state.shouldOfferPremiumSheet) return;
     _sheetOfferedForLoad = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -260,7 +259,7 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
           child: Text('Découvrir'),
         ),
         actions:
-            state.isInitialLoading || state.expired || state.errorMessage != null
+            state.isInitialLoading || state.errorMessage != null
             ? null
             : [
                 DiscoverToolbar(
@@ -297,11 +296,6 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
   ) {
     if (state.isInitialLoading) {
       return const [SliverToBoxAdapter(child: DiscoverSkeleton())];
-    }
-    if (state.expired) {
-      return const [
-        SliverFillRemaining(hasScrollBody: false, child: DiscoverExpiredGate()),
-      ];
     }
     if (state.errorMessage != null) {
       return [

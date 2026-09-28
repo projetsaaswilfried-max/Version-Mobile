@@ -143,17 +143,20 @@ DiscoverPage _okPage(Result<DiscoverPage> result) {
 void main() {
   final clock = DateTime.utc(2026, 9, 18);
 
-  test('EXPIRED returns empty page without fetching candidates', () async {
-    final repo = _FakeDiscoverRepository()
-      ..visitor = Ok(_visitor(subscriptionStatus: 'EXPIRED'))
-      ..candidates = Ok(_eligiblePool());
-    final page = _okPage(await GetDiscoverPage(repo, clock: () => clock)());
+  test(
+    'EXPIRED gets real candidates, same as FREE (D42 - no app-level wall)',
+    () async {
+      final repo = _FakeDiscoverRepository()
+        ..visitor = Ok(_visitor(subscriptionStatus: 'EXPIRED'))
+        ..candidates = Ok(_eligiblePool());
+      final page = _okPage(await GetDiscoverPage(repo, clock: () => clock)());
 
-    expect(repo.fetchCandidatesCalls, 0);
-    expect(page.expired, isTrue);
-    expect(page.recommended, isEmpty);
-    expect(page.others, isEmpty);
-  });
+      expect(repo.fetchCandidatesCalls, 1);
+      expect(page.expired, isTrue);
+      expect(page.recommended, isNotEmpty);
+      expect(page.others, isNotEmpty);
+    },
+  );
 
   test('returns 3 recommended and the rest as others', () async {
     final repo = _FakeDiscoverRepository()..candidates = Ok(_eligiblePool());

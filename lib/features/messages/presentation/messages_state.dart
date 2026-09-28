@@ -9,7 +9,6 @@ class MessagesState extends Equatable {
     this.searchQuery = '',
     this.isInitialLoading = false,
     this.isRefreshing = false,
-    this.expired = false,
     this.errorMessage,
   });
 
@@ -17,30 +16,22 @@ class MessagesState extends Equatable {
   final String searchQuery;
   final bool isInitialLoading;
   final bool isRefreshing;
-  final bool expired;
   final String? errorMessage;
 
   List<ConversationSummary> get visibleConversations =>
       filterConversations(conversations, searchQuery);
 
   bool get isEmpty =>
-      !isInitialLoading &&
-      errorMessage == null &&
-      !expired &&
-      visibleConversations.isEmpty;
+      !isInitialLoading && errorMessage == null && visibleConversations.isEmpty;
 
   bool get hasNoConversations =>
-      !isInitialLoading &&
-      errorMessage == null &&
-      !expired &&
-      conversations.isEmpty;
+      !isInitialLoading && errorMessage == null && conversations.isEmpty;
 
   MessagesState copyWith({
     List<ConversationSummary>? conversations,
     String? searchQuery,
     bool? isInitialLoading,
     bool? isRefreshing,
-    bool? expired,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -49,7 +40,6 @@ class MessagesState extends Equatable {
       searchQuery: searchQuery ?? this.searchQuery,
       isInitialLoading: isInitialLoading ?? this.isInitialLoading,
       isRefreshing: isRefreshing ?? this.isRefreshing,
-      expired: expired ?? this.expired,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -60,7 +50,6 @@ class MessagesState extends Equatable {
     searchQuery,
     isInitialLoading,
     isRefreshing,
-    expired,
     errorMessage,
   ];
 }

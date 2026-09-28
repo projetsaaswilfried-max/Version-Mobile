@@ -8,7 +8,6 @@ import 'thread/conversation_thread_page.dart';
 import 'widgets/messages_conversation_tile.dart';
 import 'widgets/messages_empty_state.dart';
 import 'widgets/messages_error_state.dart';
-import 'widgets/messages_expired_gate.dart';
 import 'widgets/messages_search_field.dart';
 import 'widgets/messages_skeleton.dart';
 
@@ -37,11 +36,6 @@ class MessagesBody extends ConsumerWidget {
   ) {
     if (state.isInitialLoading) {
       return const [SliverToBoxAdapter(child: MessagesSkeleton())];
-    }
-    if (state.expired) {
-      return const [
-        SliverFillRemaining(hasScrollBody: false, child: MessagesExpiredGate()),
-      ];
     }
     if (state.errorMessage != null) {
       return [

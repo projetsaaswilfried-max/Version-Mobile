@@ -20,7 +20,6 @@ class SupportListPage extends ConsumerStatefulWidget {
 class _SupportListPageState extends ConsumerState<SupportListPage> {
   var _loading = true;
   String? _error;
-  var _expired = false;
   List<SupportTicket> _tickets = const [];
 
   @override
@@ -34,15 +33,6 @@ class _SupportListPageState extends ConsumerState<SupportListPage> {
       _loading = true;
       _error = null;
     });
-    final expired = await ref.read(supportRepositoryProvider).isExpired();
-    if (!mounted) return;
-    if (expired case Ok<bool>(value: true)) {
-      setState(() {
-        _expired = true;
-        _loading = false;
-      });
-      return;
-    }
     final result = await ref.read(supportRepositoryProvider).fetchTickets();
     if (!mounted) return;
     switch (result) {
@@ -74,13 +64,6 @@ class _SupportListPageState extends ConsumerState<SupportListPage> {
       appBar: AppBar(title: const Text('Support')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _expired
-          ? const AppEmptyState(
-              icon: Icons.lock_outline,
-              title: 'Support indisponible',
-              detail:
-                  'Le support n\'est pas disponible avec un abonnement expiré.',
-            )
           : _error != null
           ? AppEmptyState(
               icon: Icons.error_outline,

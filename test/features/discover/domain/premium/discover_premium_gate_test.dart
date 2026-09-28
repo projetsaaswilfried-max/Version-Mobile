@@ -2,7 +2,7 @@ import 'package:agapeo/features/discover/domain/premium/discover_premium_gate.da
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('FREE and CANCELED show the sheet', () {
+  test('FREE, CANCELED and EXPIRED show the sheet (D42)', () {
     expect(
       shouldShowDiscoverPremiumSheet(subscriptionStatus: 'FREE'),
       isTrue,
@@ -11,15 +11,15 @@ void main() {
       shouldShowDiscoverPremiumSheet(subscriptionStatus: 'CANCELED'),
       isTrue,
     );
-  });
-
-  test('ACTIVE and EXPIRED do not show the sheet', () {
-    expect(
-      shouldShowDiscoverPremiumSheet(subscriptionStatus: 'ACTIVE'),
-      isFalse,
-    );
     expect(
       shouldShowDiscoverPremiumSheet(subscriptionStatus: 'EXPIRED'),
+      isTrue,
+    );
+  });
+
+  test('ACTIVE does not show the sheet', () {
+    expect(
+      shouldShowDiscoverPremiumSheet(subscriptionStatus: 'ACTIVE'),
       isFalse,
     );
   });

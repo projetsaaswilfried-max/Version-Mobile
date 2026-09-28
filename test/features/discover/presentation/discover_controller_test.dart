@@ -141,27 +141,29 @@ void main() {
     expect(state.isInitialLoading, isFalse);
   });
 
-  test('EXPIRED sets expired without cards', () async {
-    repo.visitor = const Ok(
-      VisitorContext(
-        id: 'visitor-1',
-        gender: 'MALE',
-        isVerified: true,
-        subscriptionStatus: 'EXPIRED',
-        traits: CompatibilityTraits(),
-      ),
-    );
-    container.listen(discoverControllerProvider, (_, _) {});
-    await pumpMicrotasks();
+  test(
+    'EXPIRED behaves like FREE - real cards, premium sheet offered (D42)',
+    () async {
+      repo.visitor = const Ok(
+        VisitorContext(
+          id: 'visitor-1',
+          gender: 'MALE',
+          isVerified: true,
+          subscriptionStatus: 'EXPIRED',
+          traits: CompatibilityTraits(),
+        ),
+      );
+      container.listen(discoverControllerProvider, (_, _) {});
+      await pumpMicrotasks();
 
-    final state = container.read(discoverControllerProvider);
-    expect(state.expired, isTrue);
-    expect(state.recommended, isEmpty);
-    expect(state.others, isEmpty);
-    expect(state.hasMoreOthers, isFalse);
-    expect(state.subscriptionStatus, 'EXPIRED');
-    expect(state.shouldOfferPremiumSheet, isFalse);
-  });
+      final state = container.read(discoverControllerProvider);
+      expect(state.expired, isTrue);
+      expect(state.recommended, hasLength(3));
+      expect(state.others, isNotEmpty);
+      expect(state.subscriptionStatus, 'EXPIRED');
+      expect(state.shouldOfferPremiumSheet, isTrue);
+    },
+  );
 
   test('FREE visitor flags enable premium sheet offer', () async {
     container.listen(discoverControllerProvider, (_, _) {});

@@ -127,28 +127,33 @@ void main() {
     expect(find.text('Léa Martin'), findsNothing);
   });
 
-  testWidgets('shows expired wall without list', (tester) async {
-    await pumpMessages(
-      tester,
-      repo: FakeMessagesRepository(subscription: const Ok('EXPIRED')),
-    );
+  testWidgets(
+    'EXPIRED still sees its conversation list, like FREE (D42)',
+    (tester) async {
+      await pumpMessages(
+        tester,
+        repo: FakeMessagesRepository(
+          subscription: const Ok('EXPIRED'),
+          conversations: Ok([
+            const ConversationSummary(id: 'c1', peerName: 'Léa Martin'),
+          ]),
+        ),
+      );
 
-    expect(find.text('Abonnement expiré'), findsOneWidget);
-    expect(find.text('Aucune conversation'), findsNothing);
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byType(MessagesConversationTile), findsNothing);
-  });
+      expect(find.text('Abonnement expiré'), findsNothing);
+      expect(find.byType(MessagesConversationTile), findsOneWidget);
+    },
+  );
 
   testWidgets('shows error and retries', (tester) async {
     final repo = FakeMessagesRepository(
-      subscription: const Err(NetworkFailure('offline')),
+      conversations: const Err(NetworkFailure('offline')),
     );
     await pumpMessages(tester, repo: repo);
 
     expect(find.text('Impossible de charger Messages'), findsOneWidget);
     expect(find.text('Réessayer'), findsOneWidget);
 
-    repo.subscription = const Ok('FREE');
     repo.conversations = Ok([
       const ConversationSummary(id: 'ok', peerName: 'Léa'),
     ]);

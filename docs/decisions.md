@@ -988,6 +988,71 @@ route comme `FREE`/`ACTIVE` (suspendu → onboarding → accueil).
 (plus aucun appelant). `mobile-addendum.md` §1.3 mis à jour pour éviter
 la même relecture excessive à l'avenir.
 
+### D42 - EXPIRED retombe sur les fonctionnalités FREE (Découvrir/Messages), plus de mur - **supersede le PRD §3/§13 tel qu'écrit**
+*2026-09-28 · retour porteur direct, en désaccord avec le texte actuel du PRD*
+
+D41 (ci-dessus, il y a deux jours) avait *retiré* le verrou app entière
+mais *conservé* les trois murs plein écran (Découvrir/Messages/Support)
+en s'appuyant sur le texte du PRD (§3 L82, table L112, §13 L301) qui les
+décrit explicitement comme voulus. Le porteur revient dessus : le texte
+du PRD sur ce point **ne reflète pas la règle produit réelle** - « le PRD
+a dû être mal fait ». Règle correcte, telle qu'exprimée par le porteur :
+un abonnement expiré ne bloque rien, il fait retomber le membre sur les
+**mêmes fonctionnalités qu'un compte gratuit** - exactement comme la
+perte de vérification photo fait retomber sur le cas non-vérifié (masquage,
+pas un mur). Cette entrée **supersede** la lecture de D41 et le texte actuel
+du PRD pour Découvrir et Messages (Support reste en attente, cf. suite).
+
+**Découvrir** - la plupart des gates (`canLikeDiscoverProfile`,
+`canFavoriteDiscoverProfile`, `canInviteDiscoverProfile`,
+`canOpenDiscoverProfile`, `revealCardIdentity`) ne distinguaient déjà que
+sur `visitorVerified`, pas sur l'abonnement - EXPIRED s'y comportait déjà
+comme FREE. Deux points cassaient ça :
+- `get_discover_page.dart` : un visiteur EXPIRED recevait une page vide
+  (aucun candidat récupéré) - supprimé, route maintenant par le chemin
+  normal comme FREE.
+- `shouldShowDiscoverPremiumSheet` (`discover_premium_gate.dart`) excluait
+  explicitement EXPIRED de la bannière premium (que FREE voit) - corrigé,
+  EXPIRED tombe désormais dans la même branche que FREE/CANCELED.
+- `discover_body.dart`/`discover_controller.dart` : mur plein écran
+  (`DiscoverExpiredGate`, supprimé) et guards sur `state.expired`
+  (toolbar masquée, offre premium bloquée, pagination bloquée) retirés.
+
+**Messages** - le blocage d'**envoi** était déjà correct et n'a pas
+changé : `thread_composer_mode.dart`/`isPremiumActive` ne considère que
+`ACTIVE` comme premium (D29), donc FREE et EXPIRED sont déjà bloqués à
+l'identique pour écrire dans une conversation - c'est le comportement
+voulu par le porteur, rien à toucher là. Seul le mur au niveau de la
+**liste des conversations** était en trop :
+- `get_conversations.dart` renvoyait une boîte de réception vide pour
+  EXPIRED (sans même l'appeler) - supprimé, charge toujours les
+  conversations. `fetchSubscriptionStatus()` sur le repository n'a plus
+  d'appelant côté usecase mais reste dans l'interface (pas supprimée,
+  capacité générique potentiellement réutile).
+- `MessagesInbox.expired` / `MessagesState.expired` / `MessagesExpiredGate`
+  supprimés (plus aucun appelant après le retrait du mur dans
+  `messages_body.dart`).
+
+*Suite 2026-09-28 (même jour) : réponse du porteur - « le support doit être
+free ».* Support aligné sur la même règle : EXPIRED peut ouvrir un dossier,
+comme FREE. `isExpired()` retiré de bout en bout (plus de branche EXPIRED
+nulle part dans l'app - vérifié par grep exhaustif sur `SubscriptionStatus`/
+`expired`/`EXPIRED`/`premium` dans tout `lib/`, seul reste le badge de
+statut cosmétique sur `PremiumPlanPage`) :
+- `support_repository.dart` (interface) / `support_repository_impl.dart` :
+  méthode `isExpired()` supprimée.
+- `supabase_support_datasource.dart` : méthode `isExpired()` supprimée
+  (plus aucun appelant).
+- `support_list_page.dart` : flag `_expired` et son mur (`AppEmptyState`
+  "Support indisponible") retirés - charge directement les tickets.
+
+**PRD/addendum à corriger** (hors mobile, pour cohérence documentaire) :
+`docs/Agapeo-Mobile-PRD.md` L82, L112, L301 et `docs/mobile-addendum.md`
+décrivent toujours EXPIRED comme plus strict que FREE sur Découvrir/
+Messages/Support - à mettre à jour pour refléter cette correction (EXPIRED
+= FREE partout dans l'app mobile), potentiellement à re-vérifier côté web
+si le PRD est bien la source partagée des deux plateformes.
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 

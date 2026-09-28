@@ -12,24 +12,6 @@ class SupabaseSupportDataSource {
 
   final SupabaseClient _client;
 
-  Future<bool> isExpired() {
-    return _guard(() async {
-      final userId = _requireUserId();
-      try {
-        final row = await _client
-            .from('profile_restricted')
-            .select('subscription_status')
-            .eq('id', userId)
-            .maybeSingle();
-        final status = (row?['subscription_status'] as String? ?? '')
-            .toUpperCase();
-        return status == 'EXPIRED';
-      } on PostgrestException {
-        return false;
-      }
-    });
-  }
-
   Future<List<SupportTicket>> fetchTickets() {
     return _guard(() async {
       final userId = _requireUserId();

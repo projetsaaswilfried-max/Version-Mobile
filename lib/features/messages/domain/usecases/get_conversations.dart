@@ -8,20 +8,9 @@ class GetConversations {
 
   final MessagesRepository _repo;
 
+  /// EXPIRED voit ses conversations existantes comme FREE (D42) - seul
+  /// l'envoi d'un nouveau message reste bloqué (composer, isPremiumActive).
   Future<Result<MessagesInbox>> call() async {
-    final statusResult = await _repo.fetchSubscriptionStatus();
-    switch (statusResult) {
-      case Err<String>(:final failure):
-        return Err(failure);
-      case Ok<String>(:final value):
-        if (value.trim().toUpperCase() == 'EXPIRED') {
-          return const Ok(MessagesInbox(conversations: [], expired: true));
-        }
-        return _loadInbox();
-    }
-  }
-
-  Future<Result<MessagesInbox>> _loadInbox() async {
     final result = await _repo.fetchConversations();
     switch (result) {
       case Err<List<ConversationSummary>>(:final failure):

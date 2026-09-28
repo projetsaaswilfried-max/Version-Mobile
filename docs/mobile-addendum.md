@@ -75,13 +75,19 @@ connexion réussie, lire et router dans cet ordre :
    profil complet ni vérifié** — ne jamais en déduire l'un des deux.
 
 **`subscription_status = EXPIRED` ne fait PAS partie de ce routage** - ne
-verrouille pas l'app entière à la connexion. Le PRD §3 dit « verrouille
-davantage que `FREE` » au sens d'une page de blocage sur **Découvrir,
-Messages et Support** spécifiquement (chacun avec sa propre gate) - pas
-d'un mur post-connexion qui empêcherait d'ouvrir le reste de l'app (Profil,
-Compte...). Corrigé après retour porteur (`decisions.md` D41) - l'ancienne
-lecture de ce paragraphe avait fait dériver la position 2 d'origine
-(`ExpiredSubscriptionPage`, supprimée) au-delà de ce que le PRD demande.
+verrouille pas l'app entière à la connexion (`decisions.md` D41).
+
+**`EXPIRED` = `FREE` partout côté mobile, y compris Découvrir/Messages/
+Support** (`decisions.md` D42, retour porteur direct - « le PRD a dû être
+mal fait ») : contrairement à ce que dit le texte actuel du PRD (§3 L82,
+table L112, §13 L301 - « EXPIRED verrouille plus strictement... page de
+blocage entière »), aucun de ces trois écrans n'affiche de mur pour un
+abonnement expiré. Un membre EXPIRED voit Découvrir (profils, actions
+limitées comme un compte gratuit), sa liste de conversations (l'envoi
+reste bloqué, `isPremiumActive` ne considère que `ACTIVE` - inchangé,
+D29) et peut ouvrir un dossier support, exactement comme un compte qui
+n'a jamais payé. Le PRD partagé web/mobile n'est pas encore corrigé sur
+ce point - à vérifier côté web si la même règle doit s'y appliquer.
 
 ---
 

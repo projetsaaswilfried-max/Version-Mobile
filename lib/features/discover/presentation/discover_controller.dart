@@ -158,8 +158,7 @@ class DiscoverController extends Notifier<DiscoverState> {
     if (!state.hasMoreOthers ||
         state.isLoadingMore ||
         state.isInitialLoading ||
-        state.isRefreshing ||
-        state.expired) {
+        state.isRefreshing) {
       return;
     }
 

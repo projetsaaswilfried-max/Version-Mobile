@@ -29,7 +29,6 @@ class MessagesController extends Notifier<MessagesState> {
       state = state.copyWith(
         isInitialLoading: true,
         conversations: const [],
-        expired: false,
         clearError: true,
       );
     }
@@ -40,7 +39,6 @@ class MessagesController extends Notifier<MessagesState> {
       case Ok<MessagesInbox>(:final value):
         state = state.copyWith(
           conversations: value.conversations,
-          expired: value.expired,
           isInitialLoading: false,
           isRefreshing: false,
           clearError: true,

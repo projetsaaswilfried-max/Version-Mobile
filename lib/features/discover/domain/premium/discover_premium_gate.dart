@@ -10,9 +10,10 @@ bool shouldShowDiscoverPremiumSheet({
   if (isStaff) return false;
   final status = parseSubscriptionStatus(subscriptionStatus);
   if (status == SubscriptionStatus.active) return false;
-  if (status == SubscriptionStatus.expired) return false;
+  // EXPIRED se comporte comme FREE (D42) - même bannière premium.
   return status == SubscriptionStatus.free ||
-      status == SubscriptionStatus.canceled;
+      status == SubscriptionStatus.canceled ||
+      status == SubscriptionStatus.expired;
 }
 
 bool canUseDiscoverSearchFilters({
