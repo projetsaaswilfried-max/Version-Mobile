@@ -10,11 +10,13 @@ class CommentThread {
 /// Groupe les commentaires par fil racine, réponses aplaties sous chaque
 /// racine (pas d'indentation multi-niveaux à l'affichage).
 ///
-/// L'ordre des réponses suit l'arbre (parent direct, puis immédiatement ses
-/// propres réponses) plutôt qu'un simple tri par `created_at` global -
-/// sinon une réponse-à-une-réponse peut apparaître avant la réponse à
-/// laquelle elle répond dès que son `created_at` n'est pas strictement
-/// postérieur (ex. données de test, horodatages égaux au jour près).
+/// Deux ordres différents, comme le web : les fils (commentaires racines)
+/// du plus récent au plus ancien (lecture façon fil d'actu), mais à
+/// l'intérieur d'un fil, les réponses (à n'importe quelle profondeur) du
+/// plus ancien au plus récent (lecture façon conversation). Trié ici
+/// explicitement plutôt que de dépendre de l'ordre de la requête - une
+/// réponse-à-une-réponse doit toujours suivre son parent, quel que soit
+/// l'ordre/horodatage en entrée.
 List<CommentThread> groupCommentThreads(List<PostComment> comments) {
   final byId = {for (final comment in comments) comment.id: comment};
   final childrenOf = <String, List<PostComment>>{};
@@ -26,6 +28,10 @@ List<CommentThread> groupCommentThreads(List<PostComment> comments) {
     } else {
       childrenOf.putIfAbsent(parentId, () => []).add(comment);
     }
+  }
+  roots.sort(_byCreatedAtDesc);
+  for (final children in childrenOf.values) {
+    children.sort(_byCreatedAtAsc);
   }
   List<PostComment> flattenReplies(String parentId) {
     final result = <PostComment>[];
@@ -40,6 +46,17 @@ List<CommentThread> groupCommentThreads(List<PostComment> comments) {
       CommentThread(parent: root, replies: flattenReplies(root.id)),
   ];
 }
+
+int _byCreatedAtAsc(PostComment a, PostComment b) {
+  final aAt = a.createdAt;
+  final bAt = b.createdAt;
+  if (aAt == null && bAt == null) return 0;
+  if (aAt == null) return 1;
+  if (bAt == null) return -1;
+  return aAt.compareTo(bAt);
+}
+
+int _byCreatedAtDesc(PostComment a, PostComment b) => _byCreatedAtAsc(b, a);
 
 PostComment replyTarget(PostComment comment, List<PostComment> comments) {
   final byId = {for (final item in comments) item.id: item};

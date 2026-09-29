@@ -4,61 +4,133 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('nests one-level replies under their parent', () {
-    const parent = PostComment(id: 'c1', body: 'Amen', authorName: 'Léa');
-    const reply = PostComment(
+    final parent = PostComment(
+      id: 'c1',
+      body: 'Amen',
+      authorName: 'Léa',
+      createdAt: DateTime.utc(2026, 1, 1, 10),
+    );
+    final reply = PostComment(
       id: 'c2',
       body: 'Oui',
       authorName: 'Paul',
       parentId: 'c1',
+      createdAt: DateTime.utc(2026, 1, 1, 11),
     );
-    const other = PostComment(id: 'c3', body: 'Merci', authorName: 'Eva');
-    final threads = groupCommentThreads(const [parent, reply, other]);
+    final other = PostComment(
+      id: 'c3',
+      body: 'Merci',
+      authorName: 'Eva',
+      createdAt: DateTime.utc(2026, 1, 1, 12),
+    );
+    final threads = groupCommentThreads([parent, reply, other]);
     expect(threads, hasLength(2));
-    expect(threads.first.parent.id, 'c1');
-    expect(threads.first.replies.single.id, 'c2');
-    expect(threads.last.parent.id, 'c3');
-    expect(threads.last.replies, isEmpty);
+    // Racines : plus récent en premier - c3 (12h) avant c1 (10h).
+    expect(threads.first.parent.id, 'c3');
+    expect(threads.first.replies, isEmpty);
+    expect(threads.last.parent.id, 'c1');
+    expect(threads.last.replies.single.id, 'c2');
   });
 
   test('lifts nested replies onto the root comment', () {
-    const root = PostComment(id: 'c1', body: 'Amen', authorName: 'Léa');
-    const reply = PostComment(
+    final root = PostComment(
+      id: 'c1',
+      body: 'Amen',
+      authorName: 'Léa',
+      createdAt: DateTime.utc(2026, 1, 1, 10),
+    );
+    final reply = PostComment(
       id: 'c2',
       body: 'Oui',
       authorName: 'Paul',
       parentId: 'c1',
+      createdAt: DateTime.utc(2026, 1, 1, 11),
     );
-    const nested = PostComment(
+    final nested = PostComment(
       id: 'c3',
       body: 'Exact',
       authorName: 'Eva',
       parentId: 'c2',
+      createdAt: DateTime.utc(2026, 1, 1, 12),
     );
-    final threads = groupCommentThreads(const [root, reply, nested]);
+    final threads = groupCommentThreads([root, reply, nested]);
     expect(threads, hasLength(1));
     expect(threads.single.replies.map((c) => c.id), ['c2', 'c3']);
   });
 
   test(
     'a reply-to-a-reply always comes after its parent, even if the input '
-    'list has it earlier (e.g. equal/out-of-order created_at)',
+    'list has it earlier or its created_at is not strictly later',
     () {
-      const root = PostComment(id: 'c1', body: 'Svp', authorName: 'Ruth');
-      const reply = PostComment(
+      final root = PostComment(
+        id: 'c1',
+        body: 'Svp',
+        authorName: 'Ruth',
+        createdAt: DateTime.utc(2026, 1, 1, 10),
+      );
+      final reply = PostComment(
         id: 'c2',
         body: 'Oui Mme Ruth...',
         authorName: 'Équipe Agapeo',
         parentId: 'c1',
+        createdAt: DateTime.utc(2026, 1, 1, 11),
       );
-      const replyToReply = PostComment(
+      final replyToReply = PostComment(
         id: 'c3',
         body: 'Merci',
         authorName: 'Ruth',
         parentId: 'c2',
+        createdAt: DateTime.utc(2026, 1, 1, 12),
       );
       // c3 arrives before its own parent c2 in the input list.
-      final threads = groupCommentThreads(const [root, replyToReply, reply]);
+      final threads = groupCommentThreads([root, replyToReply, reply]);
       expect(threads.single.replies.map((c) => c.id), ['c2', 'c3']);
+    },
+  );
+
+  test(
+    'roots newest-first, replies (any depth) oldest-first, like the web '
+    '- fixes a real thread where a same-parent reply posted later showed '
+    'before the reply it was thanking',
+    () {
+      final rootOld = PostComment(
+        id: 'root-old',
+        body: 'Svp revoyez le site',
+        authorName: 'Ruth',
+        createdAt: DateTime.utc(2026, 9, 26, 10, 48),
+      );
+      final teamReply = PostComment(
+        id: 'team-reply',
+        body: 'Oui Mme Ruth...',
+        authorName: 'Équipe Agapeo',
+        parentId: 'root-old',
+        createdAt: DateTime.utc(2026, 9, 26, 21, 14),
+      );
+      final thanks = PostComment(
+        id: 'thanks',
+        body: 'Merci',
+        authorName: 'Ruth',
+        parentId: 'root-old',
+        // Posted *after* teamReply, must still display after it.
+        createdAt: DateTime.utc(2026, 9, 27, 0, 3),
+      );
+      final rootNew = PostComment(
+        id: 'root-new',
+        body: 'Salut, je viens de payer',
+        authorName: 'Mohamed',
+        createdAt: DateTime.utc(2026, 9, 27, 5),
+      );
+      final threads = groupCommentThreads([
+        rootOld,
+        teamReply,
+        thanks,
+        rootNew,
+      ]);
+      expect(threads.map((t) => t.parent.id), ['root-new', 'root-old']);
+      expect(
+        threads.last.replies.map((c) => c.id),
+        ['team-reply', 'thanks'],
+      );
     },
   );
 
