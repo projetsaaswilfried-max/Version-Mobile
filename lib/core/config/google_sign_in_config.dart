@@ -10,7 +10,7 @@ class GoogleSignInConfig {
 
   /// Client OAuth de type "iOS" (même projet GCP que [webClientId]) - requis
   /// par `google_sign_in_ios`. Ignoré sur Android (identifié par package +
-  /// SHA-1, pas par ce client id).
+  /// SHA-1, pas par ce client id). Lié au bundle ID `com.agapeo.app` (D43).
   static const iosClientId =
-      '58020321221-kalne97sckgk9dkar18af8iq1ka7qlfc.apps.googleusercontent.com';
+      '58020321221-asvugu3nmdukojmt3fvsh6j00mtbjdtj.apps.googleusercontent.com';
 }

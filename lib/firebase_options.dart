@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBnszdAIFtzOapvujO64no0WzQ6uahyYsE',
-    appId: '1:275473259460:ios:18ae79a7658acf780de291',
+    appId: '1:275473259460:ios:0a385363cde67f770de291',
     messagingSenderId: '275473259460',
     projectId: 'agapeo-98ecb',
     storageBucket: 'agapeo-98ecb.firebasestorage.app',
-    iosBundleId: 'love.agapeo.app',
+    iosBundleId: 'com.agapeo.app',
   );
 }

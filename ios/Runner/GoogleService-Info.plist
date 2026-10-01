@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>love.agapeo.app</string>
+	<string>com.agapeo.app</string>
 	<key>PROJECT_ID</key>
 	<string>agapeo-98ecb</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:275473259460:ios:18ae79a7658acf780de291</string>
+	<string>1:275473259460:ios:0a385363cde67f770de291</string>
 </dict>
 </plist>

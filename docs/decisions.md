@@ -1053,6 +1053,50 @@ Messages/Support - à mettre à jour pour refléter cette correction (EXPIRED
 = FREE partout dans l'app mobile), potentiellement à re-vérifier côté web
 si le PRD est bien la source partagée des deux plateformes.
 
+### D43 - Bundle ID iOS changé en `com.agapeo.app` (Android inchangé, `love.agapeo.app`)
+*2026-10-01*
+
+Demande du porteur : bundle ID iOS uniquement, Android reste
+`love.agapeo.app` (D-package renommage précédent, #44). Fait côté repo :
+`PRODUCT_BUNDLE_IDENTIFIER` changé dans `ios/Runner.xcodeproj/project.pbxproj`
+(cible `Runner` + `RunnerTests`, les 3 configs Debug/Release/Profile) -
+`ios/Runner/Info.plist` utilise déjà `$(PRODUCT_BUNDLE_IDENTIFIER)`, rien à
+changer là. Android (`applicationId` Gradle) non touché, confirmé par grep.
+
+**Pas touché volontairement** : `ios/Runner/GoogleService-Info.plist` garde
+`BUNDLE_ID: love.agapeo.app` - un simple remplacement de texte créerait un
+mismatch avec son `GOOGLE_APP_ID` (`1:...:ios:...`), qui référence
+l'enregistrement Firebase de l'**ancien** bundle ID. Un nouveau fichier doit
+être retéléchargé depuis Firebase Console après avoir enregistré une
+nouvelle app iOS sous `com.agapeo.app` (même mécanique que pour Android
+découverte en D38/D39 - l'app Firebase est liée au bundle ID/SHA à sa
+création, pas éditable après coup).
+
+**Reste à faire côté consoles externes avant que l'app iOS fonctionne sous
+ce nouveau bundle ID** (aucun de ces points ne peut être fait depuis ce
+repo) :
+- **Apple Developer Portal** : enregistrer un nouvel App ID `com.agapeo.app`
+  et y réactiver les capacités déjà utilisées par l'ancien (`love.agapeo.app`)
+  - Push Notifications (D-push), Sign In with Apple (D39), Associated
+    Domains (Universal Links).
+- ~~**Firebase Console** : nouvelle app iOS~~ **Fait** - app iOS ajoutée
+  sous `com.agapeo.app` dans le même projet (`agapeo-98ecb`),
+  `GoogleService-Info.plist` et `firebase_options.dart` (appId,
+  iosBundleId) mis à jour avec le nouvel enregistrement. Reste à uploader
+  la clé APNs pour ce nouvel App ID une fois sa capacité Push activée côté
+  Apple Developer Portal (point suivant).
+- ~~**Google Cloud Console** : nouveau client OAuth iOS~~ **Fait** -
+  nouveau client créé pour `com.agapeo.app`, `GoogleSignInConfig.iosClientId`
+  et le schéma d'URL dans `Info.plist` (`CFBundleURLTypes`) mis à jour.
+- **App Store Connect** : si une fiche app existe déjà sous `love.agapeo.app`,
+  le bundle ID y est immuable - changer signifie créer une **nouvelle**
+  fiche app sous `com.agapeo.app` (nouvel historique TestFlight, testeurs à
+  réinviter). À confirmer avec le porteur si c'est bien voulu ou si l'app
+  n'a encore jamais été créée côté App Store Connect.
+- **Web (AASA)** : le fichier `apple-app-site-association` hébergé sur
+  agapeo.love doit lister le nouvel identifiant d'app (Team ID +
+  `com.agapeo.app`) pour que les Universal Links continuent de fonctionner.
+
 ### Q1 — Découvrir : vérifié, complet, ou les deux ?
 *réf. PRD §3, §6, §7 — contradiction interne*
 
