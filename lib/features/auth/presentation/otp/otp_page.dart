@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pinput/pinput.dart';
 
 import '../../../../core/config/app_assets.dart';
+import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -156,7 +157,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                       if (state.formError != null) ...[
                         const SizedBox(height: AppSpacing.lg),
                         Text(
-                          state.formError!,
+                          userFacingMessageFromRaw(state.formError),
                           textAlign: TextAlign.center,
                           style: typography.bodyMedium.copyWith(
                             color: colors.error,

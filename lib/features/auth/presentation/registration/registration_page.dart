@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/config/app_environment.dart';
 import '../../../../core/config/legal_urls.dart';
+import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -164,7 +165,7 @@ class _RegistrationPageState extends ConsumerState<RegistrationPage> {
                     if (state.formError != null) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        state.formError!,
+                        userFacingMessageFromRaw(state.formError),
                         textAlign: TextAlign.center,
                         style: typography.bodyMedium.copyWith(
                           color: colors.error,

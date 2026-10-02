@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -49,7 +50,7 @@ class ForgotPasswordPage extends ConsumerWidget {
               if (state.formError != null) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  state.formError!,
+                  userFacingMessageFromRaw(state.formError),
                   textAlign: TextAlign.center,
                   style: typography.bodyMedium.copyWith(color: colors.error),
                 ),

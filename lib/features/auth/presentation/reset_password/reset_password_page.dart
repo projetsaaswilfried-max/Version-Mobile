@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -83,7 +84,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                     const SizedBox(height: AppSpacing.xxxl),
                     if (state.formError != null) ...[
                       Text(
-                        state.formError!,
+                        userFacingMessageFromRaw(state.formError),
                         style: typography.bodyMedium.copyWith(
                           color: colors.error,
                         ),
