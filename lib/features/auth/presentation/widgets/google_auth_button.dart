@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/error/user_facing_message.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../profile/presentation/navigation/navigate_after_auth.dart';
 import '../google/google_sign_in_controller.dart';
@@ -23,7 +22,11 @@ class GoogleAuthButton extends ConsumerWidget {
       if (next.formError != null &&
           next.formError != previous?.formError &&
           !next.isLoading) {
-        AppToast.show(context, userFacingMessageFromRaw(next.formError));
+        // TODO(debug): message brut temporaire pour diagnostiquer l'échec
+        // Google Sign-In en prod Android - revenir à
+        // userFacingMessageFromRaw(next.formError) une fois la vraie cause
+        // identifiée.
+        AppToast.show(context, next.formError!);
       }
     });
 
