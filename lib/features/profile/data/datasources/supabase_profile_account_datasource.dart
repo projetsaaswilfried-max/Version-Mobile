@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/error/exceptions.dart';
@@ -592,25 +594,49 @@ class SupabaseProfileAccountDataSource
     });
   }
 
+  // L'app mobile n'a jamais la clé service-role (ne doit jamais se trouver
+  // dans un client distribué publiquement) - seule cette route serveur peut
+  // vraiment supprimer l'utilisateur Supabase (auth.users compris). Un
+  // ancien fallback RPC/`profiles.delete` ne faisait qu'effacer la ligne
+  // `profiles` sans jamais toucher `auth.users`, laissant le compte
+  // reconnectable - confirmé par test réel en prod.
+  static const _deleteAccountUrl = 'https://www.agapeo.love/api/account/delete';
+
   @override
   Future<void> deleteAccount() {
     return _guard(() async {
-      final userId = _requireUserId();
-      for (final fn in const [
-        'delete_own_account',
-        'delete_my_account',
-        'delete_account',
-      ]) {
-        try {
-          await _client.rpc(fn);
-          return;
-        } on PostgrestException catch (e) {
-          if (!_looksLikeMissingRpc(e)) rethrow;
-        }
+      final token = _client.auth.currentSession?.accessToken;
+      if (token == null) {
+        throw const UnauthorizedException('Session expirée.');
       }
-      await _client.from('profiles').delete().eq('id', userId);
+      try {
+        await Dio().post(
+          _deleteAccountUrl,
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
+      } on DioException catch (e) {
+        throw _mapDeleteAccountError(e);
+      }
       await _client.auth.signOut();
     });
+  }
+
+  Exception _mapDeleteAccountError(DioException e) {
+    developer.log(
+      'deleteAccount failed: ${e.type} status=${e.response?.statusCode} '
+      'data=${e.response?.data} message=${e.message}',
+      name: 'ProfileAccount',
+    );
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return const NetworkException('Pas de connexion internet.');
+    }
+    final status = e.response?.statusCode;
+    if (status == 401 || status == 403) {
+      return const UnauthorizedException('Session expirée.');
+    }
+    return const ServerException('Impossible de supprimer le compte.');
   }
 
   @override
