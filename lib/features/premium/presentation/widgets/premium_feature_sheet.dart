@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/di/providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../premium_plan_page.dart';
+import 'feature_unavailable_sheet.dart';
 
 /// Sheet Premium ciblé sur une seule fonctionnalité bloquée (recherche,
 /// filtres, invitation, écrire dans une conversation acceptée...) —
@@ -30,6 +33,12 @@ class PremiumFeatureSheet extends StatelessWidget {
     required String title,
     required String message,
   }) {
+    final enabled = ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(premiumPaymentsEnabledProvider);
+    if (!enabled) return FeatureUnavailableSheet.show(context);
+
     final colors = context.colors;
     return showModalBottomSheet<void>(
       context: context,

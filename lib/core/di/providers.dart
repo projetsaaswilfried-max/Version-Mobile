@@ -14,6 +14,12 @@ final secureTokenStoreProvider = Provider<SecureTokenStore>((ref) {
   return SecureTokenStore();
 });
 
+/// Résolu une fois au démarrage (voir `PremiumRemoteConfig` + `main.dart`)
+/// - toujours `true` sur Android, dépend de Firebase Remote Config sur
+/// iOS (kill-switch suite au rejet Apple guideline 3.1.3b). Défaut `true`
+/// (Premium affiché) pour les tests qui ne l'overrident pas explicitement.
+final premiumPaymentsEnabledProvider = Provider<bool>((ref) => true);
+
 /// Supabase's own client — session persistence/refresh is handled by the
 /// SDK itself (see `Supabase.initialize` in main.dart), independent of
 /// [secureTokenStoreProvider].

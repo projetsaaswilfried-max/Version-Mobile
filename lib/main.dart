@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_environment.dart';
+import 'core/config/premium_remote_config.dart';
+import 'core/di/providers.dart';
 import 'core/navigation/root_navigator.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/datasources/age_gate_local_datasource.dart';
@@ -49,6 +51,9 @@ Future<void> main() async {
     );
   }
 
+  final premiumPaymentsEnabled =
+      await PremiumRemoteConfig.resolvePremiumPaymentsEnabled();
+
   final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
@@ -59,6 +64,7 @@ Future<void> main() async {
         introStoreProvider.overrideWithValue(
           IntroStoreImpl(IntroLocalDataSource(prefs)),
         ),
+        premiumPaymentsEnabledProvider.overrideWithValue(premiumPaymentsEnabled),
       ],
       child: const AgapeoApp(),
     ),

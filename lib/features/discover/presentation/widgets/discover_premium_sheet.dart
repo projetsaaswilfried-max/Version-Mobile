@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/di/providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/widgets.dart';
 import '../../../premium/presentation/premium_plan_page.dart';
+import '../../../premium/presentation/widgets/feature_unavailable_sheet.dart';
 import 'discover_premium_plans.dart';
 
 class DiscoverPremiumSheet extends StatelessWidget {
@@ -14,7 +17,20 @@ class DiscoverPremiumSheet extends StatelessWidget {
   final VoidCallback? onDismiss;
   final ValueChanged<DiscoverPremiumPlan>? onSelectPlan;
 
-  static Future<void> show(BuildContext context) {
+  /// [silent] : pour l'offre spontanée affichée automatiquement au
+  /// chargement de Découvrir (pas une action utilisateur) - si le Premium
+  /// est désactivé, ne montre rien du tout plutôt que le sheet
+  /// "fonctionnalité non disponible" (réservé aux actions explicites,
+  /// voir `PremiumRemoteConfig`).
+  static Future<void> show(BuildContext context, {bool silent = false}) {
+    final enabled = ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(premiumPaymentsEnabledProvider);
+    if (!enabled) {
+      return silent ? Future.value() : FeatureUnavailableSheet.show(context);
+    }
+
     final colors = context.colors;
     return showModalBottomSheet<void>(
       context: context,

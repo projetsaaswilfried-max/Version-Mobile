@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/di/providers.dart';
 import '../../../core/error/result.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -51,6 +52,45 @@ class _PremiumPlanPageState extends ConsumerState<PremiumPlanPage> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final typography = context.typography;
+
+    // Garde-fou défensif : couvre tout point d'entrée qui pousserait
+    // directement cette page (ex. "Mon Plan" dans le hub profil,
+    // notification PAYMENT_FAILED) sans passer par un sheet déjà filtré
+    // (PremiumFeatureSheet/DiscoverPremiumSheet) - voir PremiumRemoteConfig.
+    if (!ref.watch(premiumPaymentsEnabledProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mon Plan')),
+        body: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: AppSpacing.xxxl,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Fonctionnalité non disponible',
+                textAlign: TextAlign.center,
+                style: typography.title,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Cette fonctionnalité n\'est pas disponible pour le moment.',
+                textAlign: TextAlign.center,
+                style: typography.bodyMedium.copyWith(
+                  color: colors.textSecondary,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final gate = ref.watch(memberGateProvider);
     final status = switch (gate) {
       AsyncData(:final value) => switch (value) {

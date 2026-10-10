@@ -71,7 +71,7 @@ class _DiscoverBodyState extends ConsumerState<DiscoverBody> {
     _sheetOfferedForLoad = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      DiscoverPremiumSheet.show(context);
+      DiscoverPremiumSheet.show(context, silent: true);
     });
   }
 
