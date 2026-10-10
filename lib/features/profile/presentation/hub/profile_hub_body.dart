@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/di/providers.dart';
 import '../../../../core/error/result.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/widgets.dart';
@@ -41,12 +42,22 @@ class ProfileHubBody extends ConsumerStatefulWidget {
 class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
   var _completionDismissed = false;
 
-  static const _accountSections = [
+  static const _baseAccountSections = [
     ProfileHubSection.profile,
     ProfileHubSection.faith,
     ProfileHubSection.moreInfo,
     ProfileHubSection.plan,
   ];
+
+  /// "Mon Plan" masqué plutôt que menant à un écran "fonctionnalité non
+  /// disponible" - plus propre et évite un point d'entrée mort (kill
+  /// switch iOS, voir `PremiumRemoteConfig`).
+  List<ProfileHubSection> _accountSections(bool premiumEnabled) {
+    if (premiumEnabled) return _baseAccountSections;
+    return _baseAccountSections
+        .where((section) => section != ProfileHubSection.plan)
+        .toList();
+  }
 
   static const _activitySections = [
     ProfileHubSection.posts,
@@ -62,13 +73,14 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(profileHubControllerProvider);
+    final premiumEnabled = ref.watch(premiumPaymentsEnabledProvider);
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          ..._slivers(context, ref, state),
+          ..._slivers(context, ref, state, premiumEnabled),
           SliverToBoxAdapter(child: SizedBox(height: widget.bottomPadding)),
         ],
       ),
@@ -91,6 +103,7 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
     BuildContext context,
     WidgetRef ref,
     ProfileHubState state,
+    bool premiumEnabled,
   ) {
     if (state.isInitialLoading) {
       return const [SliverToBoxAdapter(child: ProfileHubSkeleton())];
@@ -167,7 +180,7 @@ class _ProfileHubBodyState extends ConsumerState<ProfileHubBody> {
             AppSpacing.sm,
           ),
           children: [
-            for (final section in _accountSections)
+            for (final section in _accountSections(premiumEnabled))
               ProfileHubRow(
                 section: section,
                 onTap: () => _onSectionTap(context, section),
